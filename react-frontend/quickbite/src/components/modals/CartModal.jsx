@@ -29,22 +29,20 @@ import { createOrder } from '../../store/slices/orderSlice';
 import { showNotification, closeCartModal } from '../../store/slices/uiSlice';
 import { mockCoupons } from '../../constants/mockData';
 import Modal from '../common/Modal';
-import { useNavigate } from 'react-router-dom';
 
 const CartModal = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
   const { isCartModalOpen } = useSelector((state) => state.ui);
   const { items, subtotal, deliveryFee, tax, total, restaurantName, appliedCoupon } = useSelector((state) => state.cart);
   const { user } = useSelector((state) => state.auth);
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
 
-  const handleQuantityChange = (itemId, newQuantity) => {
+  const handleQuantityChange = (itemId, customization, newQuantity) => {
     if (newQuantity <= 0) {
-      dispatch(removeFromCart({ itemId }));
+      dispatch(removeFromCart({ itemId, customization }));
     } else {
-      dispatch(updateQuantity({ itemId, quantity: newQuantity }));
+      dispatch(updateQuantity({ itemId, customization, quantity: newQuantity }));
     }
   };
 
@@ -251,7 +249,7 @@ const CartModal = () => {
                   
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0 }}>
                     <IconButton 
-                      onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
+                      onClick={() => handleQuantityChange(item.id, item.customization, item.quantity - 1)}
                       size="small"
                       sx={{ 
                         border: '1px solid #fc8019',
@@ -277,7 +275,7 @@ const CartModal = () => {
                     </Typography>
                     
                     <IconButton 
-                      onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
+                      onClick={() => handleQuantityChange(item.id, item.customization, item.quantity + 1)}
                       size="small"
                       sx={{ 
                         backgroundColor: '#fc8019',
@@ -293,7 +291,7 @@ const CartModal = () => {
                     </IconButton>
                     
                     <IconButton 
-                      onClick={() => dispatch(removeFromCart({ itemId: item.id }))}
+                      onClick={() => dispatch(removeFromCart({ itemId: item.id, customization: item.customization }))}
                       size="small"
                       sx={{ 
                         color: '#dc3545',
@@ -445,51 +443,26 @@ const CartModal = () => {
             </Box>
           </Paper>
 
-          {/* Action Buttons */}
-          <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
-            <Button
-              variant="outlined"
-              fullWidth
-              onClick={() => {
-                dispatch(closeCartModal());
-                navigate('/cart');
-              }}
-              sx={{
-                py: 1.5,
-                fontWeight: 600,
-                fontSize: '16px',
-                textTransform: 'none',
-                borderRadius: '8px',
-                borderColor: '#fc8019',
-                color: '#fc8019',
-                '&:hover': {
-                  borderColor: '#e6730a',
-                  backgroundColor: '#fff5f0',
-                },
-              }}
-            >
-              View Full Cart
-            </Button>
-            <Button
-              variant="contained"
-              fullWidth
-              startIcon={<Payment />}
-              onClick={handlePlaceOrder}
-              sx={{
-                py: 1.5,
-                backgroundColor: '#fc8019',
-                '&:hover': {
-                  backgroundColor: '#e6730a'
-                },
-                fontWeight: 600,
-                fontSize: '16px',
-                textTransform: 'none',
-                borderRadius: '8px'
-              }}
-            >
-              Place Order
-            </Button>
-          </Box>
+          {/* Place Order Button */}
+          <Button
+            variant="contained"
+            fullWidth
+            startIcon={<Payment />}
+            onClick={handlePlaceOrder}
+            sx={{ 
+              py: 1.5,
+              backgroundColor: '#fc8019',
+              '&:hover': { 
+                backgroundColor: '#e6730a'
+              },
+              fontWeight: 600,
+              fontSize: '16px',
+              textTransform: 'none',
+              borderRadius: '8px'
+            }}
+          >
+            Place Order - {formatPrice(total)}
+          </Button>
         </Box>
       )}
     </Modal>

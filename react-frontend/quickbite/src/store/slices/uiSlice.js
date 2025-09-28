@@ -1,49 +1,144 @@
 import { createSlice } from '@reduxjs/toolkit';
-import toast from 'react-hot-toast';
 
 const initialState = {
-  isAuthModalOpen: false,
+  // Modal states
+  isLoginModalOpen: false,
+  isRegisterModalOpen: false,
   isCartModalOpen: false,
-  isLocationModalOpen: false,
+  isAddressModalOpen: false,
+  isPaymentModalOpen: false,
+  
+  // Loading states
+  isPageLoading: false,
+  
+  // Notification states
+  notification: {
+    open: false,
+    message: '',
+    type: 'info' // 'success', 'error', 'warning', 'info'
+  },
+  
+  // Location state
+  currentLocation: null,
+  selectedAddress: null,
+  
+  // Theme state
+  theme: 'light',
+  
+  // Sidebar state
+  isSidebarOpen: false
 };
 
 const uiSlice = createSlice({
   name: 'ui',
   initialState,
   reducers: {
-    openAuthModal(state) {
-      state.isAuthModalOpen = true;
+    // Modal actions
+    openLoginModal: (state) => {
+      state.isLoginModalOpen = true;
     },
-    closeAuthModal(state) {
-      state.isAuthModalOpen = false;
+    closeLoginModal: (state) => {
+      state.isLoginModalOpen = false;
     },
-    openCartModal(state) {
+    openRegisterModal: (state) => {
+      state.isRegisterModalOpen = true;
+    },
+    closeRegisterModal: (state) => {
+      state.isRegisterModalOpen = false;
+    },
+    openCartModal: (state) => {
       state.isCartModalOpen = true;
     },
-    closeCartModal(state) {
+    closeCartModal: (state) => {
       state.isCartModalOpen = false;
     },
-    openLocationModal(state) {
-      state.isLocationModalOpen = true;
+    openAddressModal: (state) => {
+      state.isAddressModalOpen = true;
     },
-    closeLocationModal(state) {
-      state.isLocationModalOpen = false;
+    closeAddressModal: (state) => {
+      state.isAddressModalOpen = false;
     },
-    showNotification(state, action) {
-      const { message, type = 'success' } = action.payload;
-      toast[type](message);
+    openPaymentModal: (state) => {
+      state.isPaymentModalOpen = true;
     },
-  },
+    closePaymentModal: (state) => {
+      state.isPaymentModalOpen = false;
+    },
+    
+    // Loading actions
+    setPageLoading: (state, action) => {
+      state.isPageLoading = action.payload;
+    },
+    
+    // Notification actions
+    showNotification: (state, action) => {
+      state.notification = {
+        open: true,
+        message: action.payload.message,
+        type: action.payload.type || 'info'
+      };
+    },
+    hideNotification: (state) => {
+      state.notification.open = false;
+    },
+    
+    // Location actions
+    setCurrentLocation: (state, action) => {
+      state.currentLocation = action.payload;
+    },
+    setSelectedAddress: (state, action) => {
+      state.selectedAddress = action.payload;
+    },
+    
+    // Theme actions
+    toggleTheme: (state) => {
+      state.theme = state.theme === 'light' ? 'dark' : 'light';
+    },
+    setTheme: (state, action) => {
+      state.theme = action.payload;
+    },
+    
+    // Sidebar actions
+    toggleSidebar: (state) => {
+      state.isSidebarOpen = !state.isSidebarOpen;
+    },
+    setSidebarOpen: (state, action) => {
+      state.isSidebarOpen = action.payload;
+    }
+  }
 });
 
 export const {
-  openAuthModal,
-  closeAuthModal,
+  // Modal actions
+  openLoginModal,
+  closeLoginModal,
+  openRegisterModal,
+  closeRegisterModal,
   openCartModal,
   closeCartModal,
-  openLocationModal,
-  closeLocationModal,
+  openAddressModal,
+  closeAddressModal,
+  openPaymentModal,
+  closePaymentModal,
+  
+  // Loading actions
+  setPageLoading,
+  
+  // Notification actions
   showNotification,
+  hideNotification,
+  
+  // Location actions
+  setCurrentLocation,
+  setSelectedAddress,
+  
+  // Theme actions
+  toggleTheme,
+  setTheme,
+  
+  // Sidebar actions
+  toggleSidebar,
+  setSidebarOpen
 } = uiSlice.actions;
 
 export default uiSlice.reducer;
