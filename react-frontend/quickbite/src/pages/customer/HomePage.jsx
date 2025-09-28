@@ -22,20 +22,15 @@ import {
   Search, 
   LocationOn, 
   Star, 
-  AccessTime, 
-  LocalShipping,
   FilterList,
   Sort,
-  Favorite,
   FavoriteBorder,
   ExpandMore,
   ExpandLess,
-  Discount,
-  Timer,
-  Verified
 } from '@mui/icons-material';
-import { fetchRestaurants, setFilters } from '../../store/slices/restaurantSlice';
-import { openLoginModal } from '../../store/slices/uiSlice';
+import { useNavigate } from 'react-router-dom';
+import { fetchRestaurants } from '../../store/slices/restaurantSlice';
+import { openLocationModal } from '../../store/slices/uiSlice';
 import Button from '../../components/common/Button';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { mockCategories } from '../../constants/mockData';
@@ -114,30 +109,38 @@ const ReadMoreText = ({ text, maxLength = 100, sx = {} }) => {
 
 const HomePage = () => {
   const dispatch = useDispatch();
-  const { restaurants, loading, filters } = useSelector((state) => state.restaurants);
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+  const { filtered: restaurants, status: restaurantStatus } = useSelector((state) => state.restaurants);
+  const { currentLocation } = useSelector((state) => state.location);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('relevance');
-  const [showFilters, setShowFilters] = useState(false);
+  const [activeCategory, setActiveCategory] = useState(null);
 
   useEffect(() => {
     dispatch(fetchRestaurants());
   }, [dispatch]);
 
-  const handleCategoryFilter = (category) => {
-    dispatch(setFilters({ cuisine: category }));
+  const handleLocationClick = () => {
+    dispatch(openLocationModal());
   };
 
-  const handleSearch = () => {
-    dispatch(setFilters({ search: searchQuery }));
+  const handleSearchChange = (e) => {
+    setSearchQuery(e.target.value);
   };
 
-  const handleRestaurantClick = (restaurantId) => {
-    if (!isAuthenticated) {
-      dispatch(openLoginModal());
-      return;
+  const handleSearchSubmit = (e) => {
+    if (e.key === 'Enter') {
+      dispatch(fetchRestaurants({ search: searchQuery, cuisine: activeCategory }));
     }
-    window.location.href = `/restaurant/${restaurantId}`;
+  };
+
+  const handleCategoryClick = (category) => {
+    const newCategory = activeCategory === category ? null : category;
+    setActiveCategory(newCategory);
+    dispatch(fetchRestaurants({ search: searchQuery, cuisine: newCategory }));
+  };
+
+  const handleRestaurantClick = (id) => {
+    navigate(`/restaurant/${id}`);
   };
 
   const formatPrice = (price) => {
@@ -146,10 +149,10 @@ const HomePage = () => {
       currency: 'INR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(price);
+    }).format(price || 0);
   };
 
-  if (loading) {
+  if (restaurantStatus === 'loading') {
     return <LoadingSpinner fullScreen message="Loading restaurants..." />;
   }
 
@@ -164,10 +167,13 @@ const HomePage = () => {
       }}>
         <Container maxWidth="lg">
           {/* Location Bar */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+          <Box
+            sx={{ display: 'flex', alignItems: 'center', mb: 2, cursor: 'pointer' }}
+            onClick={handleLocationClick}
+          >
             <LocationOn sx={{ mr: 1, fontSize: 20, color: 'white' }} />
             <Typography variant="body1" sx={{ fontWeight: 500, fontSize: '14px', color: 'white' }}>
-              Deliver to: 123 Main St, City
+              Deliver to: {currentLocation.address}
             </Typography>
           </Box>
           
@@ -177,8 +183,8 @@ const HomePage = () => {
               fullWidth
               placeholder="Search for restaurants or food..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+              onChange={handleSearchChange}
+              onKeyPress={handleSearchSubmit}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -225,11 +231,11 @@ const HomePage = () => {
               <Chip
                 key={category.id}
                 label={`${category.icon} ${category.name}`}
-                onClick={() => handleCategoryFilter(category.name)}
-                variant={filters.cuisine === category.name ? 'filled' : 'outlined'}
+                onClick={() => handleCategoryClick(category.name)}
+                variant={activeCategory === category.name ? 'filled' : 'outlined'}
                 sx={{
-                  backgroundColor: filters.cuisine === category.name ? '#fc8019' : 'white',
-                  color: filters.cuisine === category.name ? 'white' : '#333',
+                  backgroundColor: activeCategory === category.name ? '#fc8019' : 'white',
+                  color: activeCategory === category.name ? 'white' : '#333',
                   borderColor: '#e0e0e0',
                   fontWeight: 500,
                   fontSize: '13px',
@@ -237,74 +243,12 @@ const HomePage = () => {
                   borderRadius: '16px',
                   px: 2,
                   '&:hover': {
-                    backgroundColor: filters.cuisine === category.name ? '#e6730a' : '#f8f9fa',
+                    backgroundColor: activeCategory === category.name ? '#e6730a' : '#f8f9fa',
                   },
                   transition: 'all 0.2s ease'
                 }}
               />
             ))}
-          </Box>
-        </Box>
-
-        {/* Compact Sort and Filter Bar */}
-        <Box sx={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          mb: 3,
-          py: 2
-        }}>
-          <Typography variant="h6" sx={{ 
-            fontWeight: 600, 
-            color: '#333', 
-            fontSize: '16px'
-          }}>
-            {restaurants.length} restaurants near you
-          </Typography>
-          <Box sx={{ display: 'flex', gap: 1 }}>
-            <Button
-              variant="outlined"
-              startIcon={<FilterList />}
-              onClick={() => setShowFilters(!showFilters)}
-              sx={{ 
-                borderColor: '#e0e0e0',
-                color: '#333',
-                textTransform: 'none',
-                fontWeight: 500,
-                borderRadius: '6px',
-                px: 2,
-                py: 1,
-                fontSize: '13px',
-                '&:hover': {
-                  borderColor: '#fc8019',
-                  backgroundColor: '#fff5f0',
-                },
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Filters
-            </Button>
-            <Button
-              variant="outlined"
-              startIcon={<Sort />}
-              sx={{ 
-                borderColor: '#e0e0e0',
-                color: '#333',
-                textTransform: 'none',
-                fontWeight: 500,
-                borderRadius: '6px',
-                px: 2,
-                py: 1,
-                fontSize: '13px',
-                '&:hover': {
-                  borderColor: '#fc8019',
-                  backgroundColor: '#fff5f0',
-                },
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Sort
-            </Button>
           </Box>
         </Box>
 
