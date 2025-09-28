@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 import { Box, AppBar, Toolbar, Typography, IconButton, Badge, Avatar, Button } from '@mui/material';
 import { ShoppingCart, Person, Menu, LocationOn, Search } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
-import { openAuthModal, openCartModal } from '../../store/slices/uiSlice';
+import { openLoginModal, toggleSidebar } from '../../store/slices/uiSlice';
 import { useNavigate } from 'react-router-dom';
 import Notification from '../common/Notification';
 
@@ -11,11 +11,11 @@ const Layout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useSelector((state) => state.auth);
-  const { items: cartItems } = useSelector((state) => state.cart);
-  const totalItems = cartItems.reduce((total, item) => total + item.quantity, 0);
+  const { totalItems } = useSelector((state) => state.cart);
+  const { isSidebarOpen } = useSelector((state) => state.ui);
 
   const handleCartClick = () => {
-    dispatch(openCartModal());
+    navigate('/cart');
   };
 
   return (

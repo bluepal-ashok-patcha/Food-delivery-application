@@ -7,12 +7,10 @@ import { store } from './store/store';
 import Layout from './components/layout/Layout';
 import AuthModals from './components/modals/AuthModals';
 import CartModal from './components/modals/CartModal';
-import LocationModal from './components/modals/LocationModal';
 import HomePage from './pages/customer/HomePage';
 import RestaurantPage from './pages/customer/RestaurantPage';
 import CartPage from './pages/customer/CartPage';
 import OrdersPage from './pages/customer/OrdersPage';
-import OrderDetailsPage from './pages/customer/OrderDetailsPage';
 import ProfilePage from './pages/customer/ProfilePage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import RestaurantDashboard from './pages/restaurant/RestaurantDashboard';
@@ -56,7 +54,6 @@ function App() {
                 <Route path="restaurant/:id" element={<RestaurantPage />} />
                 <Route path="cart" element={<CartPage />} />
                 <Route path="orders" element={<OrdersPage />} />
-                <Route path="orders/:orderId" element={<OrderDetailsPage />} />
                 <Route path="profile" element={<ProfilePage />} />
               </Route>
               
@@ -96,7 +93,6 @@ function App() {
             
             <AuthModals />
             <CartModal />
-            <LocationModal />
           </div>
         </Router>
       </ThemeProvider>
