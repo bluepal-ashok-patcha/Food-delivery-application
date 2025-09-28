@@ -1,163 +1,81 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { mockOrders } from '../../constants/mockData';
+import { clearCart } from './cartSlice';
 
-// Async thunks
+// Mock API call
+const createOrderAPI = (order) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ ...order, id: Date.now(), status: 'Order Placed' });
+    }, 1000);
+  });
+};
+
 export const createOrder = createAsyncThunk(
   'orders/createOrder',
-  async (orderData, { rejectWithValue }) => {
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newOrder = {
-        id: mockOrders.length + 1,
-        ...orderData,
-        status: 'placed',
-        orderDate: new Date().toISOString()
-      };
-      
-      return newOrder;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
+  async (order, { dispatch }) => {
+    const response = await createOrderAPI(order);
+    dispatch(clearCart());
+    return response;
   }
 );
+
+// Mock API call to fetch orders
+const fetchOrdersAPI = (userId) => {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // In a real app, you'd filter orders by userId from your DB
+      resolve([]); // Returning empty for now, as createOrder adds to the state
+    }, 500);
+  });
+};
 
 export const fetchOrders = createAsyncThunk(
   'orders/fetchOrders',
-  async (filters = {}, { rejectWithValue }) => {
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      let filteredOrders = [...mockOrders];
-      
-      if (filters.userId) {
-        filteredOrders = filteredOrders.filter(order => order.customerId === filters.userId);
-      }
-      
-      if (filters.status) {
-        filteredOrders = filteredOrders.filter(order => order.status === filters.status);
-      }
-      
-      if (filters.restaurantId) {
-        filteredOrders = filteredOrders.filter(order => order.restaurantId === filters.restaurantId);
-      }
-      
-      return filteredOrders;
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
-  }
-);
-
-export const updateOrderStatus = createAsyncThunk(
-  'orders/updateOrderStatus',
-  async ({ orderId, status }, { rejectWithValue }) => {
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      return { orderId, status };
-    } catch (error) {
-      return rejectWithValue(error.message);
-    }
+  async (userId) => {
+    const response = await fetchOrdersAPI(userId);
+    return response;
   }
 );
 
 const initialState = {
-  orders: [],
-  currentOrder: null,
+  items: [],
   loading: false,
   error: null,
-  filters: {
-    userId: null,
-    status: '',
-    restaurantId: null
-  }
 };
 
 const orderSlice = createSlice({
   name: 'orders',
   initialState,
-  reducers: {
-    setFilters: (state, action) => {
-      state.filters = { ...state.filters, ...action.payload };
-    },
-    clearFilters: (state) => {
-      state.filters = {
-        userId: null,
-        status: '',
-        restaurantId: null
-      };
-    },
-    setCurrentOrder: (state, action) => {
-      state.currentOrder = action.payload;
-    },
-    clearCurrentOrder: (state) => {
-      state.currentOrder = null;
-    }
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
-      // Create order
       .addCase(createOrder.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(createOrder.fulfilled, (state, action) => {
         state.loading = false;
-        state.orders.unshift(action.payload);
-        state.currentOrder = action.payload;
-        state.error = null;
+        state.items.push(action.payload);
       })
       .addCase(createOrder.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.error.message;
       })
-      // Fetch orders
       .addCase(fetchOrders.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
       .addCase(fetchOrders.fulfilled, (state, action) => {
         state.loading = false;
-        state.orders = action.payload;
-        state.error = null;
+        // This assumes createOrder is the source of truth for new orders during a session.
+        // If fetching from a DB, you would replace state.items.
+        state.items = [...state.items, ...action.payload];
       })
       .addCase(fetchOrders.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
-      })
-      // Update order status
-      .addCase(updateOrderStatus.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(updateOrderStatus.fulfilled, (state, action) => {
-        state.loading = false;
-        const { orderId, status } = action.payload;
-        const order = state.orders.find(o => o.id === orderId);
-        if (order) {
-          order.status = status;
-        }
-        if (state.currentOrder && state.currentOrder.id === orderId) {
-          state.currentOrder.status = status;
-        }
-        state.error = null;
-      })
-      .addCase(updateOrderStatus.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
+        state.error = action.error.message;
       });
-  }
+  },
 });
-
-export const { 
-  setFilters, 
-  clearFilters, 
-  setCurrentOrder, 
-  clearCurrentOrder 
-} = orderSlice.actions;
 
 export default orderSlice.reducer;

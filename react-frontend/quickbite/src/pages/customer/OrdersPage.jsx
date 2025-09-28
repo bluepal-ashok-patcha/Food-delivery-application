@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { 
   Box, 
@@ -10,26 +10,42 @@ import {
   Grid,
   Divider
 } from '@mui/material';
+import RatingModal from '../../components/modals/RatingModal';
 import { 
   Restaurant, 
   AccessTime, 
   LocalShipping, 
   Star,
-  Receipt
+  Receipt,
+  ArrowForward,
 } from '@mui/icons-material';
 import { fetchOrders } from '../../store/slices/orderSlice';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import { useNavigate } from 'react-router-dom';
 
 const OrdersPage = () => {
   const dispatch = useDispatch();
-  const { orders, loading } = useSelector((state) => state.orders);
+  const navigate = useNavigate();
+  const { items: orders, loading } = useSelector((state) => state.orders);
   const { user } = useSelector((state) => state.auth);
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
   useEffect(() => {
     if (user) {
-      dispatch(fetchOrders({ userId: user.id }));
+      dispatch(fetchOrders(user.id));
     }
   }, [dispatch, user]);
+
+  const handleOpenRatingModal = (order) => {
+    setSelectedOrder(order);
+    setRatingModalOpen(true);
+  };
+
+  const handleCloseRatingModal = () => {
+    setSelectedOrder(null);
+    setRatingModalOpen(false);
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -152,30 +168,34 @@ const OrdersPage = () => {
                   </Typography>
                 </Grid>
               </Grid>
-              
-              {order.status === 'delivered' && (
-                <Box sx={{ mt: 1.5, p: 1.5, backgroundColor: '#f8f9fa', borderRadius: '6px' }}>
-                  <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: '12px' }}>
-                    Rate your experience
-                  </Typography>
-                  <Box sx={{ display: 'flex', gap: 0.5 }}>
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star 
-                        key={star} 
-                        sx={{ 
-                          fontSize: 16, 
-                          color: star <= 4 ? '#ffc107' : '#e0e0e0',
-                          cursor: 'pointer'
-                        }} 
-                      />
-                    ))}
-                  </Box>
-                </Box>
-              )}
+
+              <Divider sx={{ my: 1.5 }} />
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                {order.status === 'delivered' ? (
+                  <Button variant="outlined" size="small" onClick={() => handleOpenRatingModal(order)}>
+                    Rate Order
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    size="small"
+                    endIcon={<ArrowForward />}
+                    onClick={() => navigate(`/orders/${order.id}`)}
+                  >
+                    Track Order
+                  </Button>
+                )}
+              </Box>
             </Paper>
           ))}
         </Box>
       )}
+      <RatingModal
+        open={ratingModalOpen}
+        onClose={handleCloseRatingModal}
+        order={selectedOrder}
+      />
     </Container>
   );
 };
