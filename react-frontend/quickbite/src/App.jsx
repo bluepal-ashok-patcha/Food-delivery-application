@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
@@ -41,6 +41,15 @@ const theme = createTheme({
 });
 
 function App() {
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('auth');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        store.dispatch({ type: 'auth/loginUser/fulfilled', payload: { ...parsed.user, role: parsed.userRole } });
+      }
+    } catch {}
+  }, []);
   return (
     <Provider store={store}>
       <ThemeProvider theme={theme}>
@@ -48,44 +57,45 @@ function App() {
         <Router>
           <div className="App">
             <Routes>
-              {/* Public Routes */}
+              {/* All Routes with Layout */}
               <Route path="/" element={<Layout />}>
+                {/* Public Routes */}
                 <Route index element={<HomePage />} />
                 <Route path="restaurant/:id" element={<RestaurantPage />} />
                 <Route path="cart" element={<CartPage />} />
                 <Route path="orders" element={<OrdersPage />} />
                 <Route path="profile" element={<ProfilePage />} />
+                
+                {/* Protected Admin Routes */}
+                <Route 
+                  path="admin/*" 
+                  element={
+                    <ProtectedRoute allowedRoles={['admin']}>
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                {/* Protected Restaurant Owner Routes */}
+                <Route 
+                  path="restaurant-owner/*" 
+                  element={
+                    <ProtectedRoute allowedRoles={['restaurant_owner']}>
+                      <RestaurantDashboard />
+                    </ProtectedRoute>
+                  } 
+                />
+                
+                {/* Protected Delivery Partner Routes */}
+                <Route 
+                  path="delivery/*" 
+                  element={
+                    <ProtectedRoute allowedRoles={['delivery_partner']}>
+                      <DeliveryDashboard />
+                    </ProtectedRoute>
+                  } 
+                />
               </Route>
-              
-              {/* Protected Admin Routes */}
-              <Route 
-                path="/admin/*" 
-                element={
-                  <ProtectedRoute allowedRoles={['admin']}>
-                    <AdminDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Protected Restaurant Owner Routes */}
-              <Route 
-                path="/restaurant-owner/*" 
-                element={
-                  <ProtectedRoute allowedRoles={['restaurant_owner']}>
-                    <RestaurantDashboard />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              {/* Protected Delivery Partner Routes */}
-              <Route 
-                path="/delivery/*" 
-                element={
-                  <ProtectedRoute allowedRoles={['delivery_partner']}>
-                    <DeliveryDashboard />
-                  </ProtectedRoute>
-                } 
-              />
               
               {/* Redirect unknown routes */}
               <Route path="*" element={<Navigate to="/" replace />} />

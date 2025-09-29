@@ -25,7 +25,7 @@ export const mockUsers = [
   {
     id: 2,
     name: "Admin User",
-    email: "admin@quickbite.com",
+    email: "admin@gmail.com",
     phone: "+1234567891",
     password: "admin123",
     role: "ADMIN",
@@ -36,7 +36,7 @@ export const mockUsers = [
   {
     id: 3,
     name: "Restaurant Owner",
-    email: "owner@restaurant.com",
+    email: "owner@gmail.com",
     phone: "+1234567892",
     password: "owner123",
     role: "RESTAURANT_OWNER",
@@ -48,7 +48,7 @@ export const mockUsers = [
   {
     id: 4,
     name: "Delivery Partner",
-    email: "delivery@quickbite.com",
+    email: "delivery@gmail.com",
     phone: "+1234567893",
     password: "delivery123",
     role: "DELIVERY_PARTNER",

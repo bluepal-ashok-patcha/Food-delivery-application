@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { Box, Typography, Link } from '@mui/material';
@@ -7,6 +7,7 @@ import { loginUser } from '../../store/slices/authSlice';
 import { closeLoginModal, openRegisterModal } from '../../store/slices/uiSlice';
 import Button from '../common/Button';
 import TextField from '../common/TextField';
+import { useNavigate } from 'react-router-dom';
 
 const validationSchema = Yup.object({
   email: Yup.string()
@@ -19,7 +20,8 @@ const validationSchema = Yup.object({
 
 const LoginForm = () => {
   const dispatch = useDispatch();
-  const { loading, error } = useSelector((state) => state.auth);
+  const navigate = useNavigate();
+  const { loading, error, isAuthenticated, userRole } = useSelector((state) => state.auth);
 
   const formik = useFormik({
     initialValues: {
@@ -31,6 +33,19 @@ const LoginForm = () => {
       dispatch(loginUser(values));
     },
   });
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(closeLoginModal());
+      const normalized = (userRole || '').toLowerCase();
+      const roleToPath = {
+        admin: '/admin',
+        restaurant_owner: '/restaurant-owner',
+        delivery_partner: '/delivery',
+      };
+      navigate(roleToPath[normalized] || '/');
+    }
+  }, [isAuthenticated, userRole, dispatch, navigate]);
 
   const handleSwitchToRegister = () => {
     dispatch(closeLoginModal());

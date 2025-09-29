@@ -23,6 +23,8 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { updateUserProfile } from '../../store/slices/authSlice';
 import { showNotification } from '../../store/slices/uiSlice';
+import AddressItem from '../../components/profile/AddressItem';
+import EmptyAddresses from '../../components/profile/EmptyAddresses';
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
@@ -235,42 +237,12 @@ const ProfilePage = () => {
         </Box>
 
         {user?.addresses?.map((address) => (
-          <Box key={address.id} sx={{ mb: 1.5 }}>
-            <Paper sx={{ p: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '6px' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <LocationOn sx={{ color: 'text.secondary', fontSize: '18px' }} />
-                <Box>
-                  <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '14px' }}>
-                    {address.address}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '12px' }}>
-                    {address.type.charAt(0).toUpperCase() + address.type.slice(1)}
-                    {address.isDefault && ' • Default'}
-                  </Typography>
-                </Box>
-              </Box>
-              
-              <Box sx={{ display: 'flex', gap: 0.5 }}>
-                {!address.isDefault && (
-                  <Button
-                    size="small"
-                    onClick={() => handleSetDefaultAddress(address.id)}
-                    sx={{ fontSize: '11px', px: 1, py: 0.5 }}
-                  >
-                    Set Default
-                  </Button>
-                )}
-                <IconButton
-                  color="error"
-                  onClick={() => handleDeleteAddress(address.id)}
-                  size="small"
-                  sx={{ width: '28px', height: '28px' }}
-                >
-                  <Delete sx={{ fontSize: '16px' }} />
-                </IconButton>
-              </Box>
-            </Paper>
-          </Box>
+          <AddressItem
+            key={address.id}
+            address={address}
+            onSetDefault={() => handleSetDefaultAddress(address.id)}
+            onDelete={() => handleDeleteAddress(address.id)}
+          />
         ))}
 
         {isAddingAddress && (
@@ -323,31 +295,7 @@ const ProfilePage = () => {
         )}
 
         {(!user?.addresses || user.addresses.length === 0) && !isAddingAddress && (
-          <Box sx={{ textAlign: 'center', py: 3 }}>
-            <LocationOn sx={{ fontSize: 48, color: 'text.secondary', mb: 1.5 }} />
-            <Typography variant="h6" gutterBottom sx={{ fontSize: '16px' }}>
-              No addresses added yet
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: '14px' }}>
-              Add your delivery addresses for faster checkout
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<Add />}
-              onClick={() => setIsAddingAddress(true)}
-              size="small"
-              sx={{ 
-                backgroundColor: '#fc8019',
-                '&:hover': { backgroundColor: '#e6730a' },
-                fontSize: '13px',
-                px: 2,
-                py: 1,
-                borderRadius: '6px'
-              }}
-            >
-              Add Your First Address
-            </Button>
-          </Box>
+          <EmptyAddresses onAdd={() => setIsAddingAddress(true)} />
         )}
       </Paper>
     </Container>

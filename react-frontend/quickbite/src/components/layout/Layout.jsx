@@ -4,13 +4,14 @@ import { Box, AppBar, Toolbar, Typography, IconButton, Badge, Avatar, Button } f
 import { ShoppingCart, Person, Menu, LocationOn, Search } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { openLoginModal, toggleSidebar } from '../../store/slices/uiSlice';
+import { logout } from '../../store/slices/authSlice';
 import { useNavigate } from 'react-router-dom';
 import Notification from '../common/Notification';
 
 const Layout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { isAuthenticated, user, userRole } = useSelector((state) => state.auth);
   const { totalItems } = useSelector((state) => state.cart);
   const { isSidebarOpen } = useSelector((state) => state.ui);
 
@@ -40,16 +41,16 @@ const Layout = () => {
           }
         }}
       >
-        <Toolbar sx={{ py: 2, position: 'relative', zIndex: 2 }}>
+        <Toolbar sx={{ py: 1, position: 'relative', zIndex: 2, minHeight: '60px !important' }}>
           {/* Logo */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mr: 6 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mr: 4 }}>
             <Typography 
-              variant="h4" 
+              variant="h5" 
               component="div" 
               sx={{ 
                 fontWeight: 800, 
                 color: '#fc8019',
-                fontSize: '28px',
+                fontSize: '22px',
                 textShadow: '0 2px 4px rgba(252, 128, 25, 0.2)'
               }}
             >
@@ -58,22 +59,22 @@ const Layout = () => {
           </Box>
           
           {/* Location */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mr: 6 }}>
-            <LocationOn sx={{ mr: 1.5, color: '#666', fontSize: 24 }} />
-            <Typography variant="h6" sx={{ color: '#333', fontWeight: 600, fontSize: '16px' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', mr: 4 }}>
+            <LocationOn sx={{ mr: 1, color: '#666', fontSize: 18 }} />
+            <Typography variant="body1" sx={{ color: '#333', fontWeight: 600, fontSize: '14px' }}>
               Deliver to: 123 Main St, City
             </Typography>
           </Box>
           
           {/* Search Bar */}
-          <Box sx={{ flexGrow: 1, maxWidth: 500, mr: 6 }}>
+          <Box sx={{ flexGrow: 1, maxWidth: 400, mr: 4 }}>
             <Box sx={{ 
               display: 'flex', 
               alignItems: 'center',
               backgroundColor: '#f8f9fa',
-              borderRadius: '12px',
-              px: 3,
-              py: 1.5,
+              borderRadius: '8px',
+              px: 2,
+              py: 1,
               border: '1px solid #e0e0e0',
               boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
               '&:hover': {
@@ -82,30 +83,31 @@ const Layout = () => {
               },
               transition: 'all 0.3s ease'
             }}>
-              <Search sx={{ mr: 1.5, color: '#666', fontSize: 24 }} />
-              <Typography variant="body1" sx={{ color: '#999', fontSize: '16px' }}>
+              <Search sx={{ mr: 1, color: '#666', fontSize: 18 }} />
+              <Typography variant="body2" sx={{ color: '#999', fontSize: '14px' }}>
                 Search for restaurants or food...
               </Typography>
             </Box>
           </Box>
           
           {/* Right Side Actions */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             {isAuthenticated ? (
               <>
+                {userRole === 'customer' && (
                 <IconButton
                   color="inherit"
                   onClick={handleCartClick}
                   sx={{ 
                     backgroundColor: '#fc8019',
                     color: 'white',
-                    width: '48px',
-                    height: '48px',
-                    boxShadow: '0 4px 12px rgba(252, 128, 25, 0.3)',
+                    width: '40px',
+                    height: '40px',
+                    boxShadow: '0 2px 8px rgba(252, 128, 25, 0.3)',
                     '&:hover': { 
                       backgroundColor: '#e6730a',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 6px 16px rgba(252, 128, 25, 0.4)'
+                      transform: 'translateY(-1px)',
+                      boxShadow: '0 4px 12px rgba(252, 128, 25, 0.4)'
                     },
                     transition: 'all 0.3s ease'
                   }}
@@ -118,26 +120,53 @@ const Layout = () => {
                         backgroundColor: '#ff4444',
                         color: 'white',
                         fontWeight: 700,
-                        fontSize: '12px'
+                        fontSize: '10px'
                       }
                     }}
                   >
-                    <ShoppingCart sx={{ fontSize: '24px' }} />
+                    <ShoppingCart sx={{ fontSize: '20px' }} />
                   </Badge>
                 </IconButton>
-                
+                )}
+                {userRole === 'admin' && (
+                  <Button 
+                    variant="text" 
+                    onClick={() => navigate('/admin')} 
+                    sx={{ fontWeight: 600, fontSize: '14px', px: 2, py: 0.5 }}
+                  >
+                    Admin
+                  </Button>
+                )}
+                {userRole === 'restaurant_owner' && (
+                  <Button 
+                    variant="text" 
+                    onClick={() => navigate('/restaurant-owner')} 
+                    sx={{ fontWeight: 600, fontSize: '14px', px: 2, py: 0.5 }}
+                  >
+                    Restaurant
+                  </Button>
+                )}
+                {userRole === 'delivery_partner' && (
+                  <Button 
+                    variant="text" 
+                    onClick={() => navigate('/delivery')} 
+                    sx={{ fontWeight: 600, fontSize: '14px', px: 2, py: 0.5 }}
+                  >
+                    Delivery
+                  </Button>
+                )}
                 <Button
                   variant="outlined"
-                  startIcon={<Avatar sx={{ width: 24, height: 24 }} />}
+                  startIcon={<Avatar sx={{ width: 20, height: 20 }} />}
                   sx={{ 
                     borderColor: '#e0e0e0',
                     color: '#333',
                     textTransform: 'none',
                     fontWeight: 600,
-                    borderRadius: '12px',
-                    px: 3,
-                    py: 1.5,
-                    fontSize: '15px',
+                    borderRadius: '8px',
+                    px: 2,
+                    py: 0.5,
+                    fontSize: '14px',
                     boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
                     '&:hover': {
                       borderColor: '#fc8019',
@@ -150,6 +179,12 @@ const Layout = () => {
                 >
                   {user?.name}
                 </Button>
+                <Button 
+                  onClick={() => dispatch(logout())} 
+                  sx={{ fontWeight: 700, fontSize: '14px', px: 2, py: 0.5 }}
+                >
+                  Logout
+                </Button>
               </>
             ) : (
               <Button
@@ -160,16 +195,16 @@ const Layout = () => {
                   backgroundColor: '#fc8019',
                   '&:hover': { 
                     backgroundColor: '#e6730a',
-                    transform: 'translateY(-2px)',
-                    boxShadow: '0 6px 16px rgba(252, 128, 25, 0.4)'
+                    transform: 'translateY(-1px)',
+                    boxShadow: '0 4px 12px rgba(252, 128, 25, 0.4)'
                   },
                   textTransform: 'none',
                   fontWeight: 700,
-                  borderRadius: '12px',
-                  px: 4,
-                  py: 1.5,
-                  fontSize: '16px',
-                  boxShadow: '0 4px 12px rgba(252, 128, 25, 0.3)',
+                  borderRadius: '8px',
+                  px: 3,
+                  py: 0.5,
+                  fontSize: '14px',
+                  boxShadow: '0 2px 8px rgba(252, 128, 25, 0.3)',
                   transition: 'all 0.3s ease'
                 }}
               >

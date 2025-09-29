@@ -61,6 +61,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.userRole = null;
       state.error = null;
+      try { localStorage.removeItem('auth'); } catch {}
     },
     clearError: (state) => {
       state.error = null;
@@ -82,8 +83,9 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
-        state.userRole = action.payload.role;
+        state.userRole = (action.payload.role || '').toLowerCase();
         state.error = null;
+        try { localStorage.setItem('auth', JSON.stringify({ user: state.user, userRole: state.userRole })); } catch {}
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
@@ -98,8 +100,9 @@ const authSlice = createSlice({
         state.loading = false;
         state.user = action.payload;
         state.isAuthenticated = true;
-        state.userRole = action.payload.role;
+        state.userRole = (action.payload.role || '').toLowerCase();
         state.error = null;
+        try { localStorage.setItem('auth', JSON.stringify({ user: state.user, userRole: state.userRole })); } catch {}
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.loading = false;
