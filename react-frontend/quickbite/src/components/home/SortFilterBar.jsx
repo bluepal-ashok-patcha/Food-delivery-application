@@ -13,14 +13,14 @@ const SortFilterBar = ({ count, onToggleFilters }) => (
         variant="outlined"
         startIcon={<FilterList />}
         onClick={onToggleFilters}
-        sx={{ borderColor: '#e0e0e0', color: '#333', textTransform: 'none', fontWeight: 500, borderRadius: '6px', px: 2, py: 1, fontSize: '13px', '&:hover': { borderColor: '#fc8019', backgroundColor: '#fff5f0' }, transition: 'all 0.2s ease' }}
+        sx={{ borderColor: '#e0e0e0', color: '#333', textTransform: 'none', fontWeight: 500, borderRadius: '3px', px: 2, py: 1, fontSize: '13px', '&:hover': { borderColor: '#fc8019', backgroundColor: '#fff5f0' }, transition: 'all 0.2s ease' }}
       >
         Filters
       </Button>
       <Button
         variant="outlined"
         startIcon={<Sort />}
-        sx={{ borderColor: '#e0e0e0', color: '#333', textTransform: 'none', fontWeight: 500, borderRadius: '6px', px: 2, py: 1, fontSize: '13px', '&:hover': { borderColor: '#fc8019', backgroundColor: '#fff5f0' }, transition: 'all 0.2s ease' }}
+        sx={{ borderColor: '#e0e0e0', color: '#333', textTransform: 'none', fontWeight: 500, borderRadius: '3px', px: 2, py: 1, fontSize: '13px', '&:hover': { borderColor: '#fc8019', backgroundColor: '#fff5f0' }, transition: 'all 0.2s ease' }}
       >
         Sort
       </Button>

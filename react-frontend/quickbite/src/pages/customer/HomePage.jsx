@@ -61,8 +61,8 @@ const HomePage = () => {
         <SortFilterBar count={restaurants.length} onToggleFilters={() => setShowFilters(!showFilters)} />
 
         {restaurants.length === 0 ? (
-          <Paper sx={{ p: 4, textAlign: 'center', borderRadius: '16px', boxShadow: '0 4px 16px rgba(0,0,0,0.08)' }}>
-            <Typography variant="h6" color="text.secondary" sx={{ fontSize: '18px', fontWeight: 600 }}>
+          <Paper sx={{ p: 3, textAlign: 'center', borderRadius: '3px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+            <Typography variant="h6" color="text.secondary" sx={{ fontSize: '16px', fontWeight: 600 }}>
               No restaurants found
             </Typography>
           </Paper>

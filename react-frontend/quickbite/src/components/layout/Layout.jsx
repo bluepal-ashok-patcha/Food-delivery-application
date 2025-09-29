@@ -5,8 +5,11 @@ import { ShoppingCart, Person, Menu, LocationOn, Search } from '@mui/icons-mater
 import { useSelector, useDispatch } from 'react-redux';
 import { openLoginModal, toggleSidebar } from '../../store/slices/uiSlice';
 import { logout } from '../../store/slices/authSlice';
+import { openLocationModal } from '../../store/slices/locationSlice';
 import { useNavigate } from 'react-router-dom';
 import Notification from '../common/Notification';
+import LocationModal from '../modals/LocationModal';
+import MapSelector from '../maps/MapSelector';
 
 const Layout = () => {
   const dispatch = useDispatch();
@@ -14,6 +17,7 @@ const Layout = () => {
   const { isAuthenticated, user, userRole } = useSelector((state) => state.auth);
   const { totalItems } = useSelector((state) => state.cart);
   const { isSidebarOpen } = useSelector((state) => state.ui);
+  const { currentLocation } = useSelector((state) => state.location);
 
   const handleCartClick = () => {
     navigate('/cart');
@@ -43,7 +47,19 @@ const Layout = () => {
       >
         <Toolbar sx={{ py: 1, position: 'relative', zIndex: 2, minHeight: '60px !important' }}>
           {/* Logo */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mr: 4 }}>
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              mr: 4,
+              cursor: 'pointer',
+              '&:hover': {
+                opacity: 0.8
+              },
+              transition: 'opacity 0.2s ease'
+            }}
+            onClick={() => navigate('/')}
+          >
             <Typography 
               variant="h5" 
               component="div" 
@@ -59,10 +75,22 @@ const Layout = () => {
           </Box>
           
           {/* Location */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mr: 4 }}>
+          <Box 
+            sx={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              mr: 4,
+              cursor: 'pointer',
+              '&:hover': {
+                opacity: 0.8
+              },
+              transition: 'opacity 0.2s ease'
+            }}
+            onClick={() => dispatch(openLocationModal())}
+          >
             <LocationOn sx={{ mr: 1, color: '#666', fontSize: 18 }} />
             <Typography variant="body1" sx={{ color: '#333', fontWeight: 600, fontSize: '14px' }}>
-              Deliver to: 123 Main St, City
+              Deliver to: {currentLocation?.address || '123 Main St, City'}
             </Typography>
           </Box>
           
@@ -72,7 +100,7 @@ const Layout = () => {
               display: 'flex', 
               alignItems: 'center',
               backgroundColor: '#f8f9fa',
-              borderRadius: '8px',
+              borderRadius: '3px',
               px: 2,
               py: 1,
               border: '1px solid #e0e0e0',
@@ -91,7 +119,7 @@ const Layout = () => {
           </Box>
           
           {/* Right Side Actions */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, ml: 'auto' }}>
             {isAuthenticated ? (
               <>
                 {userRole === 'customer' && (
@@ -163,7 +191,7 @@ const Layout = () => {
                     color: '#333',
                     textTransform: 'none',
                     fontWeight: 600,
-                    borderRadius: '8px',
+                    borderRadius: '3px',
                     px: 2,
                     py: 0.5,
                     fontSize: '14px',
@@ -200,7 +228,7 @@ const Layout = () => {
                   },
                   textTransform: 'none',
                   fontWeight: 700,
-                  borderRadius: '8px',
+                  borderRadius: '3px',
                   px: 3,
                   py: 0.5,
                   fontSize: '14px',
@@ -220,6 +248,8 @@ const Layout = () => {
       </Box>
       
       <Notification />
+      <LocationModal />
+      <MapSelector />
     </Box>
   );
 };

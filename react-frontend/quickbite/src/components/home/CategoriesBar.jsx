@@ -20,7 +20,7 @@ const CategoriesBar = ({ title = 'Popular Categories', categories, activeCuisine
             fontWeight: 500,
             fontSize: '13px',
             height: '32px',
-            borderRadius: '16px',
+            borderRadius: '3px',
             px: 2,
             '&:hover': { backgroundColor: activeCuisine === category.name ? '#e6730a' : '#f8f9fa' },
             transition: 'all 0.2s ease',
