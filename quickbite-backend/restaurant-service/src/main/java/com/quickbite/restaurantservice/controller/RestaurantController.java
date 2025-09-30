@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,13 +36,16 @@ public class RestaurantController {
     // --- Restaurant Owner Endpoints ---
 
     @PostMapping
-    public ResponseEntity<RestaurantDto> createRestaurant(@Valid @RequestBody RestaurantDto restaurantDto) {
+    public ResponseEntity<RestaurantDto> createRestaurant(@Valid @RequestBody RestaurantDto restaurantDto, Authentication authentication) {
+        Long ownerId = (Long) authentication.getPrincipal();
+        restaurantDto.setOwnerId(ownerId); // Set ownerId from the authenticated token
         RestaurantDto createdRestaurant = restaurantService.createRestaurant(restaurantDto);
         return new ResponseEntity<>(createdRestaurant, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}/profile")
     public ResponseEntity<RestaurantDto> updateRestaurantProfile(@PathVariable Long id, @Valid @RequestBody RestaurantDto restaurantDto) {
+        // Authorization logic (e.g., check if authenticated user owns this restaurant) would be handled in the service layer
         RestaurantDto updatedRestaurant = restaurantService.updateRestaurantProfile(id, restaurantDto);
         return ResponseEntity.ok(updatedRestaurant);
     }

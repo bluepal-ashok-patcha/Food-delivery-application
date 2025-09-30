@@ -15,7 +15,4 @@ public class UserRegistrationRequestDto {
     @NotEmpty(message = "Password cannot be empty")
     @Size(min = 8, message = "Password must be at least 8 characters long")
     private String password;
-
-    @NotEmpty(message = "Role cannot be empty")
-    private String role;
 }
