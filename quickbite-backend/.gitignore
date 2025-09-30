@@ -1,0 +1,48 @@
+# Compiled class file
+*.class
+
+# Log file
+*.log
+
+# BlueJ files
+*.ctxt
+
+# Mobile Tools for Java (J2ME)
+.mtj.tmp/
+
+# Package Files #
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
+hs_err_pid*
+
+# Build directory
+target/
+
+# IDE files
+.idea/
+*.iml
+.classpath
+.project
+.settings/
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Secrets
+application.properties
+!/discovery-service/src/main/resources/application.properties
+!/api-gateway/src/main/resources/application.properties
+!/auth-service/src/main/resources/application.properties
+!/user-service/src/main/resources/application.properties
+!/restaurant-service/src/main/resources/application.properties
+!/order-service/src/main/resources/application.properties
+!/delivery-service/src/main/resources/application.properties
