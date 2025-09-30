@@ -57,7 +57,11 @@ public class AuthenticationFilter implements GatewayFilter {
     private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(httpStatus);
-        return response.setComplete();
+        response.getHeaders().add("Content-Type", "application/json");
+        String body = String.format("{\"timestamp\":\"%s\",\"status\":%d,\"error\":\"%s\",\"path\":\"%s\"}",
+                java.time.OffsetDateTime.now().toString(), httpStatus.value(), err, exchange.getRequest().getPath().value());
+        byte[] bytes = body.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return response.writeWith(Mono.just(response.bufferFactory().wrap(bytes)));
     }
 
     private String getAuthHeader(ServerHttpRequest request) {

@@ -9,9 +9,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class ApiResponse<T> {
-    private boolean success;
-    private String message;
-    private T data;
-    private PageMeta page;
+public class PageMeta {
+    private int page;
+    private int size;
+    private long totalElements;
+    private int totalPages;
 }
+
+

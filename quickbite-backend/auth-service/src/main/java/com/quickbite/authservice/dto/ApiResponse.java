@@ -1,4 +1,4 @@
-package com.quickbite.userservice.dto;
+package com.quickbite.authservice.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,5 +13,6 @@ public class ApiResponse<T> {
     private boolean success;
     private String message;
     private T data;
-    private PageMeta page;
 }
+
+

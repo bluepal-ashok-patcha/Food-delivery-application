@@ -14,6 +14,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -57,6 +61,19 @@ public class RestaurantService {
         return restaurantRepository.findAll().stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Restaurant> getAllRestaurantsPage(int page, int size, String sortBy, String sortDir, String search) {
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Restaurant> resultPage;
+        if (search != null && !search.isBlank()) {
+            resultPage = restaurantRepository.findByNameContainingIgnoreCaseOrCuisineTypeContainingIgnoreCase(search, search, pageable);
+        } else {
+            resultPage = restaurantRepository.findAll(pageable);
+        }
+        return resultPage;
     }
 
     @Transactional
@@ -108,6 +125,32 @@ public class RestaurantService {
     public void deleteMenuItem(Long itemId) {
         menuItemRepository.deleteById(itemId);
         log.info("Deleted menu item with id: {}", itemId);
+    }
+
+    @Transactional
+    public MenuCategoryDto updateMenuCategory(Long categoryId, MenuCategoryDto categoryDto) {
+        MenuCategory existing = menuCategoryRepository.findById(categoryId)
+                .orElseThrow(() -> new RuntimeException("Menu category not found"));
+        BeanUtils.copyProperties(categoryDto, existing, "id", "menuItems");
+        MenuCategory saved = menuCategoryRepository.save(existing);
+        log.info("Updated menu category with id: {}", categoryId);
+        return convertToDto(saved);
+    }
+
+    @Transactional
+    public void deleteMenuCategory(Long categoryId) {
+        menuCategoryRepository.deleteById(categoryId);
+        log.info("Deleted menu category with id: {}", categoryId);
+    }
+
+    @Transactional
+    public MenuItemDto updateMenuItem(Long itemId, MenuItemDto itemDto) {
+        MenuItem existing = menuItemRepository.findById(itemId)
+                .orElseThrow(() -> new RuntimeException("Menu item not found"));
+        BeanUtils.copyProperties(itemDto, existing, "id");
+        MenuItem saved = menuItemRepository.save(existing);
+        log.info("Updated menu item with id: {}", itemId);
+        return convertToDto(saved);
     }
 
     // --- DTO Conversion Utilities ---

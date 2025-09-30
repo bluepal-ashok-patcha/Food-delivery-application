@@ -28,4 +28,10 @@ public class User {
 
     @Column(nullable = false)
     private String role; // e.g., "CUSTOMER", "ADMIN", "RESTAURANT_OWNER", "DELIVERY_PARTNER"
+
+    @Column(nullable = true)
+    private String name;
+
+    @Column(nullable = true)
+    private String phone;
 }

@@ -1,6 +1,8 @@
 package com.quickbite.authservice.service;
 
 import com.quickbite.authservice.dto.AuthResponseDto;
+import com.quickbite.authservice.dto.UserDto;
+import com.quickbite.authservice.exception.DuplicateEmailException;
 import com.quickbite.authservice.dto.UserLoginRequestDto;
 import com.quickbite.authservice.dto.UserRegistrationRequestDto;
 import com.quickbite.authservice.entity.User;
@@ -36,20 +38,33 @@ public class AuthService {
     public AuthResponseDto registerUser(UserRegistrationRequestDto requestDto) {
         if (userRepository.findByEmail(requestDto.getEmail()).isPresent()) {
             log.warn("Registration attempt with existing email: {}", requestDto.getEmail());
-            throw new RuntimeException("User with this email already exists");
+            throw new DuplicateEmailException("User with this email already exists");
         }
 
         User user = User.builder()
                 .email(requestDto.getEmail())
                 .password(passwordEncoder.encode(requestDto.getPassword()))
                 .role("CUSTOMER")
+                .name(requestDto.getName())
+                .phone(requestDto.getPhone())
                 .build();
 
         User savedUser = userRepository.save(user);
         log.info("User registered successfully: {}", savedUser.getEmail());
 
         String token = jwtUtil.generateToken(savedUser.getId(), savedUser.getEmail(), savedUser.getRole());
-        return new AuthResponseDto(token, "User registered successfully");
+        UserDto userDto = UserDto.builder()
+                .id(savedUser.getId())
+                .email(savedUser.getEmail())
+                .role(savedUser.getRole())
+                .name(savedUser.getName())
+                .phone(savedUser.getPhone())
+                .build();
+        return AuthResponseDto.builder()
+                .token(token)
+                .message("User registered successfully")
+                .user(userDto)
+                .build();
     }
 
     public AuthResponseDto loginUser(UserLoginRequestDto requestDto) {
@@ -63,6 +78,17 @@ public class AuthService {
         log.info("User logged in successfully: {}", user.getEmail());
 
         String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
-        return new AuthResponseDto(token, "User logged in successfully");
+        UserDto userDto = UserDto.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .name(user.getName())
+                .phone(user.getPhone())
+                .build();
+        return AuthResponseDto.builder()
+                .token(token)
+                .message("User logged in successfully")
+                .user(userDto)
+                .build();
     }
 }

@@ -20,6 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 @Service
 public class OrderService {
@@ -81,10 +85,36 @@ public class OrderService {
     }
 
     @Transactional(readOnly = true)
+    public Page<Order> getOrdersByUserIdPage(Long userId, int page, int size, String sortBy, String sortDir, String status) {
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Order> pageData;
+        if (status != null && !status.isBlank()) {
+            pageData = orderRepository.findByUserIdAndOrderStatus(userId, OrderStatus.valueOf(status.toUpperCase()), pageable);
+        } else {
+            pageData = orderRepository.findByUserId(userId, pageable);
+        }
+        return pageData;
+    }
+
+    @Transactional(readOnly = true)
     public List<OrderResponseDto> getOrdersByRestaurantId(Long restaurantId) {
         return orderRepository.findByRestaurantId(restaurantId).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Order> getOrdersByRestaurantIdPage(Long restaurantId, int page, int size, String sortBy, String sortDir, String status) {
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Page<Order> pageData;
+        if (status != null && !status.isBlank()) {
+            pageData = orderRepository.findByRestaurantIdAndOrderStatus(restaurantId, OrderStatus.valueOf(status.toUpperCase()), pageable);
+        } else {
+            pageData = orderRepository.findByRestaurantId(restaurantId, pageable);
+        }
+        return pageData;
     }
 
 

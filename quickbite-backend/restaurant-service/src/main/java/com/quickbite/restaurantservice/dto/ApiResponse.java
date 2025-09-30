@@ -1,4 +1,4 @@
-package com.quickbite.userservice.dto;
+package com.quickbite.restaurantservice.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -15,3 +15,5 @@ public class ApiResponse<T> {
     private T data;
     private PageMeta page;
 }
+
+

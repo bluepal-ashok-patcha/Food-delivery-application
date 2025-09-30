@@ -10,6 +10,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.access.AccessDeniedHandler;
 
 @Configuration
 @EnableWebSecurity
@@ -23,7 +25,11 @@ public class SecurityConfig {
                 .requestMatchers("/auth/**").permitAll()
                 .anyRequest().authenticated()
             )
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(ex -> ex
+                .authenticationEntryPoint(restAuthenticationEntryPoint())
+                .accessDeniedHandler(restAccessDeniedHandler())
+            );
 
         return http.build();
     }
@@ -36,5 +42,23 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public AuthenticationEntryPoint restAuthenticationEntryPoint() {
+        return (request, response, authException) -> {
+            response.setStatus(401);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"success\":false,\"message\":\"Unauthorized\"}");
+        };
+    }
+
+    @Bean
+    public AccessDeniedHandler restAccessDeniedHandler() {
+        return (request, response, accessDeniedException) -> {
+            response.setStatus(403);
+            response.setContentType("application/json");
+            response.getWriter().write("{\"success\":false,\"message\":\"Forbidden\"}");
+        };
     }
 }

@@ -19,43 +19,72 @@ public class UserProfileController {
     private UserProfileService userProfileService;
 
     @PostMapping("/profile")
-    public ResponseEntity<UserProfileDto> createUserProfile(@Valid @RequestBody UserProfileDto userProfileDto, Authentication authentication) {
+    public ResponseEntity<ApiResponse<UserProfileDto>> createUserProfile(@Valid @RequestBody UserProfileDto userProfileDto, Authentication authentication) {
         Long userId = (Long) authentication.getDetails();
         userProfileDto.setUserId(userId); // Set userId from the authenticated token
         UserProfileDto createdProfile = userProfileService.createUserProfile(userProfileDto);
-        return new ResponseEntity<>(createdProfile, HttpStatus.CREATED);
+        ApiResponse<UserProfileDto> body = ApiResponse.<UserProfileDto>builder()
+                .success(true)
+                .message("User profile created successfully")
+                .data(createdProfile)
+                .build();
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<UserProfileDto> getUserProfile(Authentication authentication) {
+    public ResponseEntity<ApiResponse<UserProfileDto>> getUserProfile(Authentication authentication) {
         Long userId = (Long) authentication.getDetails();
         UserProfileDto userProfileDto = userProfileService.getUserProfileByUserId(userId);
-        return ResponseEntity.ok(userProfileDto);
+        ApiResponse<UserProfileDto> body = ApiResponse.<UserProfileDto>builder()
+                .success(true)
+                .message("User profile fetched successfully")
+                .data(userProfileDto)
+                .build();
+        return ResponseEntity.ok(body);
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<UserProfileDto> updateUserProfile(@Valid @RequestBody UserProfileDto userProfileDto, Authentication authentication) {
+    public ResponseEntity<ApiResponse<UserProfileDto>> updateUserProfile(@Valid @RequestBody UserProfileDto userProfileDto, Authentication authentication) {
         Long userId = (Long) authentication.getDetails();
         UserProfileDto updatedProfile = userProfileService.updateUserProfile(userId, userProfileDto);
-        return ResponseEntity.ok(updatedProfile);
+        ApiResponse<UserProfileDto> body = ApiResponse.<UserProfileDto>builder()
+                .success(true)
+                .message("User profile updated successfully")
+                .data(updatedProfile)
+                .build();
+        return ResponseEntity.ok(body);
     }
 
     @PostMapping("/addresses")
-    public ResponseEntity<AddressDto> addAddress(@Valid @RequestBody AddressDto addressDto, Authentication authentication) {
+    public ResponseEntity<ApiResponse<AddressDto>> addAddress(@Valid @RequestBody AddressDto addressDto, Authentication authentication) {
         Long userId = (Long) authentication.getDetails();
         AddressDto newAddress = userProfileService.addAddress(userId, addressDto);
-        return new ResponseEntity<>(newAddress, HttpStatus.CREATED);
+        ApiResponse<AddressDto> body = ApiResponse.<AddressDto>builder()
+                .success(true)
+                .message("Address created successfully")
+                .data(newAddress)
+                .build();
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
     @PutMapping("/addresses/{addressId}")
-    public ResponseEntity<AddressDto> updateAddress(@PathVariable Long addressId, @Valid @RequestBody AddressDto addressDto) {
+    public ResponseEntity<ApiResponse<AddressDto>> updateAddress(@PathVariable Long addressId, @Valid @RequestBody AddressDto addressDto) {
         AddressDto updatedAddress = userProfileService.updateAddress(addressId, addressDto);
-        return ResponseEntity.ok(updatedAddress);
+        ApiResponse<AddressDto> body = ApiResponse.<AddressDto>builder()
+                .success(true)
+                .message("Address updated successfully")
+                .data(updatedAddress)
+                .build();
+        return ResponseEntity.ok(body);
     }
 
     @DeleteMapping("/addresses/{addressId}")
-    public ResponseEntity<ApiResponse> deleteAddress(@PathVariable Long addressId) {
+    public ResponseEntity<ApiResponse<Void>> deleteAddress(@PathVariable Long addressId) {
         userProfileService.deleteAddress(addressId);
-        return ResponseEntity.ok(new ApiResponse("Address deleted successfully", true));
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Address deleted successfully")
+                .data(null)
+                .build());
     }
 }

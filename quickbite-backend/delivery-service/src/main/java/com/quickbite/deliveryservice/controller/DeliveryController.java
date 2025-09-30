@@ -1,5 +1,6 @@
 package com.quickbite.deliveryservice.controller;
 
+import com.quickbite.deliveryservice.dto.ApiResponse;
 import com.quickbite.deliveryservice.dto.DeliveryPartnerDto;
 import com.quickbite.deliveryservice.dto.LocationUpdateDto;
 import com.quickbite.deliveryservice.entity.DeliveryPartnerStatus;
@@ -21,37 +22,58 @@ public class DeliveryController {
     private DeliveryService deliveryService;
 
     @PostMapping("/partners")
-    public ResponseEntity<DeliveryPartnerDto> createDeliveryPartner(@Valid @RequestBody DeliveryPartnerDto partnerDto, Authentication authentication) {
+    public ResponseEntity<ApiResponse<DeliveryPartnerDto>> createDeliveryPartner(@Valid @RequestBody DeliveryPartnerDto partnerDto, Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
         partnerDto.setUserId(userId); // Set userId from authenticated token
         DeliveryPartnerDto createdPartner = deliveryService.createDeliveryPartner(partnerDto);
-        return new ResponseEntity<>(createdPartner, HttpStatus.CREATED);
+        ApiResponse<DeliveryPartnerDto> body = ApiResponse.<DeliveryPartnerDto>builder()
+                .success(true)
+                .message("Delivery partner created successfully")
+                .data(createdPartner)
+                .build();
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
     @GetMapping("/partners/profile")
-    public ResponseEntity<DeliveryPartnerDto> getDeliveryPartner(Authentication authentication) {
+    public ResponseEntity<ApiResponse<DeliveryPartnerDto>> getDeliveryPartner(Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
         DeliveryPartnerDto partner = deliveryService.getDeliveryPartnerByUserId(userId);
-        return ResponseEntity.ok(partner);
+        return ResponseEntity.ok(ApiResponse.<DeliveryPartnerDto>builder()
+                .success(true)
+                .message("Delivery partner fetched successfully")
+                .data(partner)
+                .build());
     }
 
     @PutMapping("/partners/status")
-    public ResponseEntity<DeliveryPartnerDto> updatePartnerStatus(@RequestParam DeliveryPartnerStatus status, Authentication authentication) {
+    public ResponseEntity<ApiResponse<DeliveryPartnerDto>> updatePartnerStatus(@RequestParam DeliveryPartnerStatus status, Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
         DeliveryPartnerDto updatedPartner = deliveryService.updateDeliveryPartnerStatus(userId, status);
-        return ResponseEntity.ok(updatedPartner);
+        return ResponseEntity.ok(ApiResponse.<DeliveryPartnerDto>builder()
+                .success(true)
+                .message("Delivery partner status updated successfully")
+                .data(updatedPartner)
+                .build());
     }
 
     @PutMapping("/partners/location")
-    public ResponseEntity<Void> updatePartnerLocation(@Valid @RequestBody LocationUpdateDto locationDto, Authentication authentication) {
+    public ResponseEntity<ApiResponse<Void>> updatePartnerLocation(@Valid @RequestBody LocationUpdateDto locationDto, Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
         deliveryService.updateDeliveryPartnerLocation(userId, locationDto);
-        return ResponseEntity.ok().build();
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Delivery partner location updated successfully")
+                .data(null)
+                .build());
     }
 
     @GetMapping("/partners/available")
-    public ResponseEntity<List<DeliveryPartnerDto>> getAvailablePartners() {
+    public ResponseEntity<ApiResponse<List<DeliveryPartnerDto>>> getAvailablePartners() {
         List<DeliveryPartnerDto> partners = deliveryService.findAvailablePartners();
-        return ResponseEntity.ok(partners);
+        return ResponseEntity.ok(ApiResponse.<List<DeliveryPartnerDto>>builder()
+                .success(true)
+                .message("Available delivery partners fetched successfully")
+                .data(partners)
+                .build());
     }
 }
