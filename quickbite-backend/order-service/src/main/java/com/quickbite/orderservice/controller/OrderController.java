@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,17 +21,16 @@ public class OrderController {
     private OrderService orderService;
 
     @PostMapping
-    public ResponseEntity<OrderResponseDto> placeOrder(@RequestHeader("X-User-Id") Long userId, @Valid @RequestBody OrderRequestDto orderRequestDto) {
-        // Ensure the userId from the token matches the one in the request for consistency
-        if (!userId.equals(orderRequestDto.getUserId())) {
-            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
-        }
+    public ResponseEntity<OrderResponseDto> placeOrder(@Valid @RequestBody OrderRequestDto orderRequestDto, Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        orderRequestDto.setUserId(userId); // Set userId from the authenticated token
         OrderResponseDto createdOrder = orderService.placeOrder(orderRequestDto);
         return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
     }
 
     @GetMapping("/user")
-    public ResponseEntity<List<OrderResponseDto>> getOrdersByUserId(@RequestHeader("X-User-Id") Long userId) {
+    public ResponseEntity<List<OrderResponseDto>> getOrdersByUserId(Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
         List<OrderResponseDto> orders = orderService.getOrdersByUserId(userId);
         return ResponseEntity.ok(orders);
     }

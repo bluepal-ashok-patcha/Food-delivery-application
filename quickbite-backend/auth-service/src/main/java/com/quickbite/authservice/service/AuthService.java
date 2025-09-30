@@ -36,19 +36,19 @@ public class AuthService {
     public AuthResponseDto registerUser(UserRegistrationRequestDto requestDto) {
         if (userRepository.findByEmail(requestDto.getEmail()).isPresent()) {
             log.warn("Registration attempt with existing email: {}", requestDto.getEmail());
-            throw new RuntimeException("User with this email already exists"); // Will be replaced with custom exception
+            throw new RuntimeException("User with this email already exists");
         }
 
         User user = User.builder()
                 .email(requestDto.getEmail())
                 .password(passwordEncoder.encode(requestDto.getPassword()))
-                .role(requestDto.getRole())
+                .role("CUSTOMER")
                 .build();
 
-        userRepository.save(user);
-        log.info("User registered successfully: {}", user.getEmail());
+        User savedUser = userRepository.save(user);
+        log.info("User registered successfully: {}", savedUser.getEmail());
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        String token = jwtUtil.generateToken(savedUser.getId(), savedUser.getEmail(), savedUser.getRole());
         return new AuthResponseDto(token, "User registered successfully");
     }
 
@@ -62,7 +62,7 @@ public class AuthService {
         User user = userRepository.findByEmail(requestDto.getEmail()).orElseThrow(() -> new RuntimeException("User not found"));
         log.info("User logged in successfully: {}", user.getEmail());
 
-        String token = jwtUtil.generateToken(user.getEmail(), user.getRole());
+        String token = jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
         return new AuthResponseDto(token, "User logged in successfully");
     }
 }
