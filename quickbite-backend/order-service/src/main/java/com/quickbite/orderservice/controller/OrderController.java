@@ -20,13 +20,17 @@ public class OrderController {
     private OrderService orderService;
 
     @PostMapping
-    public ResponseEntity<OrderResponseDto> placeOrder(@Valid @RequestBody OrderRequestDto orderRequestDto) {
+    public ResponseEntity<OrderResponseDto> placeOrder(@RequestHeader("X-User-Id") Long userId, @Valid @RequestBody OrderRequestDto orderRequestDto) {
+        // Ensure the userId from the token matches the one in the request for consistency
+        if (!userId.equals(orderRequestDto.getUserId())) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+        }
         OrderResponseDto createdOrder = orderService.placeOrder(orderRequestDto);
         return new ResponseEntity<>(createdOrder, HttpStatus.CREATED);
     }
 
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<OrderResponseDto>> getOrdersByUserId(@PathVariable Long userId) {
+    @GetMapping("/user")
+    public ResponseEntity<List<OrderResponseDto>> getOrdersByUserId(@RequestHeader("X-User-Id") Long userId) {
         List<OrderResponseDto> orders = orderService.getOrdersByUserId(userId);
         return ResponseEntity.ok(orders);
     }
