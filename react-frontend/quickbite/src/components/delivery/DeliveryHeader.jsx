@@ -1,8 +1,8 @@
 import React from 'react';
-import { Box, Typography, Switch } from '@mui/material';
+import { Box, Typography, Switch, Button } from '@mui/material';
 import { LocalShipping } from '@mui/icons-material';
 
-const DeliveryHeader = ({ isOnline, onToggleStatus }) => {
+const DeliveryHeader = ({ isOnline, onToggleStatus, onEditProfile }) => {
   return (
     <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <Box>
@@ -41,6 +41,22 @@ const DeliveryHeader = ({ isOnline, onToggleStatus }) => {
           </Box>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {onEditProfile && (
+            <Button
+              variant="contained"
+              onClick={onEditProfile}
+              sx={{
+                background: '#fc8019',
+                textTransform: 'none',
+                fontWeight: 600,
+                borderRadius: '4px',
+                px: 2.5,
+                '&:hover': { background: '#e6730a' }
+              }}
+            >
+              Edit Profile
+            </Button>
+          )}
           <Typography variant="body1" sx={{ fontWeight: 600 }}>
             Status:
           </Typography>

@@ -3,7 +3,7 @@ import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, 
 import { Restaurant, LocationOn, Star } from '@mui/icons-material';
 import ActionButtons from './ActionButtons';
 
-const RestaurantsTable = ({ restaurants }) => {
+const RestaurantsTable = ({ restaurants, onViewRestaurant, onEditRestaurant, onDeleteRestaurant, onToggleActive, onToggleOpen, onApprove, onReject }) => {
   return (
     <TableContainer sx={{ 
       borderRadius: '4px',
@@ -74,19 +74,78 @@ const RestaurantsTable = ({ restaurants }) => {
                 </Box>
               </TableCell>
               <TableCell>
-                <Chip 
-                  label={restaurant.isOpen ? 'Open' : 'Closed'} 
-                  sx={{
-                    background: restaurant.isOpen ? '#4caf50' : '#f44336',
-                    color: 'white',
-                    fontWeight: 600,
-                    fontSize: '12px'
-                  }}
-                  size="small"
-                />
+                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                  <Chip 
+                    label={restaurant.isOpen ? 'Open' : 'Closed'} 
+                    onClick={() => onToggleOpen && onToggleOpen(restaurant)}
+                    sx={{
+                      background: restaurant.isOpen ? '#4caf50' : '#f44336',
+                      color: 'white',
+                      fontWeight: 600,
+                      fontSize: '12px',
+                      cursor: 'pointer'
+                    }}
+                    size="small"
+                  />
+                  <Chip 
+                    label={restaurant.isActive ? 'Active' : 'Inactive'} 
+                    onClick={() => onToggleActive && onToggleActive(restaurant)}
+                    sx={{
+                      background: restaurant.isActive ? '#4caf50' : '#9e9e9e',
+                      color: 'white',
+                      fontWeight: 600,
+                      fontSize: '12px',
+                      cursor: 'pointer'
+                    }}
+                    size="small"
+                  />
+                  {!restaurant.isApproved && (
+                    <>
+                      <Chip 
+                        label={'Pending Approval'}
+                        sx={{
+                          background: '#ff9800',
+                          color: 'white',
+                          fontWeight: 700,
+                          fontSize: '12px'
+                        }}
+                        size="small"
+                      />
+                      <Chip 
+                        label={'Approve'}
+                        onClick={() => onApprove && onApprove(restaurant)}
+                        sx={{
+                          background: '#2196f3',
+                          color: 'white',
+                          fontWeight: 600,
+                          fontSize: '12px',
+                          cursor: 'pointer'
+                        }}
+                        size="small"
+                      />
+                      <Chip 
+                        label={'Reject'}
+                        onClick={() => onReject && onReject(restaurant)}
+                        sx={{
+                          background: '#e91e63',
+                          color: 'white',
+                          fontWeight: 600,
+                          fontSize: '12px',
+                          cursor: 'pointer'
+                        }}
+                        size="small"
+                      />
+                    </>
+                  )}
+                </Box>
               </TableCell>
               <TableCell>
-                <ActionButtons />
+                <ActionButtons 
+                  menuOnly
+                  onView={() => onViewRestaurant && onViewRestaurant(restaurant)}
+                  onEdit={() => onEditRestaurant && onEditRestaurant(restaurant)}
+                  onDelete={() => onDeleteRestaurant && onDeleteRestaurant(restaurant)}
+                />
               </TableCell>
             </TableRow>
           ))}

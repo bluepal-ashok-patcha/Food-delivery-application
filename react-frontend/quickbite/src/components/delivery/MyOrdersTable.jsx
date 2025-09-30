@@ -2,7 +2,7 @@ import React from 'react';
 import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, Avatar, Typography, Chip, Button } from '@mui/material';
 import { Navigation, Phone, CheckCircle } from '@mui/icons-material';
 
-const MyOrdersTable = ({ orders, onCompleteOrder }) => {
+const MyOrdersTable = ({ orders, onCompleteOrder, onRowClick }) => {
   return (
     <TableContainer sx={{ 
       borderRadius: '4px',
@@ -29,6 +29,7 @@ const MyOrdersTable = ({ orders, onCompleteOrder }) => {
                   backgroundColor: '#f8f9fa'
                 }
               }}
+            onClick={onRowClick ? () => onRowClick(order) : undefined}
             >
               <TableCell>
                 <Box>

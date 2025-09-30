@@ -5,15 +5,12 @@ import { TrendingUp, TrendingDown } from '@mui/icons-material';
 const EnhancedStatCard = ({ stat }) => {
   return (
     <Card sx={{ 
-      height: '100%',
+      height: 140,
+      minWidth: 240,
+      maxWidth: 240,
       background: '#fff',
-      borderRadius: '4px',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-      transition: 'all 0.3s ease',
-      '&:hover': {
-        transform: 'translateY(-5px)',
-        boxShadow: '0 10px 30px rgba(252, 128, 25, 0.15)'
-      },
+      borderRadius: '6px',
+      boxShadow: '0 4px 16px rgba(0,0,0,0.06)',
       overflow: 'hidden',
       position: 'relative'
     }}>
@@ -25,55 +22,64 @@ const EnhancedStatCard = ({ stat }) => {
         height: '4px',
         background: `linear-gradient(90deg, ${stat.color}, ${stat.color}dd)`
       }} />
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-          <Box sx={{ 
-            p: 2, 
-            borderRadius: '4px', 
-            background: `${stat.color}15`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            {React.cloneElement(stat.icon, { 
-              sx: { fontSize: 28, color: stat.color } 
-            })}
-          </Box>
-          <Box sx={{ textAlign: 'right' }}>
+      <CardContent sx={{ p: 2.25 }}>
+        {/* Top: Icon and percentage */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.25 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ 
+              p: 1.25, 
+              borderRadius: '6px', 
+              background: `${stat.color}15`,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              {React.cloneElement(stat.icon, { 
+                sx: { fontSize: 24, color: stat.color } 
+              })}
+            </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               {stat.trend === 'up' ? 
-                <TrendingUp sx={{ fontSize: 16, color: '#4caf50' }} /> : 
-                <TrendingDown sx={{ fontSize: 16, color: '#f44336' }} />
+                <TrendingUp sx={{ fontSize: 14, color: '#4caf50' }} /> : 
+                <TrendingDown sx={{ fontSize: 14, color: '#f44336' }} />
               }
-              <Typography variant="body2" sx={{ 
+              <Typography variant="caption" sx={{ 
                 color: stat.trend === 'up' ? '#4caf50' : '#f44336',
-                fontWeight: 600
+                fontWeight: 700
               }}>
                 {stat.change}
               </Typography>
             </Box>
           </Box>
         </Box>
-        <Typography variant="h4" sx={{ 
-          fontWeight: 800, 
-          color: '#333',
-          mb: 0.5
-        }}>
-          {stat.value}
-        </Typography>
-        <Typography variant="h6" sx={{ 
-          color: '#333',
-          fontWeight: 600,
-          mb: 0.5
-        }}>
-          {stat.title}
-        </Typography>
-        <Typography variant="body2" sx={{ 
-          color: '#666',
-          fontSize: '14px'
-        }}>
-          {stat.subtitle}
-        </Typography>
+        {/* Middle: Text left, Number right */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2 }}>
+          <Box>
+            <Typography sx={{ 
+              color: '#333',
+              fontWeight: 600,
+              fontSize: 14,
+              lineHeight: 1.2,
+              mb: 0.25
+            }}>
+              {stat.title}
+            </Typography>
+            <Typography variant="caption" sx={{ 
+              color: '#666'
+            }}>
+              {stat.subtitle}
+            </Typography>
+          </Box>
+          <Typography sx={{ 
+            fontSize: 24, 
+            fontWeight: 800, 
+            color: '#333',
+            lineHeight: 1.1,
+            textAlign: 'right'
+          }}>
+            {stat.value}
+          </Typography>
+        </Box>
       </CardContent>
     </Card>
   );

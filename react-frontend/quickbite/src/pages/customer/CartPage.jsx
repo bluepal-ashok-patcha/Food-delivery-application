@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Container, Typography, Paper, Button, IconButton, Divider, TextField, Chip, Grid, Card, CardContent, Avatar, Badge, Stepper, Step, StepLabel, Alert } from '@mui/material';
 import { Add, Remove, Delete, LocalShipping, ArrowBack, LocationOn, Star } from '@mui/icons-material';
-import { updateQuantity, removeFromCart, applyCoupon, removeCoupon } from '../../store/slices/cartSlice';
+import { updateQuantity, removeFromCart, applyCoupon, removeCoupon, clearCart } from '../../store/slices/cartSlice';
 import { createOrder } from '../../store/slices/orderSlice';
 import { showNotification } from '../../store/slices/uiSlice';
-import { mockCoupons } from '../../constants/mockData';
+import { mockCoupons, mockRestaurants, mockUsers } from '../../constants/mockData';
 import { useNavigate } from 'react-router-dom';
 import CartHeader from '../../components/cart/CartHeader';
 import CartItemRow from '../../components/cart/CartItemRow';
@@ -21,7 +21,7 @@ const CartPage = () => {
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState('razorpay');
   const [isProcessing, setIsProcessing] = useState(false);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
 
@@ -56,7 +56,15 @@ const CartPage = () => {
     }, 1000);
   };
 
-  const handlePlaceOrder = () => {
+  const loadRazorpay = () => new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+
+  const handlePlaceOrder = async () => {
     if (!user) {
       dispatch(showNotification({ 
         message: 'Please login to place an order', 
@@ -67,9 +75,18 @@ const CartPage = () => {
 
     setIsProcessing(true);
     
+    // Get restaurant and user delivery coordinates
+    const restaurantId = items[0]?.restaurantId;
+    const restaurant = mockRestaurants.find(r => r.id === restaurantId);
+    const restaurantLocation = restaurant?.location || { lat: 0, lng: 0 };
+    const deliveryAddressObj = user.addresses?.[0];
+    const deliveryLocation = deliveryAddressObj
+      ? { lat: deliveryAddressObj.latitude, lng: deliveryAddressObj.longitude }
+      : { lat: 0, lng: 0 };
+
     const orderData = {
       customerId: user.id,
-      restaurantId: items[0]?.restaurantId,
+      restaurantId,
       items: items.map(item => ({
         id: item.id,
         name: item.name,
@@ -81,20 +98,58 @@ const CartPage = () => {
       deliveryFee,
       tax,
       total,
-      deliveryAddress: user.addresses?.[0]?.address || 'No address provided',
+      deliveryAddress: deliveryAddressObj?.address || 'No address provided',
       paymentMethod,
-      deliveryInstructions
+      deliveryInstructions,
+      restaurantLocation,
+      deliveryLocation
     };
 
-    setTimeout(() => {
-      dispatch(createOrder(orderData));
-      dispatch(showNotification({ 
-        message: 'Order placed successfully!', 
-        type: 'success' 
-      }));
-      setIsProcessing(false);
-      navigate('/orders');
-    }, 2000);
+    const proceedCreate = () => {
+      setTimeout(() => {
+        dispatch(createOrder(orderData));
+        dispatch(showNotification({ 
+          message: 'Order placed successfully!', 
+          type: 'success' 
+        }));
+        dispatch(clearCart());
+        setIsProcessing(false);
+        navigate('/orders/confirmation');
+      }, 1000);
+    };
+
+    if (paymentMethod === 'razorpay') {
+      const loaded = await loadRazorpay();
+      if (!loaded) {
+        dispatch(showNotification({ message: 'Payment SDK failed to load', type: 'error' }));
+        setIsProcessing(false);
+        return;
+      }
+
+      const options = {
+        key: 'rzp_test_R6s6aVW39Oqimg', // Replace with your Razorpay key
+        amount: Math.round(total * 100),
+        currency: 'INR',
+        name: 'QuickBite',
+        description: `Payment to ${restaurantName}`,
+        prefill: {
+          name: user?.name || 'Customer',
+          email: user?.email || 'customer@example.com',
+          contact: user?.phone || '9999999999'
+        },
+        theme: { color: '#fc8019' },
+        handler: function () {
+          proceedCreate();
+        },
+        modal: {
+          ondismiss: () => setIsProcessing(false)
+        }
+      };
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+    } else {
+      proceedCreate();
+    }
   };
 
   const formatPrice = (price) => {

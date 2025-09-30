@@ -3,7 +3,7 @@ import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, 
 import { Email, Phone } from '@mui/icons-material';
 import ActionButtons from './ActionButtons';
 
-const UsersTable = ({ users }) => {
+const UsersTable = ({ users, onViewUser, onEditUser, onDeleteUser, onToggleActive }) => {
   return (
     <TableContainer sx={{ 
       borderRadius: '4px',
@@ -44,9 +44,6 @@ const UsersTable = ({ users }) => {
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#333' }}>
                       {user.name}
                     </Typography>
-                    <Typography variant="body2" sx={{ color: '#666' }}>
-                      ID: #{user.id}
-                    </Typography>
                   </Box>
                 </Box>
               </TableCell>
@@ -81,18 +78,25 @@ const UsersTable = ({ users }) => {
               </TableCell>
               <TableCell>
                 <Chip 
-                  label="Active" 
+                  label={user.isActive ? 'Active' : 'Inactive'} 
+                  onClick={() => onToggleActive && onToggleActive(user)}
                   sx={{
-                    background: '#4caf50',
+                    background: user.isActive ? '#4caf50' : '#9e9e9e',
                     color: 'white',
                     fontWeight: 600,
-                    fontSize: '12px'
+                    fontSize: '12px',
+                    cursor: 'pointer'
                   }}
                   size="small"
                 />
               </TableCell>
               <TableCell>
-                <ActionButtons />
+                <ActionButtons 
+                  menuOnly
+                  onView={() => onViewUser && onViewUser(user)}
+                  onEdit={() => onEditUser && onEditUser(user)}
+                  onDelete={() => onDeleteUser && onDeleteUser(user)}
+                />
               </TableCell>
             </TableRow>
           ))}

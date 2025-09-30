@@ -12,11 +12,11 @@ export const mockUsers = [
       {
         id: 1,
         type: "HOME",
-        address: "123 Main St, City, State 12345",
-        latitude: 40.7128,
-        longitude: -74.0060,
+        address: "123 Banjara Hills, Hyderabad, Telangana 500034",
+        latitude: 17.4239,
+        longitude: 78.4483,
         isDefault: true,
-        landmark: "Near Central Park"
+        landmark: "Near City Center Mall"
       }
     ],
     createdAt: "2024-01-15T10:30:00Z",
@@ -56,7 +56,7 @@ export const mockUsers = [
     vehicleNumber: "MH01AB1234",
     isOnline: true,
     isAvailable: true,
-    currentLocation: { latitude: 40.7128, longitude: -74.0060 },
+  currentLocation: { latitude: 17.4239, longitude: 78.4483 },
     createdAt: "2024-01-12T08:00:00Z",
     updatedAt: "2024-01-12T08:00:00Z"
   }
@@ -83,7 +83,7 @@ export const mockRestaurants = [
     phone: "+1234567894",
     openingHours: "10:00 AM - 11:00 PM",
     ownerId: 3,
-    location: { latitude: 40.7589, longitude: -73.9851 },
+  location: { latitude: 19.0760, longitude: 72.8777 }, // Mumbai
     tags: ["Popular", "Fast Delivery", "Best Seller"],
     offers: [
       { id: 1, title: "20% off on orders above ₹300", type: "PERCENTAGE", value: 20, minOrder: 300 },
@@ -231,7 +231,7 @@ export const mockRestaurants = [
     phone: "+1234567895",
     openingHours: "11:00 AM - 12:00 AM",
     ownerId: 3,
-    location: { latitude: 40.7505, longitude: -73.9934 },
+  location: { latitude: 28.6139, longitude: 77.2090 }, // Delhi
     tags: ["Italian", "Pizza", "Fast Delivery"],
     offers: [
       { id: 3, title: "Buy 1 Get 1 Free on Pizzas", type: "BOGO", value: 50, minOrder: 0 }
@@ -329,7 +329,7 @@ export const mockRestaurants = [
     phone: "+1234567896",
     openingHours: "12:00 PM - 10:00 PM",
     ownerId: 3,
-    location: { latitude: 40.7614, longitude: -73.9776 },
+  location: { latitude: 12.9716, longitude: 77.5946 }, // Bangalore
     tags: ["Japanese", "Sushi", "Premium"],
     offers: [
       { id: 4, title: "15% off on orders above ₹500", type: "PERCENTAGE", value: 15, minOrder: 500 }
@@ -442,7 +442,7 @@ export const mockRestaurants = [
     phone: "+1234567897",
     openingHours: "10:00 AM - 11:00 PM",
     ownerId: 3,
-    location: { latitude: 40.7505, longitude: -73.9934 },
+  location: { latitude: 13.0827, longitude: 80.2707 }, // Chennai
     tags: ["American", "Burgers", "Fast Food"],
     offers: [
       { id: 5, title: "Free delivery on orders above ₹150", type: "FREE_DELIVERY", value: 0, minOrder: 150 }
@@ -568,7 +568,7 @@ export const mockRestaurants = [
     phone: "+1234567898",
     openingHours: "24 Hours",
     ownerId: 3,
-    location: { latitude: 40.7589, longitude: -73.9851 },
+  location: { latitude: 22.5726, longitude: 88.3639 }, // Kolkata
     tags: ["American", "Fast Food", "24 Hours"],
     offers: [
       { id: 6, title: "Happy Meal Deal", type: "COMBO", value: 30, minOrder: 0 }
@@ -617,7 +617,7 @@ export const mockRestaurants = [
     phone: "+1234567899",
     openingHours: "11:00 AM - 10:00 PM",
     ownerId: 3,
-    location: { latitude: 40.7614, longitude: -73.9776 },
+  location: { latitude: 23.0225, longitude: 72.5714 }, // Ahmedabad
     tags: ["Chinese", "Traditional", "Family Style"],
     offers: [
       { id: 7, title: "15% off on orders above ₹400", type: "PERCENTAGE", value: 15, minOrder: 400 }
@@ -698,7 +698,7 @@ export const mockRestaurants = [
     phone: "+1234567800",
     openingHours: "10:00 AM - 11:00 PM",
     ownerId: 3,
-    location: { latitude: 40.7505, longitude: -73.9934 },
+  location: { latitude: 18.5204, longitude: 73.8567 }, // Pune
     tags: ["Mexican", "Street Food", "Spicy"],
     offers: [
       { id: 8, title: "Free guacamole on orders above ₹250", type: "FREE_ITEM", value: 0, minOrder: 250 }
@@ -809,7 +809,7 @@ export const mockRestaurants = [
     phone: "+1234567802",
     openingHours: "10:00 AM - 9:30 PM",
     ownerId: 3,
-    location: { latitude: 40.7589, longitude: -73.9851 },
+  location: { latitude: 26.9124, longitude: 75.7873 }, // Jaipur
     tags: ["Mediterranean", "Healthy", "Fresh"],
     offers: [
       { id: 10, title: "Free hummus with orders above ₹300", type: "FREE_ITEM", value: 0, minOrder: 300 }
@@ -858,7 +858,7 @@ export const mockRestaurants = [
     phone: "+1234567803",
     openingHours: "11:00 AM - 12:00 AM",
     ownerId: 3,
-    location: { latitude: 40.7505, longitude: -73.9934 },
+  location: { latitude: 26.8467, longitude: 80.9462 }, // Lucknow
     tags: ["American", "Burgers", "Gourmet"],
     offers: [
       { id: 11, title: "Combo deals available", type: "COMBO", value: 20, minOrder: 0 }
@@ -980,7 +980,7 @@ export const mockDeliveryPartners = [
     phone: "+1234567893",
     vehicleType: "bike",
     isOnline: true,
-    currentLocation: { lat: 40.7128, lng: -74.0060 },
+  currentLocation: { lat: 17.4239, lng: 78.4483 },
     rating: 4.8,
     totalDeliveries: 150,
     isAvailable: true
@@ -991,11 +991,173 @@ export const mockDeliveryPartners = [
     phone: "+1234567897",
     vehicleType: "car",
     isOnline: true,
-    currentLocation: { lat: 40.7589, lng: -73.9851 },
+  currentLocation: { lat: 19.0760, lng: 72.8777 },
     rating: 4.9,
     totalDeliveries: 200,
     isAvailable: false
   }
+];
+
+// Delivery assignment lifecycle per order/partner. Helps delivery-service.
+export const mockDeliveryAssignments = [
+  {
+    id: 'asg-1001',
+    orderId: 2,
+    partnerId: 4,
+    status: 'requested', // requested | assigned | accepted | picked_up | out_for_delivery | delivered | cancelled
+    requestedAt: '2024-01-21T12:02:00Z',
+    assignedAt: null,
+    acceptedAt: null,
+    pickedUpAt: null,
+    deliveredAt: null,
+    cancelReason: null,
+    // route legs for mapping
+    legs: [
+      {
+        type: 'to_restaurant',
+        origin: { lat: 17.4239, lng: 78.4483 }, // rider current
+        destination: { lat: 28.6139, lng: 77.2090 }, // restaurant loc (Pizza Corner)
+        estimatedDistanceKm: 9.8,
+        estimatedDurationMin: 24
+      },
+      {
+        type: 'to_customer',
+        origin: { lat: 28.6139, lng: 77.2090 },
+        destination: { lat: 17.4239, lng: 78.4483 },
+        estimatedDistanceKm: 7.2,
+        estimatedDurationMin: 18
+      }
+    ],
+    payout: {
+      deliveryFee: 1.99,
+      tip: 0,
+      surge: 0,
+      totalPayout: 1.99,
+    }
+  },
+  {
+    id: 'asg-1002',
+    orderId: 1,
+    partnerId: 4,
+    status: 'delivered',
+    requestedAt: '2024-01-20T18:32:00Z',
+    assignedAt: '2024-01-20T18:33:00Z',
+    acceptedAt: '2024-01-20T18:34:00Z',
+    pickedUpAt: '2024-01-20T18:45:00Z',
+    deliveredAt: '2024-01-20T19:15:00Z',
+    cancelReason: null,
+    legs: [
+      {
+        type: 'to_restaurant',
+        origin: { lat: 17.4239, lng: 78.4483 },
+        destination: { lat: 19.0760, lng: 72.8777 },
+        estimatedDistanceKm: 10.4,
+        estimatedDurationMin: 26
+      },
+      {
+        type: 'to_customer',
+        origin: { lat: 19.0760, lng: 72.8777 },
+        destination: { lat: 17.4239, lng: 78.4483 },
+        estimatedDistanceKm: 8.1,
+        estimatedDurationMin: 20
+      }
+    ],
+    payout: {
+      deliveryFee: 2.99,
+      tip: 0.5,
+      surge: 0.25,
+      totalPayout: 3.74,
+    }
+  }
+];
+
+// Order event timeline for tracking-service and analytics
+export const mockOrderEvents = [
+  // order 1 timeline
+  { orderId: 1, status: 'placed', at: '2024-01-20T18:30:00Z' },
+  { orderId: 1, status: 'preparing', at: '2024-01-20T18:33:00Z' },
+  { orderId: 1, status: 'ready_for_pickup', at: '2024-01-20T18:44:00Z' },
+  { orderId: 1, status: 'out_for_delivery', at: '2024-01-20T18:50:00Z' },
+  { orderId: 1, status: 'delivered', at: '2024-01-20T19:15:00Z' },
+  // order 2 timeline (in-progress)
+  { orderId: 2, status: 'placed', at: '2024-01-21T12:00:00Z' },
+  { orderId: 2, status: 'preparing', at: '2024-01-21T12:02:30Z' }
+];
+
+// Payments for payment-service
+export const mockPayments = [
+  {
+    orderId: 1,
+    intentId: 'pay_abc123',
+    method: 'card',
+    status: 'captured', // created | authorized | captured | failed | refunded
+    currency: 'USD',
+    amount: 51.56,
+    breakdown: {
+      subtotal: 44.97,
+      deliveryFee: 2.99,
+      tax: 3.60,
+      discount: 0
+    },
+    createdAt: '2024-01-20T18:30:05Z',
+    updatedAt: '2024-01-20T18:31:00Z'
+  },
+  {
+    orderId: 2,
+    intentId: 'pay_def456',
+    method: 'card',
+    status: 'authorized',
+    currency: 'USD',
+    amount: 18.34,
+    breakdown: {
+      subtotal: 14.99,
+      deliveryFee: 1.99,
+      tax: 1.36,
+      discount: 0
+    },
+    createdAt: '2024-01-21T12:00:05Z',
+    updatedAt: '2024-01-21T12:00:20Z'
+  }
+];
+
+// Payouts for payout-service (to partners and restaurants)
+export const mockPayouts = [
+  {
+    id: 'pout-1',
+    type: 'PARTNER', // PARTNER | RESTAURANT
+    entityId: 4, // partnerId or restaurantId
+    orders: [1],
+    gross: 3.74,
+    fee: 0,
+    net: 3.74,
+    status: 'processed',
+    processedAt: '2024-01-20T20:00:00Z'
+  },
+  {
+    id: 'pout-2',
+    type: 'RESTAURANT',
+    entityId: 1,
+    orders: [1],
+    gross: 44.97,
+    commissionPercent: 10,
+    commissionAmount: 4.497,
+    net: 40.473,
+    status: 'scheduled',
+    processedAt: null
+  }
+];
+
+// Admin approvals for restaurants (admin-service)
+export const mockRestaurantApprovals = [
+  { restaurantId: 1, status: 'approved', requestedAt: '2023-12-30T10:00:00Z', decidedAt: '2023-12-31T09:00:00Z', decidedBy: 2 },
+  { restaurantId: 2, status: 'approved', requestedAt: '2024-01-01T10:00:00Z', decidedAt: '2024-01-02T09:00:00Z', decidedBy: 2 },
+  { restaurantId: 3, status: 'approved', requestedAt: '2024-01-02T10:00:00Z', decidedAt: '2024-01-03T09:00:00Z', decidedBy: 2 }
+];
+
+// Notifications for notification-service
+export const mockNotifications = [
+  { id: 'ntf-1', type: 'ORDER_STATUS', audience: { role: 'CUSTOMER', userId: 1 }, payload: { orderId: 2, status: 'preparing' }, createdAt: '2024-01-21T12:02:40Z', read: false },
+  { id: 'ntf-2', type: 'DELIVERY_REQUEST', audience: { role: 'DELIVERY_PARTNER', userId: 4 }, payload: { orderId: 2 }, createdAt: '2024-01-21T12:02:45Z', read: false }
 ];
 
 export const mockCategories = [

@@ -28,16 +28,34 @@ const mockSavedAddresses = [
   }
 ];
 
-// Mock area data for better geocoding
+// Comprehensive area data for accurate geocoding
 const mockAreas = [
-  { lat: 17.4065, lng: 78.4772, address: 'Banjara Hills, Hyderabad, Telangana' },
-  { lat: 17.4488, lng: 78.3908, address: 'HITEC City, Madhapur, Hyderabad, Telangana' },
-  { lat: 17.4333, lng: 78.4167, address: 'Jubilee Hills, Hyderabad, Telangana' },
-  { lat: 17.3850, lng: 78.4867, address: 'Secunderabad, Hyderabad, Telangana' },
-  { lat: 17.4239, lng: 78.4738, address: 'Gachibowli, Hyderabad, Telangana' },
-  { lat: 17.3616, lng: 78.4747, address: 'Charminar, Old City, Hyderabad, Telangana' },
-  { lat: 17.4399, lng: 78.4983, address: 'Kondapur, Hyderabad, Telangana' },
-  { lat: 17.4156, lng: 78.4347, address: 'Begumpet, Hyderabad, Telangana' }
+  // Central Hyderabad
+  { lat: 17.4065, lng: 78.4772, address: 'Banjara Hills, Hyderabad, Telangana', area: 'Banjara Hills' },
+  { lat: 17.4333, lng: 78.4167, address: 'Jubilee Hills, Hyderabad, Telangana', area: 'Jubilee Hills' },
+  { lat: 17.4156, lng: 78.4347, address: 'Begumpet, Hyderabad, Telangana', area: 'Begumpet' },
+  { lat: 17.3850, lng: 78.4867, address: 'Secunderabad, Hyderabad, Telangana', area: 'Secunderabad' },
+  
+  // IT Corridor
+  { lat: 17.4488, lng: 78.3908, address: 'HITEC City, Madhapur, Hyderabad, Telangana', area: 'HITEC City' },
+  { lat: 17.4239, lng: 78.4738, address: 'Gachibowli, Hyderabad, Telangana', area: 'Gachibowli' },
+  { lat: 17.4399, lng: 78.4983, address: 'Kondapur, Hyderabad, Telangana', area: 'Kondapur' },
+  { lat: 17.4565, lng: 78.3654, address: 'Cyberabad, Hyderabad, Telangana', area: 'Cyberabad' },
+  
+  // Old City
+  { lat: 17.3616, lng: 78.4747, address: 'Charminar, Old City, Hyderabad, Telangana', area: 'Charminar' },
+  { lat: 17.3750, lng: 78.4800, address: 'Mehdipatnam, Hyderabad, Telangana', area: 'Mehdipatnam' },
+  { lat: 17.3500, lng: 78.4500, address: 'Falaknuma, Hyderabad, Telangana', area: 'Falaknuma' },
+  
+  // North Hyderabad
+  { lat: 17.5000, lng: 78.4000, address: 'Kukatpally, Hyderabad, Telangana', area: 'Kukatpally' },
+  { lat: 17.5200, lng: 78.4200, address: 'Bachupally, Hyderabad, Telangana', area: 'Bachupally' },
+  { lat: 17.4800, lng: 78.3800, address: 'Miyapur, Hyderabad, Telangana', area: 'Miyapur' },
+  
+  // South Hyderabad
+  { lat: 17.3200, lng: 78.5000, address: 'Lakdikapul, Hyderabad, Telangana', area: 'Lakdikapul' },
+  { lat: 17.3000, lng: 78.4800, address: 'Malakpet, Hyderabad, Telangana', area: 'Malakpet' },
+  { lat: 17.2800, lng: 78.4600, address: 'Dilsukhnagar, Hyderabad, Telangana', area: 'Dilsukhnagar' }
 ];
 
 // Async thunk for auto-detecting location
@@ -54,14 +72,21 @@ export const detectCurrentLocation = createAsyncThunk(
         async (position) => {
           const { latitude, longitude } = position.coords;
           
-          // Find closest mock area
+          // Find closest mock area with improved distance calculation
           let closestArea = mockAreas[0];
           let minDistance = Infinity;
           
           mockAreas.forEach(area => {
-            const distance = Math.sqrt(
-              Math.pow(area.lat - latitude, 2) + Math.pow(area.lng - longitude, 2)
-            );
+            // Haversine distance calculation for more accuracy
+            const R = 6371; // Earth's radius in kilometers
+            const dLat = (area.lat - latitude) * Math.PI / 180;
+            const dLng = (area.lng - longitude) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(latitude * Math.PI / 180) * Math.cos(area.lat * Math.PI / 180) *
+                      Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c;
+            
             if (distance < minDistance) {
               minDistance = distance;
               closestArea = area;
@@ -107,14 +132,20 @@ export const geocodeLocation = createAsyncThunk(
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Find closest mock area
+      // Find closest mock area with Haversine distance
       let closestArea = mockAreas[0];
       let minDistance = Infinity;
       
       mockAreas.forEach(area => {
-        const distance = Math.sqrt(
-          Math.pow(area.lat - lat, 2) + Math.pow(area.lng - lng, 2)
-        );
+        const R = 6371; // Earth's radius in kilometers
+        const dLat = (area.lat - lat) * Math.PI / 180;
+        const dLng = (area.lng - lng) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat * Math.PI / 180) * Math.cos(area.lat * Math.PI / 180) *
+                  Math.sin(dLng/2) * Math.sin(dLng/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const distance = R * c;
+        
         if (distance < minDistance) {
           minDistance = distance;
           closestArea = area;
@@ -140,11 +171,19 @@ export const reverseGeocodeLocation = createAsyncThunk(
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Find matching area by address
-      const matchingArea = mockAreas.find(area => 
-        area.address.toLowerCase().includes(address.toLowerCase()) ||
-        address.toLowerCase().includes(area.address.toLowerCase())
-      );
+      // Find matching area by address with improved search
+      const searchTerms = address.toLowerCase().split(' ');
+      const matchingArea = mockAreas.find(area => {
+        const areaName = area.area.toLowerCase();
+        const areaAddress = area.address.toLowerCase();
+        
+        // Check if any search term matches area name or address
+        return searchTerms.some(term => 
+          areaName.includes(term) || 
+          areaAddress.includes(term) ||
+          term.includes(areaName.split(' ')[0]) // Partial match for area names
+        );
+      });
       
       if (matchingArea) {
         return {

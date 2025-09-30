@@ -14,6 +14,9 @@ const PaymentMethodAccordion = ({ paymentMethod, setPaymentMethod }) => (
     </AccordionSummary>
     <AccordionDetails>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        <Button variant={paymentMethod === 'razorpay' ? 'contained' : 'outlined'} onClick={() => setPaymentMethod('razorpay')} startIcon={<Payment />} sx={{ justifyContent: 'flex-start', borderColor: '#fc8019', color: paymentMethod === 'razorpay' ? 'white' : '#fc8019', backgroundColor: paymentMethod === 'razorpay' ? '#fc8019' : 'transparent', '&:hover': { borderColor: '#e6730a', backgroundColor: paymentMethod === 'razorpay' ? '#e6730a' : '#fff5f0' }, borderRadius: '8px', py: 1, textTransform: 'none' }}>
+          Razorpay (UPI/Card)
+        </Button>
         <Button variant={paymentMethod === 'card' ? 'contained' : 'outlined'} onClick={() => setPaymentMethod('card')} startIcon={<CreditCard />} sx={{ justifyContent: 'flex-start', borderColor: '#fc8019', color: paymentMethod === 'card' ? 'white' : '#fc8019', backgroundColor: paymentMethod === 'card' ? '#fc8019' : 'transparent', '&:hover': { borderColor: '#e6730a', backgroundColor: paymentMethod === 'card' ? '#e6730a' : '#fff5f0' }, borderRadius: '8px', py: 1, textTransform: 'none' }}>
           Credit/Debit Card
         </Button>

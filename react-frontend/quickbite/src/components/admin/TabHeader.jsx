@@ -1,8 +1,8 @@
 import React from 'react';
 import { Box, Typography, Button, Stack } from '@mui/material';
-import { Search, FilterList, Add } from '@mui/icons-material';
+import { Add } from '@mui/icons-material';
 
-const TabHeader = ({ title, subtitle, showAddButton = true, addButtonText = "Add Item" }) => {
+const TabHeader = ({ title, subtitle, showAddButton = true, addButtonText = "Add Item", onAddClick }) => {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
       <Box>
@@ -14,34 +14,6 @@ const TabHeader = ({ title, subtitle, showAddButton = true, addButtonText = "Add
         </Typography>
       </Box>
       <Stack direction="row" spacing={2}>
-        <Button
-          variant="outlined"
-          startIcon={<Search />}
-          sx={{
-            borderColor: '#e0e0e0',
-            color: '#666',
-            textTransform: 'none',
-            fontWeight: 600,
-            borderRadius: '4px',
-            px: 3
-          }}
-        >
-          Search
-        </Button>
-        <Button
-          variant="outlined"
-          startIcon={<FilterList />}
-          sx={{
-            borderColor: '#e0e0e0',
-            color: '#666',
-            textTransform: 'none',
-            fontWeight: 600,
-            borderRadius: '4px',
-            px: 3
-          }}
-        >
-          Filter
-        </Button>
         {showAddButton && (
           <Button
             variant="contained"
@@ -56,6 +28,7 @@ const TabHeader = ({ title, subtitle, showAddButton = true, addButtonText = "Add
                 background: '#e6730a'
               }
             }}
+            onClick={onAddClick}
           >
             {addButtonText}
           </Button>

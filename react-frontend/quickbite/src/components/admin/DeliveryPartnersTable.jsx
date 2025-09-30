@@ -3,7 +3,7 @@ import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, 
 import { Phone, Email, Star, DirectionsBike, DirectionsCar, DirectionsWalk } from '@mui/icons-material';
 import ActionButtons from './ActionButtons';
 
-const DeliveryPartnersTable = ({ partners }) => {
+const DeliveryPartnersTable = ({ partners, onViewPartner, onEditPartner, onDeletePartner }) => {
   return (
     <TableContainer sx={{ 
       borderRadius: '4px',
@@ -44,9 +44,6 @@ const DeliveryPartnersTable = ({ partners }) => {
                   <Box>
                     <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#333' }}>
                       {partner.name}
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: '#666' }}>
-                      ID: #{partner.id}
                     </Typography>
                   </Box>
                 </Box>
@@ -98,7 +95,12 @@ const DeliveryPartnersTable = ({ partners }) => {
                 />
               </TableCell>
               <TableCell>
-                <ActionButtons />
+                <ActionButtons 
+                  menuOnly
+                  onView={() => onViewPartner && onViewPartner(partner)}
+                  onEdit={() => onEditPartner && onEditPartner(partner)}
+                  onDelete={() => onDeletePartner && onDeletePartner(partner)}
+                />
               </TableCell>
             </TableRow>
           ))}

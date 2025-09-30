@@ -3,7 +3,7 @@ import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, 
 import { Restaurant } from '@mui/icons-material';
 import ActionButtons from './ActionButtons';
 
-const OrdersTable = ({ orders, getStatusColor }) => {
+const OrdersTable = ({ orders, getStatusColor, onViewOrder, onUpdateStatus, onAssignPartner }) => {
   return (
     <TableContainer sx={{ 
       borderRadius: '4px',
@@ -35,7 +35,7 @@ const OrdersTable = ({ orders, getStatusColor }) => {
               <TableCell>
                 <Box>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#333' }}>
-                    #{order.id}
+                    Order
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#666' }}>
                     {order.items.length} items
@@ -86,7 +86,12 @@ const OrdersTable = ({ orders, getStatusColor }) => {
                 </Typography>
               </TableCell>
               <TableCell>
-                <ActionButtons showDelete={false} showMore={false} />
+                <ActionButtons 
+                  showDelete={false} 
+                  menuOnly
+                  onView={() => onViewOrder && onViewOrder(order)}
+                  onEdit={() => onUpdateStatus && onUpdateStatus(order)}
+                />
               </TableCell>
             </TableRow>
           ))}

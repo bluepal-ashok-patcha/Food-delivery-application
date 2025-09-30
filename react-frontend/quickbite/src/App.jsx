@@ -11,6 +11,8 @@ import HomePage from './pages/customer/HomePage';
 import RestaurantPage from './pages/customer/RestaurantPage';
 import CartPage from './pages/customer/CartPage';
 import OrdersPage from './pages/customer/OrdersPage';
+import OrderConfirmation from './pages/customer/OrderConfirmation';
+import OrderTrack from './pages/customer/OrderTrack';
 import ProfilePage from './pages/customer/ProfilePage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import RestaurantDashboard from './pages/restaurant/RestaurantDashboard';
@@ -64,6 +66,8 @@ function App() {
                 <Route path="restaurant/:id" element={<RestaurantPage />} />
                 <Route path="cart" element={<CartPage />} />
                 <Route path="orders" element={<OrdersPage />} />
+                <Route path="orders/confirmation" element={<OrderConfirmation />} />
+                <Route path="orders/:id" element={<OrderTrack />} />
                 <Route path="profile" element={<ProfilePage />} />
                 
                 {/* Protected Admin Routes */}

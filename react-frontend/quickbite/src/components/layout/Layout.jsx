@@ -9,7 +9,7 @@ import { openLocationModal } from '../../store/slices/locationSlice';
 import { useNavigate } from 'react-router-dom';
 import Notification from '../common/Notification';
 import LocationModal from '../modals/LocationModal';
-import MapSelector from '../maps/MapSelector';
+import AccurateMapSelector from '../maps/AccurateMapSelector';
 
 const Layout = () => {
   const dispatch = useDispatch();
@@ -186,6 +186,7 @@ const Layout = () => {
                 <Button
                   variant="outlined"
                   startIcon={<Avatar sx={{ width: 20, height: 20 }} />}
+                  onClick={() => navigate('/profile')}
                   sx={{ 
                     borderColor: '#e0e0e0',
                     color: '#333',
@@ -249,7 +250,7 @@ const Layout = () => {
       
       <Notification />
       <LocationModal />
-      <MapSelector />
+      <AccurateMapSelector />
     </Box>
   );
 };

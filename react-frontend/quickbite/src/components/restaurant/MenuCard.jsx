@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, Box, Typography, Chip, IconButton, Avatar, Badge, Tooltip } from '@mui/material';
 import { Edit, Star, AccessTime, LocalFireDepartment } from '@mui/icons-material';
 
-const MenuCard = ({ item }) => {
+const MenuCard = ({ item, onEdit }) => {
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
@@ -151,6 +151,7 @@ const MenuCard = ({ item }) => {
               },
               transition: 'all 0.3s ease'
             }}
+            onClick={(e) => { e.stopPropagation(); onEdit && onEdit(item); }}
           >
             <Edit sx={{ fontSize: 18 }} />
           </IconButton>

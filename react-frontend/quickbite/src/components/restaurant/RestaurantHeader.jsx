@@ -1,8 +1,13 @@
 import React from 'react';
-import { Box, Typography, Switch } from '@mui/material';
+import { Box, Typography, Switch, Button, IconButton, Menu, MenuItem, ListItemText } from '@mui/material';
+import MoreVertIcon from '@mui/icons-material/MoreVert';
 import { Restaurant } from '@mui/icons-material';
 
-const RestaurantHeader = ({ isOpen, onToggleStatus }) => {
+const RestaurantHeader = ({ isOpen, onToggleStatus, onEditProfile, onOpenRecentOrders }) => {
+  const [anchorEl, setAnchorEl] = React.useState(null);
+  const open = Boolean(anchorEl);
+  const handleMenuOpen = (event) => { setAnchorEl(event.currentTarget); };
+  const handleMenuClose = () => { setAnchorEl(null); };
   return (
     <Box sx={{ mb: 4, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
       <Box>
@@ -41,6 +46,30 @@ const RestaurantHeader = ({ isOpen, onToggleStatus }) => {
           </Box>
         </Box>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {onEditProfile && (
+            <Button
+              variant="contained"
+              onClick={onEditProfile}
+              sx={{
+                background: '#fc8019',
+                textTransform: 'none',
+                fontWeight: 600,
+                borderRadius: '4px',
+                px: 2.5,
+                '&:hover': { background: '#e6730a' }
+              }}
+            >
+              Edit Profile
+            </Button>
+          )}
+          <IconButton onClick={handleMenuOpen}>
+            <MoreVertIcon />
+          </IconButton>
+          <Menu anchorEl={anchorEl} open={open} onClose={handleMenuClose}>
+            <MenuItem onClick={() => { handleMenuClose(); onOpenRecentOrders && onOpenRecentOrders(); }}>
+              <ListItemText primary="View Recent Orders" />
+            </MenuItem>
+          </Menu>
           <Typography variant="body1" sx={{ fontWeight: 600 }}>
             Restaurant Status:
           </Typography>

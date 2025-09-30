@@ -8,6 +8,7 @@ import { addToCart } from '../../store/slices/cartSlice';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import MenuItemRow from '../../components/restaurant/MenuItemRow';
 import FloatingCartButton from '../../components/common/FloatingCartButton';
+import RestaurantReviews from '../../components/restaurant/RestaurantReviews';
 
 const RestaurantPage = () => {
   const { id } = useParams();
@@ -320,6 +321,9 @@ const RestaurantPage = () => {
 
       {/* Menu Section */}
       <Container maxWidth="lg" sx={{ py: 4 }}>
+        <Box sx={{ mb: 4 }}>
+          <RestaurantReviews restaurantId={currentRestaurant.id} />
+        </Box>
         {currentRestaurant.menu?.map((category) => (
           <Box key={category.id} id={`category-${category.id}`} sx={{ mb: 6 }}>
             <Typography 

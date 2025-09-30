@@ -2,6 +2,51 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet CSS */
+@import 'leaflet/dist/leaflet.css';
+
+/* Custom map marker styles */
+.custom-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 3px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+}
+
+.leaflet-popup-tip {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+}
+
+/* Ensure Leaflet containers render tiles correctly inside modals */
+.leaflet-container {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.leaflet-pane, .leaflet-tile, .leaflet-marker-icon,
+.leaflet-marker-shadow, .leaflet-popup, .leaflet-overlay-pane,
+.leaflet-shadow-pane, .leaflet-tile-pane {
+  position: absolute !important;
+}
+
+.leaflet-tile {
+  max-width: none !important;
+  max-height: none !important;
+}
+
+
+/* Keep Leaflet default z-index layering intact to avoid tile gaps */
+/* Do not override .leaflet-pane z-index stacking; controls are layered via component z-index */
+
+/* Improve tile rendering clarity */
+.leaflet-tile {
+  image-rendering: auto;
+  backface-visibility: hidden;
+}
+
 /* Reset and base styles */
 * {
   margin: 0;

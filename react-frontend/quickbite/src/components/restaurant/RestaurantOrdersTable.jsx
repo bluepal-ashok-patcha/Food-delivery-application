@@ -1,8 +1,8 @@
-import React from 'react';
-import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, Avatar, Typography, Chip, Button } from '@mui/material';
-import { CheckCircle, Cancel } from '@mui/icons-material';
+import React, { useState } from 'react';
+import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, Avatar, Typography, Chip, Button, IconButton, Menu, MenuItem, ListItemText } from '@mui/material';
+import { CheckCircle, Cancel, MoreVert } from '@mui/icons-material';
 
-const RestaurantOrdersTable = ({ orders, onOrderAction }) => {
+const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
   const getStatusColor = (status) => {
     switch (status) {
       case 'placed': return '#2196f3';
@@ -12,6 +12,21 @@ const RestaurantOrdersTable = ({ orders, onOrderAction }) => {
       case 'cancelled': return '#f44336';
       default: return '#666';
     }
+  };
+
+  const [anchorEl, setAnchorEl] = useState(null);
+  const [menuOrderId, setMenuOrderId] = useState(null);
+
+  const handleMenuOpen = (e, orderId) => {
+    e.stopPropagation();
+    setAnchorEl(e.currentTarget);
+    setMenuOrderId(orderId);
+  };
+
+  const handleMenuClose = (e) => {
+    if (e) e.stopPropagation();
+    setAnchorEl(null);
+    setMenuOrderId(null);
   };
 
   return (
@@ -41,6 +56,7 @@ const RestaurantOrdersTable = ({ orders, onOrderAction }) => {
                   backgroundColor: '#f8f9fa'
                 }
               }}
+              onClick={onRowClick ? () => onRowClick(order) : undefined}
             >
               <TableCell>
                 <Box>
@@ -105,7 +121,7 @@ const RestaurantOrdersTable = ({ orders, onOrderAction }) => {
                       size="small"
                       variant="contained"
                       startIcon={<CheckCircle />}
-                      onClick={() => onOrderAction(order.id, 'accept')}
+                      onClick={(e) => { e.stopPropagation(); onOrderAction(order.id, 'accept'); }}
                       sx={{
                         background: '#4caf50',
                         textTransform: 'none',
@@ -122,7 +138,7 @@ const RestaurantOrdersTable = ({ orders, onOrderAction }) => {
                       size="small"
                       variant="outlined"
                       startIcon={<Cancel />}
-                      onClick={() => onOrderAction(order.id, 'reject')}
+                      onClick={(e) => { e.stopPropagation(); onOrderAction(order.id, 'reject'); }}
                       sx={{
                         borderColor: '#f44336',
                         color: '#f44336',
@@ -143,7 +159,7 @@ const RestaurantOrdersTable = ({ orders, onOrderAction }) => {
                   <Button
                     size="small"
                     variant="contained"
-                    onClick={() => onOrderAction(order.id, 'ready')}
+                    onClick={(e) => { e.stopPropagation(); onOrderAction(order.id, 'ready'); }}
                     sx={{
                       background: '#fc8019',
                       textTransform: 'none',
@@ -157,11 +173,26 @@ const RestaurantOrdersTable = ({ orders, onOrderAction }) => {
                     Mark Ready
                   </Button>
                 )}
+                {/* Always show kebab menu for additional status actions */}
+                <IconButton size="small" onClick={(e) => handleMenuOpen(e, order.id)} sx={{ ml: 1 }}>
+                  <MoreVert />
+                </IconButton>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
+      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} onClick={(e) => e.stopPropagation()}>
+        <MenuItem onClick={(e) => { handleMenuClose(e); if (menuOrderId) onOrderAction(menuOrderId, 'accept'); }}>
+          <ListItemText primary="Set to Preparing" />
+        </MenuItem>
+        <MenuItem onClick={(e) => { handleMenuClose(e); if (menuOrderId) onOrderAction(menuOrderId, 'ready'); }}>
+          <ListItemText primary="Set to Ready for Pickup" />
+        </MenuItem>
+        <MenuItem onClick={(e) => { handleMenuClose(e); if (menuOrderId) onOrderAction(menuOrderId, 'reject'); }}>
+          <ListItemText primary="Cancel Order" />
+        </MenuItem>
+      </Menu>
     </TableContainer>
   );
 };
