@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: payment-service
+  datasource:
+    url: ${DB_URL:jdbc:mysql://localhost:3306/quickbite_db?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:ashok}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+
+server:
+  port: 8084
+
+eureka:
+  client:
+    register-with-eureka: true
+    fetch-registry: true
+    service-url:
+      defaultZone: ${EUREKA_SERVER_URL:http://localhost:8761/eureka}
+
+# To run without Eureka locally, set EUREKA_DISABLED=true
+  instance:
+    prefer-ip-address: true
+
+    enabled: ${EUREKA_DISABLED:false}
+
+razorpay:
+  key_id: rzp_test_R6s6aVW39Oqimg
+  key_secret: DB2j6m9jJ31hc5I0Lt4eNmof
+
+logging:
+  level:
+    root: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
