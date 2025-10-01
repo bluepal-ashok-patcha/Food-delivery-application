@@ -25,7 +25,7 @@ public class SecurityConfig {
                 // Public endpoints for browsing
                 .requestMatchers(HttpMethod.GET, "/api/restaurants/**").permitAll()
                 // Endpoints for restaurant owners
-                .requestMatchers(HttpMethod.POST, "/api/restaurants").hasRole("RESTAURANT_OWNER")
+                .requestMatchers(HttpMethod.POST, "/api/restaurants").hasAnyRole("RESTAURANT_OWNER", "ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/restaurants/{id}/profile").hasRole("RESTAURANT_OWNER")
                 .requestMatchers("/api/restaurants/{restaurantId}/categories/**").hasRole("RESTAURANT_OWNER")
                 .requestMatchers("/api/restaurants/categories/**").hasRole("RESTAURANT_OWNER")

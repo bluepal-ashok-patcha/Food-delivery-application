@@ -22,4 +22,12 @@ public class MenuItemDto {
     private String imageUrl;
 
     private boolean inStock = true;
+
+    // Frontend metadata
+    private Double originalPrice;
+    private Boolean isVeg;
+    private Boolean isPopular;
+    private Integer preparationTime;
+    private String customizationJson;
+    private String nutritionJson;
 }

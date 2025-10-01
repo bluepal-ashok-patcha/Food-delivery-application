@@ -28,6 +28,25 @@ public class RestaurantDto {
     private LocalTime openingTime;
     private LocalTime closingTime;
 
+    // Frontend metadata fields
+    private String description;
+    private String image;
+    private String coverImage;
+    private Double rating;
+    private Integer totalRatings;
+    private String deliveryTime;
+    private Double deliveryFee;
+    private Double minimumOrder;
+    private Boolean isOpen;
+    private Boolean isActive;
+    private Boolean isVeg;
+    private Boolean isPureVeg;
+    private String openingHours;
+    private Integer deliveryRadiusKm;
+    private Double latitude;
+    private Double longitude;
+    private String tags;
+
     @NotNull(message = "Owner ID cannot be null")
     private Long ownerId;
 

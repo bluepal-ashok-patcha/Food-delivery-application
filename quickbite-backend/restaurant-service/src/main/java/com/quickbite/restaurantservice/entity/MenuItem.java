@@ -31,4 +31,16 @@ public class MenuItem {
     @Column(nullable = false)
     @Builder.Default
     private boolean inStock = true;
+
+    // Frontend metadata alignment
+    private Double originalPrice;
+    private Boolean isVeg;
+    private Boolean isPopular;
+    private Integer preparationTime; // minutes
+
+    @Column(length = 2000)
+    private String customizationJson; // JSON array of customization options
+
+    @Column(length = 1000)
+    private String nutritionJson; // JSON object with calories, protein, carbs, fat
 }

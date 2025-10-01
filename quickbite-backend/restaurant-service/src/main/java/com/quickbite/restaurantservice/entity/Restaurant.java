@@ -33,6 +33,34 @@ public class Restaurant {
     @Column(nullable = false)
     private String cuisineType;
 
+    // --- Frontend metadata alignment ---
+    @Column(length = 1000)
+    private String description;
+
+    private String image;
+    private String coverImage;
+
+    private Double rating; // average rating
+    private Integer totalRatings;
+
+    private String deliveryTime; // e.g., "25-30 mins"
+    private Double deliveryFee;
+    private Double minimumOrder;
+
+    private Boolean isOpen;
+    private Boolean isActive;
+    private Boolean isVeg;
+    private Boolean isPureVeg;
+
+    private String openingHours; // e.g., "10:00 AM - 11:00 PM"
+    private Integer deliveryRadiusKm;
+
+    private Double latitude;
+    private Double longitude;
+
+    @Column(length = 500)
+    private String tags; // comma-separated tags: Popular,Fast Delivery,Best Seller
+
     private LocalTime openingTime;
     private LocalTime closingTime;
 

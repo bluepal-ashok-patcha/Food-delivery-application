@@ -4,6 +4,7 @@ import com.quickbite.restaurantservice.dto.ApiResponse;
 import com.quickbite.restaurantservice.dto.MenuCategoryDto;
 import com.quickbite.restaurantservice.dto.MenuItemDto;
 import com.quickbite.restaurantservice.dto.RestaurantDto;
+import com.quickbite.restaurantservice.dto.RestaurantReviewDto;
 import com.quickbite.restaurantservice.dto.PageMeta;
 import com.quickbite.restaurantservice.entity.RestaurantStatus;
 import com.quickbite.restaurantservice.service.RestaurantService;
@@ -79,12 +80,51 @@ public class RestaurantController {
         return ResponseEntity.ok(body);
     }
 
+    // --- Reviews ---
+
+    @PostMapping("/{restaurantId}/reviews")
+    public ResponseEntity<ApiResponse<RestaurantReviewDto>> addReview(@PathVariable Long restaurantId, @Valid @RequestBody RestaurantReviewDto reviewDto, Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        reviewDto.setRestaurantId(restaurantId);
+        reviewDto.setUserId(userId);
+        RestaurantReviewDto saved = restaurantService.addReview(reviewDto);
+        return new ResponseEntity<>(ApiResponse.<RestaurantReviewDto>builder()
+                .success(true)
+                .message("Review added successfully")
+                .data(saved)
+                .build(), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{restaurantId}/reviews")
+    public ResponseEntity<ApiResponse<List<RestaurantReviewDto>>> listReviews(@PathVariable Long restaurantId) {
+        List<RestaurantReviewDto> list = restaurantService.listReviews(restaurantId);
+        return ResponseEntity.ok(ApiResponse.<List<RestaurantReviewDto>>builder()
+                .success(true)
+                .message("Reviews fetched successfully")
+                .data(list)
+                .build());
+    }
+
     // --- Restaurant Owner Endpoints ---
 
     @PostMapping
     public ResponseEntity<ApiResponse<RestaurantDto>> createRestaurant(@Valid @RequestBody RestaurantDto restaurantDto, Authentication authentication) {
-        Long ownerId = (Long) authentication.getPrincipal();
-        restaurantDto.setOwnerId(ownerId); // Set ownerId from the authenticated token
+        boolean isAdmin = authentication != null && authentication.getAuthorities() != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+
+        if (isAdmin) {
+            if (restaurantDto.getOwnerId() == null) {
+                return new ResponseEntity<>(ApiResponse.<RestaurantDto>builder()
+                        .success(false)
+                        .message("ownerId is required when creating a restaurant as ADMIN")
+                        .data(null)
+                        .build(), HttpStatus.BAD_REQUEST);
+            }
+            // use ownerId from request body
+        } else {
+            Long ownerId = (Long) authentication.getPrincipal();
+            restaurantDto.setOwnerId(ownerId);
+        }
         RestaurantDto createdRestaurant = restaurantService.createRestaurant(restaurantDto);
         ApiResponse<RestaurantDto> body = ApiResponse.<RestaurantDto>builder()
                 .success(true)
@@ -126,6 +166,39 @@ public class RestaurantController {
                 .data(newItem)
                 .build();
         return new ResponseEntity<>(body, HttpStatus.CREATED);
+    }
+
+    // List categories for a restaurant
+    @GetMapping("/{restaurantId}/categories")
+    public ResponseEntity<ApiResponse<List<MenuCategoryDto>>> listCategories(@PathVariable Long restaurantId) {
+        List<MenuCategoryDto> list = restaurantService.getCategoriesByRestaurantId(restaurantId);
+        return ResponseEntity.ok(ApiResponse.<List<MenuCategoryDto>>builder()
+                .success(true)
+                .message("Categories fetched successfully")
+                .data(list)
+                .build());
+    }
+
+    // List items for a restaurant
+    @GetMapping("/{restaurantId}/items")
+    public ResponseEntity<ApiResponse<List<MenuItemDto>>> listItems(@PathVariable Long restaurantId) {
+        List<MenuItemDto> list = restaurantService.getItemsByRestaurantId(restaurantId);
+        return ResponseEntity.ok(ApiResponse.<List<MenuItemDto>>builder()
+                .success(true)
+                .message("Items fetched successfully")
+                .data(list)
+                .build());
+    }
+
+    // Get single item by id
+    @GetMapping("/items/{itemId}")
+    public ResponseEntity<ApiResponse<MenuItemDto>> getItemById(@PathVariable Long itemId) {
+        MenuItemDto item = restaurantService.getMenuItemById(itemId);
+        return ResponseEntity.ok(ApiResponse.<MenuItemDto>builder()
+                .success(true)
+                .message("Item fetched successfully")
+                .data(item)
+                .build());
     }
 
     @PutMapping("/categories/{categoryId}")

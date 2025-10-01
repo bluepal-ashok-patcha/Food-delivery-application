@@ -3,6 +3,7 @@ package com.quickbite.deliveryservice.controller;
 import com.quickbite.deliveryservice.dto.ApiResponse;
 import com.quickbite.deliveryservice.dto.DeliveryPartnerDto;
 import com.quickbite.deliveryservice.dto.LocationUpdateDto;
+import com.quickbite.deliveryservice.dto.DeliveryPartnerReviewDto;
 import com.quickbite.deliveryservice.entity.DeliveryPartnerStatus;
 import com.quickbite.deliveryservice.service.DeliveryService;
 import jakarta.validation.Valid;
@@ -74,6 +75,31 @@ public class DeliveryController {
                 .success(true)
                 .message("Available delivery partners fetched successfully")
                 .data(partners)
+                .build());
+    }
+
+    // --- Reviews ---
+
+    @PostMapping("/partners/{partnerUserId}/reviews")
+    public ResponseEntity<ApiResponse<DeliveryPartnerReviewDto>> addPartnerReview(@PathVariable Long partnerUserId, @Valid @RequestBody DeliveryPartnerReviewDto dto, Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        dto.setPartnerUserId(partnerUserId);
+        dto.setUserId(userId);
+        DeliveryPartnerReviewDto saved = deliveryService.addPartnerReview(dto);
+        return new ResponseEntity<>(ApiResponse.<DeliveryPartnerReviewDto>builder()
+                .success(true)
+                .message("Review added successfully")
+                .data(saved)
+                .build(), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/partners/{partnerUserId}/reviews")
+    public ResponseEntity<ApiResponse<List<DeliveryPartnerReviewDto>>> listPartnerReviews(@PathVariable Long partnerUserId) {
+        List<DeliveryPartnerReviewDto> list = deliveryService.listPartnerReviews(partnerUserId);
+        return ResponseEntity.ok(ApiResponse.<List<DeliveryPartnerReviewDto>>builder()
+                .success(true)
+                .message("Reviews fetched successfully")
+                .data(list)
                 .build());
     }
 }

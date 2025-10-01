@@ -117,6 +117,25 @@ public class OrderService {
         return pageData;
     }
 
+    @Transactional(readOnly = true)
+    public Page<Order> getAllOrdersPage(int page, int size, String sortBy, String sortDir, String status, Long restaurantId, Long userId) {
+        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+        Pageable pageable = PageRequest.of(page, size, sort);
+        if (restaurantId != null) {
+            if (status != null && !status.isBlank()) {
+                return orderRepository.findByRestaurantIdAndOrderStatus(restaurantId, OrderStatus.valueOf(status.toUpperCase()), pageable);
+            }
+            return orderRepository.findByRestaurantId(restaurantId, pageable);
+        }
+        if (userId != null) {
+            if (status != null && !status.isBlank()) {
+                return orderRepository.findByUserIdAndOrderStatus(userId, OrderStatus.valueOf(status.toUpperCase()), pageable);
+            }
+            return orderRepository.findByUserId(userId, pageable);
+        }
+        return orderRepository.findAll(pageable);
+    }
+
 
     // --- Helper Methods ---
 

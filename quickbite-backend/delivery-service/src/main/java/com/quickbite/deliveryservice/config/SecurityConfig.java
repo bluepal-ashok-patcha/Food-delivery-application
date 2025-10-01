@@ -22,9 +22,15 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                // Endpoints for delivery partners
-                .requestMatchers("/api/delivery/partners/**").hasRole("DELIVERY_PARTNER")
-                // Endpoint for internal system/admin
+                // Reviews can be posted by authenticated customers
+                .requestMatchers(HttpMethod.POST, "/api/delivery/partners/*/reviews").hasRole("CUSTOMER")
+                .requestMatchers(HttpMethod.GET, "/api/delivery/partners/*/reviews").permitAll()
+                // Delivery partner-protected endpoints
+                .requestMatchers("/api/delivery/partners/profile").hasRole("DELIVERY_PARTNER")
+                .requestMatchers("/api/delivery/partners/status").hasRole("DELIVERY_PARTNER")
+                .requestMatchers("/api/delivery/partners/location").hasRole("DELIVERY_PARTNER")
+                .requestMatchers(HttpMethod.POST, "/api/delivery/partners").hasRole("DELIVERY_PARTNER")
+                // Internal/admin
                 .requestMatchers(HttpMethod.GET, "/api/delivery/partners/available").authenticated()
                 .anyRequest().authenticated()
             )

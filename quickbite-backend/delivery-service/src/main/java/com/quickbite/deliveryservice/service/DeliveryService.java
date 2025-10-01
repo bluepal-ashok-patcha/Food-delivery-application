@@ -2,9 +2,12 @@ package com.quickbite.deliveryservice.service;
 
 import com.quickbite.deliveryservice.dto.DeliveryPartnerDto;
 import com.quickbite.deliveryservice.dto.LocationUpdateDto;
+import com.quickbite.deliveryservice.dto.DeliveryPartnerReviewDto;
 import com.quickbite.deliveryservice.entity.DeliveryPartner;
 import com.quickbite.deliveryservice.entity.DeliveryPartnerStatus;
 import com.quickbite.deliveryservice.repository.DeliveryPartnerRepository;
+import com.quickbite.deliveryservice.repository.DeliveryPartnerReviewRepository;
+import com.quickbite.deliveryservice.entity.DeliveryPartnerReview;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -22,6 +25,9 @@ public class DeliveryService {
 
     @Autowired
     private DeliveryPartnerRepository deliveryPartnerRepository;
+
+    @Autowired
+    private DeliveryPartnerReviewRepository deliveryPartnerReviewRepository;
 
     @Transactional
     public DeliveryPartnerDto createDeliveryPartner(DeliveryPartnerDto partnerDto) {
@@ -80,5 +86,26 @@ public class DeliveryService {
         DeliveryPartner entity = new DeliveryPartner();
         BeanUtils.copyProperties(dto, entity);
         return entity;
+    }
+
+    // --- Reviews ---
+
+    @Transactional
+    public DeliveryPartnerReviewDto addPartnerReview(DeliveryPartnerReviewDto dto) {
+        DeliveryPartnerReview entity = new DeliveryPartnerReview();
+        BeanUtils.copyProperties(dto, entity, "id", "createdAt");
+        DeliveryPartnerReview saved = deliveryPartnerReviewRepository.save(entity);
+        DeliveryPartnerReviewDto out = new DeliveryPartnerReviewDto();
+        BeanUtils.copyProperties(saved, out);
+        return out;
+    }
+
+    @Transactional(readOnly = true)
+    public List<DeliveryPartnerReviewDto> listPartnerReviews(Long partnerUserId) {
+        return deliveryPartnerReviewRepository.findByPartnerUserId(partnerUserId).stream().map(r -> {
+            DeliveryPartnerReviewDto d = new DeliveryPartnerReviewDto();
+            BeanUtils.copyProperties(r, d);
+            return d;
+        }).collect(Collectors.toList());
     }
 }

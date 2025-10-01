@@ -3,13 +3,16 @@ package com.quickbite.restaurantservice.service;
 import com.quickbite.restaurantservice.dto.MenuCategoryDto;
 import com.quickbite.restaurantservice.dto.MenuItemDto;
 import com.quickbite.restaurantservice.dto.RestaurantDto;
+import com.quickbite.restaurantservice.dto.RestaurantReviewDto;
 import com.quickbite.restaurantservice.entity.MenuCategory;
 import com.quickbite.restaurantservice.entity.MenuItem;
 import com.quickbite.restaurantservice.entity.Restaurant;
+import com.quickbite.restaurantservice.entity.RestaurantReview;
 import com.quickbite.restaurantservice.entity.RestaurantStatus;
 import com.quickbite.restaurantservice.repository.MenuCategoryRepository;
 import com.quickbite.restaurantservice.repository.MenuItemRepository;
 import com.quickbite.restaurantservice.repository.RestaurantRepository;
+import com.quickbite.restaurantservice.repository.RestaurantReviewRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -37,6 +40,9 @@ public class RestaurantService {
 
     @Autowired
     private MenuItemRepository menuItemRepository;
+
+    @Autowired
+    private RestaurantReviewRepository restaurantReviewRepository;
 
     // --- Restaurant Management ---
 
@@ -103,11 +109,15 @@ public class RestaurantService {
     public MenuCategoryDto addMenuCategory(Long restaurantId, MenuCategoryDto categoryDto) {
         Restaurant restaurant = restaurantRepository.findById(restaurantId)
                 .orElseThrow(() -> new RuntimeException("Restaurant not found"));
-        MenuCategory menuCategory = convertToEntity(categoryDto);
-        restaurant.getMenuCategories().add(menuCategory);
+        MenuCategory toSave = convertToEntity(categoryDto);
+        MenuCategory savedCategory = menuCategoryRepository.save(toSave);
+        if (restaurant.getMenuCategories() == null) {
+            restaurant.setMenuCategories(new java.util.ArrayList<>());
+        }
+        restaurant.getMenuCategories().add(savedCategory);
         restaurantRepository.save(restaurant);
-        log.info("Added menu category '{}' to restaurant '{}'.", menuCategory.getName(), restaurant.getName());
-        return convertToDto(menuCategory);
+        log.info("Added menu category '{}' to restaurant '{}'.", savedCategory.getName(), restaurant.getName());
+        return convertToDto(savedCategory);
     }
 
     @Transactional
@@ -179,6 +189,33 @@ public class RestaurantService {
         return dto;
     }
 
+    @Transactional(readOnly = true)
+    public List<MenuCategoryDto> getCategoriesByRestaurantId(Long restaurantId) {
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new RuntimeException("Restaurant not found"));
+        if (restaurant.getMenuCategories() == null) return java.util.Collections.emptyList();
+        return restaurant.getMenuCategories().stream().map(this::convertToDto).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<MenuItemDto> getItemsByRestaurantId(Long restaurantId) {
+        Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new RuntimeException("Restaurant not found"));
+        if (restaurant.getMenuCategories() == null) return java.util.Collections.emptyList();
+        return restaurant.getMenuCategories().stream()
+                .filter(c -> c.getMenuItems() != null)
+                .flatMap(c -> c.getMenuItems().stream())
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public MenuItemDto getMenuItemById(Long itemId) {
+        MenuItem item = menuItemRepository.findById(itemId)
+                .orElseThrow(() -> new RuntimeException("Menu item not found"));
+        return convertToDto(item);
+    }
+
     private Restaurant convertToEntity(RestaurantDto dto) {
         Restaurant entity = new Restaurant();
         BeanUtils.copyProperties(dto, entity, "menuCategories");
@@ -201,5 +238,26 @@ public class RestaurantService {
         MenuItem entity = new MenuItem();
         BeanUtils.copyProperties(dto, entity);
         return entity;
+    }
+
+    // --- Reviews ---
+
+    @Transactional
+    public RestaurantReviewDto addReview(RestaurantReviewDto dto) {
+        RestaurantReview entity = new RestaurantReview();
+        BeanUtils.copyProperties(dto, entity, "id", "createdAt");
+        RestaurantReview saved = restaurantReviewRepository.save(entity);
+        RestaurantReviewDto out = new RestaurantReviewDto();
+        BeanUtils.copyProperties(saved, out);
+        return out;
+    }
+
+    @Transactional(readOnly = true)
+    public List<RestaurantReviewDto> listReviews(Long restaurantId) {
+        return restaurantReviewRepository.findByRestaurantId(restaurantId).stream().map(r -> {
+            RestaurantReviewDto d = new RestaurantReviewDto();
+            BeanUtils.copyProperties(r, d);
+            return d;
+        }).collect(Collectors.toList());
     }
 }

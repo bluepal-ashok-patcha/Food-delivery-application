@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -66,6 +67,7 @@ public class OrderController {
     }
 
     @GetMapping("/restaurant/{restaurantId}")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER','ADMIN')")
     public ResponseEntity<ApiResponse<List<OrderResponseDto>>> getOrdersByRestaurantId(
             @PathVariable Long restaurantId,
             @RequestParam(defaultValue = "0") int page,
@@ -95,12 +97,45 @@ public class OrderController {
     }
 
     @PutMapping("/{orderId}/status")
+    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER','ADMIN','DELIVERY_PARTNER')")
     public ResponseEntity<ApiResponse<OrderResponseDto>> updateOrderStatus(@PathVariable Long orderId, @RequestParam OrderStatus status) {
         OrderResponseDto updatedOrder = orderService.updateOrderStatus(orderId, status);
         ApiResponse<OrderResponseDto> body = ApiResponse.<OrderResponseDto>builder()
                 .success(true)
                 .message("Order status updated successfully")
                 .data(updatedOrder)
+                .build();
+        return ResponseEntity.ok(body);
+    }
+
+    // --- Admin list/filter ---
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<OrderResponseDto>>> listAll(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long restaurantId,
+            @RequestParam(required = false) Long userId
+    ) {
+        org.springframework.data.domain.Page<com.quickbite.orderservice.entity.Order> pageData = orderService.getAllOrdersPage(page, size, sortBy, sortDir, status, restaurantId, userId);
+        List<OrderResponseDto> orders = pageData.getContent().stream().map(o -> {
+            OrderResponseDto dto = new OrderResponseDto();
+            org.springframework.beans.BeanUtils.copyProperties(o, dto);
+            return dto;
+        }).collect(java.util.stream.Collectors.toList());
+        ApiResponse<List<OrderResponseDto>> body = ApiResponse.<List<OrderResponseDto>>builder()
+                .success(true)
+                .message("Orders fetched successfully")
+                .data(orders)
+                .page(PageMeta.builder()
+                        .page(pageData.getNumber())
+                        .size(pageData.getSize())
+                        .totalElements(pageData.getTotalElements())
+                        .totalPages(pageData.getTotalPages())
+                        .build())
                 .build();
         return ResponseEntity.ok(body);
     }
