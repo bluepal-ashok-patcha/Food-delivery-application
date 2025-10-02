@@ -10,7 +10,7 @@ public class DeliveryPartnerDto {
 
     private Long id;
 
-    @NotNull(message = "User ID cannot be null")
+    // UserId is set from JWT token, not from request body
     private Long userId;
 
     @NotEmpty(message = "Name cannot be empty")

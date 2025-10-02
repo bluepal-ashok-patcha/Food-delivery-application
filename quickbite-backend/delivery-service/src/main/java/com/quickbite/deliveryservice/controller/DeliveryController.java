@@ -25,6 +25,14 @@ public class DeliveryController {
     @PostMapping("/partners")
     public ResponseEntity<ApiResponse<DeliveryPartnerDto>> createDeliveryPartner(@Valid @RequestBody DeliveryPartnerDto partnerDto, Authentication authentication) {
         Long userId = (Long) authentication.getPrincipal();
+        
+        if (userId == null) {
+            return ResponseEntity.badRequest().body(ApiResponse.<DeliveryPartnerDto>builder()
+                    .success(false)
+                    .message("User ID not found in JWT token")
+                    .build());
+        }
+        
         partnerDto.setUserId(userId); // Set userId from authenticated token
         DeliveryPartnerDto createdPartner = deliveryService.createDeliveryPartner(partnerDto);
         ApiResponse<DeliveryPartnerDto> body = ApiResponse.<DeliveryPartnerDto>builder()

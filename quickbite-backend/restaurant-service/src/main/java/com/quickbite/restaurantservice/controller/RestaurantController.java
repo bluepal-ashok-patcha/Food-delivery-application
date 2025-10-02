@@ -59,11 +59,13 @@ public class RestaurantController {
                 .success(true)
                 .message("Restaurants fetched successfully")
                 .data(data)
-                .page(PageMeta.builder()
-                        .page(pageData.getNumber())
+                .page(ApiResponse.PageMeta.builder()
+                        .currentPage(pageData.getNumber())
                         .size(pageData.getSize())
                         .totalElements(pageData.getTotalElements())
                         .totalPages(pageData.getTotalPages())
+                        .hasNext(pageData.hasNext())
+                        .hasPrevious(pageData.hasPrevious())
                         .build())
                 .build();
         return ResponseEntity.ok(body);

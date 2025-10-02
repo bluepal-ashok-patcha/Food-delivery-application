@@ -56,11 +56,13 @@ public class OrderController {
                 .success(true)
                 .message("Orders fetched successfully")
                 .data(orders)
-                .page(PageMeta.builder()
-                        .page(pageData.getNumber())
+                .page(ApiResponse.PageMeta.builder()
+                        .currentPage(pageData.getNumber())
                         .size(pageData.getSize())
                         .totalElements(pageData.getTotalElements())
                         .totalPages(pageData.getTotalPages())
+                        .hasNext(pageData.hasNext())
+                        .hasPrevious(pageData.hasPrevious())
                         .build())
                 .build();
         return ResponseEntity.ok(body);
@@ -86,11 +88,13 @@ public class OrderController {
                 .success(true)
                 .message("Orders fetched successfully")
                 .data(orders)
-                .page(PageMeta.builder()
-                        .page(pageData.getNumber())
+                .page(ApiResponse.PageMeta.builder()
+                        .currentPage(pageData.getNumber())
                         .size(pageData.getSize())
                         .totalElements(pageData.getTotalElements())
                         .totalPages(pageData.getTotalPages())
+                        .hasNext(pageData.hasNext())
+                        .hasPrevious(pageData.hasPrevious())
                         .build())
                 .build();
         return ResponseEntity.ok(body);
@@ -130,11 +134,13 @@ public class OrderController {
                 .success(true)
                 .message("Orders fetched successfully")
                 .data(orders)
-                .page(PageMeta.builder()
-                        .page(pageData.getNumber())
+                .page(ApiResponse.PageMeta.builder()
+                        .currentPage(pageData.getNumber())
                         .size(pageData.getSize())
                         .totalElements(pageData.getTotalElements())
                         .totalPages(pageData.getTotalPages())
+                        .hasNext(pageData.hasNext())
+                        .hasPrevious(pageData.hasPrevious())
                         .build())
                 .build();
         return ResponseEntity.ok(body);

@@ -33,6 +33,10 @@ razorpay:
   key_id: rzp_test_R6s6aVW39Oqimg
   key_secret: DB2j6m9jJ31hc5I0Lt4eNmof
 
+# JWT Configuration (must match auth-service)
+jwt:
+  secret: YWHx2ms0eGJhYlN6TkJqbENBblUyTktWbEZka3NaNElvNkliZlJ3czZ1skhqbdjqw
+
 logging:
   level:
     root: INFO

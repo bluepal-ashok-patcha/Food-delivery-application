@@ -13,6 +13,7 @@ import com.quickbite.restaurantservice.repository.MenuCategoryRepository;
 import com.quickbite.restaurantservice.repository.MenuItemRepository;
 import com.quickbite.restaurantservice.repository.RestaurantRepository;
 import com.quickbite.restaurantservice.repository.RestaurantReviewRepository;
+import com.quickbite.restaurantservice.repository.CrossServiceJdbcRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -25,6 +26,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -44,6 +46,12 @@ public class RestaurantService {
     @Autowired
     private RestaurantReviewRepository restaurantReviewRepository;
 
+    @Autowired
+    private EmailService emailService;
+
+    @Autowired
+    private CrossServiceJdbcRepository crossServiceRepository;
+
     // --- Restaurant Management ---
 
     @Transactional
@@ -52,6 +60,10 @@ public class RestaurantService {
         Restaurant restaurant = convertToEntity(restaurantDto);
         Restaurant savedRestaurant = restaurantRepository.save(restaurant);
         log.info("New restaurant '{}' created with PENDING_APPROVAL status.", savedRestaurant.getName());
+        
+        // Send pending approval notification
+        sendPendingApprovalNotification(savedRestaurant);
+        
         return convertToDto(savedRestaurant);
     }
 
@@ -259,5 +271,50 @@ public class RestaurantService {
             BeanUtils.copyProperties(r, d);
             return d;
         }).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<RestaurantDto> getRestaurantsByStatus(RestaurantStatus status, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Restaurant> restaurants = restaurantRepository.findByStatus(status, pageable);
+        return restaurants.getContent().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<RestaurantDto> getAllRestaurants(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<Restaurant> restaurants = restaurantRepository.findAll(pageable);
+        return restaurants.getContent().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    private void sendPendingApprovalNotification(Restaurant restaurant) {
+        try {
+            // Get owner details from auth service
+            Map<String, Object> ownerData = crossServiceRepository.findAuthUserById(restaurant.getOwnerId());
+            if (ownerData != null) {
+                String ownerEmail = (String) ownerData.get("email");
+                String ownerName = (String) ownerData.get("name");
+                
+                if (ownerEmail != null && ownerName != null) {
+                    emailService.sendRestaurantApprovalEmail(
+                        ownerEmail, 
+                        ownerName, 
+                        restaurant.getName(), 
+                        "PENDING_APPROVAL", 
+                        null
+                    );
+                } else {
+                    log.warn("Owner email or name is null for restaurant {}", restaurant.getId());
+                }
+            } else {
+                log.warn("Owner data not found for restaurant {} with ownerId {}", restaurant.getId(), restaurant.getOwnerId());
+            }
+        } catch (Exception e) {
+            log.error("Failed to send pending approval notification for restaurant {}", restaurant.getId(), e);
+        }
     }
 }

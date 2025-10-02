@@ -14,4 +14,17 @@ public class ApiResponse<T> {
     private String message;
     private T data;
     private PageMeta page;
+    
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PageMeta {
+        private int currentPage;
+        private int totalPages;
+        private long totalElements;
+        private int size;
+        private boolean hasNext;
+        private boolean hasPrevious;
+    }
 }

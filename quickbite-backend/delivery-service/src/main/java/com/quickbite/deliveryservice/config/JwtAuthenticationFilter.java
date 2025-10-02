@@ -1,11 +1,14 @@
 package com.quickbite.deliveryservice.config;
 
+import com.quickbite.deliveryservice.service.DeliveryAssignmentService;
 import com.quickbite.deliveryservice.util.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
@@ -22,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 
 @Component
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Autowired
@@ -40,23 +44,33 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             jwt = authorizationHeader.substring(7);
             try {
                 username = jwtUtil.getUsernameFromToken(jwt);
+                log.info("Successfully extracted username: {} from JWT", username);
             } catch (Exception e) {
-                logger.warn("Unable to get JWT Token or JWT Token has expired");
+                log.warn("Unable to get JWT Token or JWT Token has expired: {}", e.getMessage());
             }
+        } else {
+            log.warn("No Authorization header found or invalid format. Request URI: {}", request.getRequestURI());
         }
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             if (jwtUtil.validateToken(jwt)) {
                 Claims claims = jwtUtil.getAllClaimsFromToken(jwt);
                 String role = claims.get("role", String.class);
+                Long userId = claims.get("userId", Long.class);
+                
+                log.info("Token validation successful. User: {}, Role: {}, UserId: {}", username, role, userId);
+                
                 List<GrantedAuthority> authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role));
 
-                UserDetails userDetails = new User(username, "", authorities);
-
                 // Set the principal to be the userId for easy access in the controller
-                SecurityContextHolder.getContext().setAuthentication(
-                    new UsernamePasswordAuthenticationToken(claims.get("userId", Long.class), null, authorities)
-                );
+                UsernamePasswordAuthenticationToken authToken = 
+                    new UsernamePasswordAuthenticationToken(userId, null, authorities);
+                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+                log.info("Authentication set successfully for user: {} with role: ROLE_{}", username, role);
+            } else {
+                log.warn("JWT token validation failed for user: {}", username);
             }
         }
         chain.doFilter(request, response);
