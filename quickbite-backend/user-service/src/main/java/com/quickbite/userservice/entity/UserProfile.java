@@ -34,4 +34,8 @@ public class UserProfile {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "user_profile_id")
     private List<Address> addresses;
+
+    // Current geolocation for the user (optional)
+    private Double currentLatitude;
+    private Double currentLongitude;
 }

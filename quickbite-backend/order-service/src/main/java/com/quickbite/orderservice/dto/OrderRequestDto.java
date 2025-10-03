@@ -22,4 +22,8 @@ public class OrderRequestDto {
     private List<OrderItemDto> items;
 
     private String specialInstructions;
+
+    // Optional: client-provided delivery coordinates; if absent, service may fetch from user-service via JDBC
+    private Double deliveryLatitude;
+    private Double deliveryLongitude;
 }

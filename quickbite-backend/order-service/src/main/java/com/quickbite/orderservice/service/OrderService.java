@@ -54,13 +54,24 @@ public class OrderService {
                 .mapToDouble(item -> item.getPrice() * item.getQuantity())
                 .sum();
 
-        // 3. Create and save the order
+        // 3. Resolve delivery coordinates: prefer request payload, else fetch user's current location
+        Double deliveryLat = orderRequestDto.getDeliveryLatitude();
+        Double deliveryLng = orderRequestDto.getDeliveryLongitude();
+        if (deliveryLat == null || deliveryLng == null) {
+            double[] coords = fetchUserCurrentLocation(orderRequestDto.getUserId());
+            deliveryLat = coords[0];
+            deliveryLng = coords[1];
+        }
+
+        // 4. Create and save the order
         Order order = Order.builder()
                 .userId(orderRequestDto.getUserId())
                 .restaurantId(orderRequestDto.getRestaurantId())
                 .items(orderItems)
                 .totalAmount(totalAmount)
                 .deliveryAddress(deliveryAddress)
+                .deliveryLatitude(deliveryLat)
+                .deliveryLongitude(deliveryLng)
                 .specialInstructions(orderRequestDto.getSpecialInstructions())
                 .orderStatus(OrderStatus.PENDING)
                 .paymentStatus(PaymentStatus.PENDING) // Assuming payment is handled next
@@ -161,13 +172,20 @@ public class OrderService {
                 .map(this::convertCartItemToOrderItem)
                 .collect(Collectors.toList());
 
-        // 4. Create order with cart totals
+        // 4. Resolve delivery coordinates from user's current location
+        double[] coords = fetchUserCurrentLocation(userId);
+        Double deliveryLat = coords[0];
+        Double deliveryLng = coords[1];
+
+        // 5. Create order with cart totals
         Order order = Order.builder()
                 .userId(userId)
                 .restaurantId(cart.getRestaurantId())
                 .items(orderItems)
                 .totalAmount(cart.getTotal()) // Use cart's calculated total
                 .deliveryAddress(deliveryAddress)
+                .deliveryLatitude(deliveryLat)
+                .deliveryLongitude(deliveryLng)
                 .specialInstructions(specialInstructions)
                 .orderStatus(OrderStatus.PENDING)
                 .paymentStatus(PaymentStatus.PENDING)
@@ -175,7 +193,7 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        // 5. Clear the cart after successful order creation
+        // 6. Clear the cart after successful order creation
         cartRepository.delete(cart);
 
         log.info("Order #{} created from cart for user {}", savedOrder.getId(), userId);
@@ -203,6 +221,19 @@ public class OrderService {
                 rs.getString("zip_code"),
                 addressId
         );
+    }
+
+    private double[] fetchUserCurrentLocation(Long userId) {
+        String sql = "SELECT current_latitude, current_longitude FROM user_profiles WHERE user_id = ?";
+        return jdbcTemplate.query(sql, ps -> ps.setLong(1, userId), rs -> {
+            if (rs.next()) {
+                Double lat = (Double) rs.getObject("current_latitude");
+                Double lng = (Double) rs.getObject("current_longitude");
+                // Default to 0 if null
+                return new double[] { lat != null ? lat : 0.0, lng != null ? lng : 0.0 };
+            }
+            return new double[] { 0.0, 0.0 };
+        });
     }
 
     private Map<String, Object> fetchMenuItemDetails(Long menuItemId) {

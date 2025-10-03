@@ -20,4 +20,8 @@ public class UserProfileDto {
     private String phoneNumber;
 
     private List<AddressDto> addresses;
+
+    // Current geolocation (optional)
+    private Double currentLatitude;
+    private Double currentLongitude;
 }

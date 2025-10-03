@@ -49,6 +49,10 @@ public class Order {
     @Column(nullable = false, length = 512)
     private String deliveryAddress; // Denormalized address string
 
+    // Snapshot of delivery coordinates at order time
+    private Double deliveryLatitude;
+    private Double deliveryLongitude;
+
     private String specialInstructions;
 
     @CreationTimestamp

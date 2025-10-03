@@ -19,6 +19,8 @@ public class OrderResponseDto {
     private OrderStatus orderStatus;
     private PaymentStatus paymentStatus;
     private String deliveryAddress;
+    private Double deliveryLatitude;
+    private Double deliveryLongitude;
     private String specialInstructions;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

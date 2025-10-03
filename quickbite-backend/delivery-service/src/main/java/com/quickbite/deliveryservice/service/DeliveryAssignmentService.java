@@ -34,6 +34,12 @@ public class DeliveryAssignmentService {
     @Autowired
     private EmailService emailService;
 
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    @org.springframework.beans.factory.annotation.Value("${delivery.assignment.maxRadiusKm:15}")
+    private double maxAssignmentRadiusKm;
+
     @Transactional
     public DeliveryAssignmentDto assignOrder(DeliveryAssignmentRequest request) {
         // Check if order is already assigned
@@ -41,7 +47,7 @@ public class DeliveryAssignmentService {
             throw new IllegalArgumentException("Order is already assigned to a delivery partner");
         }
 
-        // Enrich missing fields from order-service and restaurant-service (placeholder; replace with JdbcTemplate/HTTP calls)
+        // Enrich missing fields from order-service and restaurant-service via JdbcTemplate
         EnrichedData enriched = enrichFromBackend(request);
 
         // Find the best available delivery partner
@@ -118,21 +124,36 @@ public class DeliveryAssignmentService {
         e.deliveryLongitude = request.getDeliveryLongitude();
         e.deliveryFee = request.getDeliveryFee();
 
-        // TODO: Replace the following fallbacks with real lookups using JdbcTemplate/HTTP
-        if (e.restaurantId == null || e.pickupLatitude == null || e.pickupLongitude == null || e.pickupAddress == null) {
-            // mock fallback; in real code, query restaurant-service by orderId/restaurantId
-            e.restaurantId = e.restaurantId != null ? e.restaurantId : 1L;
-            e.pickupLatitude = e.pickupLatitude != null ? e.pickupLatitude : 40.7128;
-            e.pickupLongitude = e.pickupLongitude != null ? e.pickupLongitude : -74.0060;
-            e.pickupAddress = e.pickupAddress != null ? e.pickupAddress : "Restaurant pickup address";
+        // Look up missing data from orders table
+        if (e.deliveryLatitude == null || e.deliveryLongitude == null || e.deliveryAddress == null || e.customerId == null) {
+            String orderSql = "SELECT user_id, delivery_address, delivery_latitude, delivery_longitude, restaurant_id FROM orders WHERE id = ?";
+            jdbcTemplate.query(orderSql, ps -> ps.setLong(1, request.getOrderId()), rs -> {
+                if (rs.next()) {
+                    if (e.customerId == null) e.customerId = rs.getLong("user_id");
+                    if (e.deliveryAddress == null) e.deliveryAddress = rs.getString("delivery_address");
+                    if (e.deliveryLatitude == null) e.deliveryLatitude = (Double) rs.getObject("delivery_latitude");
+                    if (e.deliveryLongitude == null) e.deliveryLongitude = (Double) rs.getObject("delivery_longitude");
+                    if (e.restaurantId == null) e.restaurantId = rs.getLong("restaurant_id");
+                }
+                return null;
+            });
         }
-        if (e.customerId == null || e.deliveryLatitude == null || e.deliveryLongitude == null || e.deliveryAddress == null) {
-            // mock fallback; in real code, query order-service for delivery address lat/lng/address
-            e.customerId = e.customerId != null ? e.customerId : 1L;
-            e.deliveryLatitude = e.deliveryLatitude != null ? e.deliveryLatitude : 40.7589;
-            e.deliveryLongitude = e.deliveryLongitude != null ? e.deliveryLongitude : -73.9851;
-            e.deliveryAddress = e.deliveryAddress != null ? e.deliveryAddress : "Customer delivery address";
+
+        // Look up restaurant pickup address/coordinates if missing
+        if (e.pickupLatitude == null || e.pickupLongitude == null || e.pickupAddress == null) {
+            if (e.restaurantId != null) {
+                String restSql = "SELECT address, latitude, longitude FROM restaurants WHERE id = ?";
+                jdbcTemplate.query(restSql, ps -> ps.setLong(1, e.restaurantId), rs -> {
+                    if (rs.next()) {
+                        if (e.pickupAddress == null) e.pickupAddress = rs.getString("address");
+                        if (e.pickupLatitude == null) e.pickupLatitude = (Double) rs.getObject("latitude");
+                        if (e.pickupLongitude == null) e.pickupLongitude = (Double) rs.getObject("longitude");
+                    }
+                    return null;
+                });
+            }
         }
+
         if (e.deliveryFee == null) {
             e.deliveryFee = BigDecimal.valueOf(3.99);
         }
@@ -290,13 +311,18 @@ public class DeliveryAssignmentService {
                     pickupLat, pickupLng, 
                     partner.getLatitude(), partner.getLongitude()
                 );
-                if (distance < minDistance) {
+                // Enforce radius cutoff
+                if (distance <= maxAssignmentRadiusKm && distance < minDistance) {
                     minDistance = distance;
                     bestPartner = partner;
                 }
             }
         }
 
+        // If nearest partner is still beyond cutoff or none eligible, return null
+        if (bestPartner == null || minDistance > maxAssignmentRadiusKm) {
+            return null;
+        }
         return bestPartner;
     }
 

@@ -59,6 +59,23 @@ public class UserProfileService {
     }
 
     @Transactional
+    public UserProfileDto updateUserLocation(Long userId, Double latitude, Double longitude) {
+        UserProfile existingProfile = userProfileRepository.findByUserId(userId)
+                .orElseThrow(() -> new RuntimeException("User profile not found"));
+
+        if (latitude != null) {
+            existingProfile.setCurrentLatitude(latitude);
+        }
+        if (longitude != null) {
+            existingProfile.setCurrentLongitude(longitude);
+        }
+
+        UserProfile updated = userProfileRepository.save(existingProfile);
+        log.info("Updated user current location for userId: {} -> {}, {}", userId, latitude, longitude);
+        return convertToDto(updated);
+    }
+
+    @Transactional
     public AddressDto addAddress(Long userId, AddressDto addressDto) {
         UserProfile userProfile = userProfileRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("User profile not found"));

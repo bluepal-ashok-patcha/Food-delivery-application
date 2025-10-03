@@ -55,6 +55,31 @@ public class UserProfileController {
         return ResponseEntity.ok(body);
     }
 
+    @GetMapping("/location")
+    public ResponseEntity<ApiResponse<UserProfileDto>> getCurrentLocation(Authentication authentication) {
+        Long userId = (Long) authentication.getDetails();
+        UserProfileDto userProfileDto = userProfileService.getUserProfileByUserId(userId);
+        ApiResponse<UserProfileDto> body = ApiResponse.<UserProfileDto>builder()
+                .success(true)
+                .message("User location fetched successfully")
+                .data(userProfileDto)
+                .build();
+        return ResponseEntity.ok(body);
+    }
+
+    @PutMapping("/location")
+    public ResponseEntity<ApiResponse<UserProfileDto>> updateCurrentLocation(@RequestBody UserProfileDto userProfileDto, Authentication authentication) {
+        Long userId = (Long) authentication.getDetails();
+        // Only latitude/longitude are relevant here; service will persist them
+        UserProfileDto updated = userProfileService.updateUserLocation(userId, userProfileDto.getCurrentLatitude(), userProfileDto.getCurrentLongitude());
+        ApiResponse<UserProfileDto> body = ApiResponse.<UserProfileDto>builder()
+                .success(true)
+                .message("User location updated successfully")
+                .data(updated)
+                .build();
+        return ResponseEntity.ok(body);
+    }
+
     @PostMapping("/addresses")
     public ResponseEntity<ApiResponse<AddressDto>> addAddress(@Valid @RequestBody AddressDto addressDto, Authentication authentication) {
         Long userId = (Long) authentication.getDetails();
