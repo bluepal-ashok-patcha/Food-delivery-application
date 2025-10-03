@@ -7,12 +7,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "order_items")
+@Table(name = "cart_items")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderItem {
+public class CartItem {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,14 +22,17 @@ public class OrderItem {
     private Long menuItemId;
 
     @Column(nullable = false)
-    private String name; // Denormalized for historical accuracy
+    private String menuItemName;
+
+    @Column(nullable = false)
+    private Double price;
 
     @Column(nullable = false)
     private Integer quantity;
 
-    @Column(nullable = false)
-    private Double price; // Price at the time of order
+    @Column(columnDefinition = "TEXT")
+    private String customization; // JSON string for customization options
 
     @Column(columnDefinition = "TEXT")
     private String specialInstructions;
-    }
+}

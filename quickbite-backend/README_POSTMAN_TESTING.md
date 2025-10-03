@@ -505,11 +505,169 @@ Coupon Types: PERCENTAGE, FIXED_AMOUNT, FREE_DELIVERY, BOGO, COMBO_DEAL
    GET /api/delivery/assignments/order/{orderId}
    ```
 
+## Server-Side Cart Flow (Multi-Device Support)
+
+### Cart Management Endpoints
+
+#### 1. Get Cart
+```http
+GET /api/cart
+Authorization: Bearer <customer_token>
+```
+
+#### 2. Add Item to Cart
+```http
+POST /api/cart/add
+Authorization: Bearer <customer_token>
+Content-Type: application/json
+
+{
+  "restaurantId": 1,
+  "item": {
+    "menuItemId": 101,
+    "quantity": 2,
+    "customization": "{\"size\":\"large\",\"crust\":\"thin\"}",
+    "specialInstructions": "Extra cheese"
+  }
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Item added to cart successfully",
+  "data": {
+    "id": 1,
+    "userId": 1,
+    "restaurantId": 1,
+    "items": [
+      {
+        "menuItemId": 101,
+        "menuItemName": "Margherita Pizza",
+        "price": 299.0,
+        "quantity": 2,
+        "customization": "{\"size\":\"large\",\"crust\":\"thin\"}",
+        "specialInstructions": "Extra cheese"
+      }
+    ],
+    "subtotal": 598.0,
+    "deliveryFee": 2.99,
+    "tax": 48.08,
+    "total": 649.07,
+    "appliedCouponCode": null,
+    "discountAmount": null
+  }
+}
+```
+
+#### 3. Update Cart Item Quantity
+```http
+PUT /api/cart/items/{menuItemId}
+Authorization: Bearer <customer_token>
+Content-Type: application/json
+
+{
+  "menuItemId": 101,
+  "quantity": 3,
+  "customization": "{\"size\":\"large\",\"crust\":\"thin\"}",
+  "specialInstructions": "Extra cheese"
+}
+```
+
+#### 4. Remove Item from Cart
+```http
+DELETE /api/cart/items/{menuItemId}?customization={"size":"large","crust":"thin"}
+Authorization: Bearer <customer_token>
+```
+
+#### 5. Apply Coupon to Cart
+```http
+POST /api/cart/coupon?couponCode=SAVE20
+Authorization: Bearer <customer_token>
+```
+
+#### 6. Remove Coupon from Cart
+```http
+DELETE /api/cart/coupon
+Authorization: Bearer <customer_token>
+```
+
+#### 7. Get Cart Pricing Breakdown
+```http
+GET /api/cart/pricing
+Authorization: Bearer <customer_token>
+```
+
+#### 8. Clear Cart
+```http
+DELETE /api/cart
+Authorization: Bearer <customer_token>
+```
+
+### Cart-to-Order Conversion
+
+#### Create Order from Cart
+```http
+POST /api/orders/from-cart?addressId=1&specialInstructions=Leave at door
+Authorization: Bearer <customer_token>
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Order created from cart successfully",
+  "data": {
+    "id": 123,
+    "userId": 1,
+    "restaurantId": 1,
+    "totalAmount": 641.0,
+    "orderStatus": "PENDING",
+    "paymentStatus": "PENDING",
+    "deliveryAddress": "123 Main St, City, State 12345",
+    "specialInstructions": "Leave at door",
+    "items": [
+      {
+        "menuItemId": 101,
+        "name": "Margherita Pizza",
+        "price": 299.0,
+        "quantity": 2,
+        "specialInstructions": "Extra cheese"
+      }
+    ],
+    "createdAt": "2024-01-15T10:30:00",
+    "updatedAt": "2024-01-15T10:30:00"
+  }
+}
+```
+
+### Complete Cart-to-Payment Flow
+
+1. **Add items to cart** (multiple devices supported)
+2. **Apply coupon** (optional)
+3. **Get pricing breakdown** (optional)
+4. **Create order from cart** → Cart is cleared automatically
+5. **Create payment intent** (existing payment flow)
+6. **Complete payment** → Order status updated
+
+### Cart Features
+
+- **Multi-device sync**: Cart persists on server, accessible from any device
+- **Restaurant restriction**: Only one restaurant per cart (clears when switching)
+- **Customization support**: JSON string for item customizations
+- **Coupon integration**: Real-time validation via payment service
+- **Automatic pricing**: Subtotal, delivery fee, tax, discount calculation
+- **Cart persistence**: Survives browser refresh and device switching
+- **Automatic item details**: Menu item name and price fetched automatically from database via JdbcTemplate
+- **Direct database access**: All cross-service data accessed via JdbcTemplate (no HTTP calls)
+
 ## Important Notes
 - **Email Configuration**: Set EMAIL_USERNAME and EMAIL_PASSWORD environment variables for Gmail SMTP
 - **JWT Tokens**: Include `Authorization: Bearer <token>` header for protected endpoints
 - **Role Validation**: Ensure users have correct roles for accessing specific endpoints
 - **Database**: All services should connect to the same MySQL database
 - **Service Discovery**: Ensure Eureka is running and all services are registered
+- **Cart Service**: Cart endpoints are part of order-service (port 9003)
 
 

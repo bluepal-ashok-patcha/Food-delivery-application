@@ -1,13 +1,13 @@
 package com.quickbite.orderservice.service;
 
-import com.quickbite.orderservice.dto.OrderItemResponseDto;
-import com.quickbite.orderservice.dto.OrderRequestDto;
-import com.quickbite.orderservice.dto.OrderResponseDto;
-import com.quickbite.orderservice.dto.OrderItemDto;
+import com.quickbite.orderservice.dto.*;
+import com.quickbite.orderservice.entity.Cart;
+import com.quickbite.orderservice.entity.CartItem;
 import com.quickbite.orderservice.entity.Order;
 import com.quickbite.orderservice.entity.OrderItem;
 import com.quickbite.orderservice.entity.OrderStatus;
 import com.quickbite.orderservice.entity.PaymentStatus;
+import com.quickbite.orderservice.repository.CartRepository;
 import com.quickbite.orderservice.repository.OrderRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -32,6 +33,9 @@ public class OrderService {
 
     @Autowired
     private OrderRepository orderRepository;
+
+    @Autowired
+    private CartRepository cartRepository;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
@@ -136,6 +140,47 @@ public class OrderService {
         return orderRepository.findAll(pageable);
     }
 
+    @Transactional
+    public OrderResponseDto createOrderFromCart(Long userId, Long addressId, String specialInstructions) {
+        // 1. Get user's cart
+        Optional<Cart> cartOpt = cartRepository.findByUserId(userId);
+        if (cartOpt.isEmpty()) {
+            throw new RuntimeException("Cart is empty. Please add items to cart first.");
+        }
+
+        Cart cart = cartOpt.get();
+        if (cart.getItems() == null || cart.getItems().isEmpty()) {
+            throw new RuntimeException("Cart is empty. Please add items to cart first.");
+        }
+
+        // 2. Fetch address details
+        String deliveryAddress = fetchAddress(addressId);
+
+        // 3. Convert cart items to order items
+        List<OrderItem> orderItems = cart.getItems().stream()
+                .map(this::convertCartItemToOrderItem)
+                .collect(Collectors.toList());
+
+        // 4. Create order with cart totals
+        Order order = Order.builder()
+                .userId(userId)
+                .restaurantId(cart.getRestaurantId())
+                .items(orderItems)
+                .totalAmount(cart.getTotal()) // Use cart's calculated total
+                .deliveryAddress(deliveryAddress)
+                .specialInstructions(specialInstructions)
+                .orderStatus(OrderStatus.PENDING)
+                .paymentStatus(PaymentStatus.PENDING)
+                .build();
+
+        Order savedOrder = orderRepository.save(order);
+
+        // 5. Clear the cart after successful order creation
+        cartRepository.delete(cart);
+
+        log.info("Order #{} created from cart for user {}", savedOrder.getId(), userId);
+        return convertToDto(savedOrder);
+    }
 
     // --- Helper Methods ---
 
@@ -180,5 +225,15 @@ public class OrderService {
         OrderItemResponseDto dto = new OrderItemResponseDto();
         BeanUtils.copyProperties(orderItem, dto);
         return dto;
+    }
+
+    private OrderItem convertCartItemToOrderItem(CartItem cartItem) {
+        return OrderItem.builder()
+                .menuItemId(cartItem.getMenuItemId())
+                .name(cartItem.getMenuItemName())
+                .price(cartItem.getPrice())
+                .quantity(cartItem.getQuantity())
+                .specialInstructions(cartItem.getSpecialInstructions())
+                .build();
     }
 }

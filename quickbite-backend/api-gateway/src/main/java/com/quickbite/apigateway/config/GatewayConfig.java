@@ -38,6 +38,11 @@ public class GatewayConfig {
                         .filters(f -> f.filter(filter))
                         .uri("lb://order-service"))
                 
+                // Cart Service Routes (part of order-service)
+                .route("cart-service", r -> r.path("/api/cart/**")
+                        .filters(f -> f.filter(filter))
+                        .uri("lb://order-service"))
+                
                 // Delivery Service Routes
                 .route("delivery-service", r -> r.path("/api/delivery/**")
                         .filters(f -> f.filter(filter))

@@ -36,6 +36,22 @@ public class OrderController {
         return new ResponseEntity<>(body, HttpStatus.CREATED);
     }
 
+    @PostMapping("/from-cart")
+    @PreAuthorize("hasRole('CUSTOMER')")
+    public ResponseEntity<ApiResponse<OrderResponseDto>> createOrderFromCart(
+            @RequestParam Long addressId,
+            @RequestParam(required = false) String specialInstructions,
+            Authentication authentication) {
+        Long userId = (Long) authentication.getPrincipal();
+        OrderResponseDto createdOrder = orderService.createOrderFromCart(userId, addressId, specialInstructions);
+        ApiResponse<OrderResponseDto> body = ApiResponse.<OrderResponseDto>builder()
+                .success(true)
+                .message("Order created from cart successfully")
+                .data(createdOrder)
+                .build();
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
+    }
+
     @GetMapping("/user")
     public ResponseEntity<ApiResponse<List<OrderResponseDto>>> getOrdersByUserId(
             Authentication authentication,
