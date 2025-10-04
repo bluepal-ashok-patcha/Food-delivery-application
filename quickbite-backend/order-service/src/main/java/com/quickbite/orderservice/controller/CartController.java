@@ -6,21 +6,23 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpServletRequest;
+import com.quickbite.orderservice.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/cart")
-@PreAuthorize("hasRole('CUSTOMER')")
 public class CartController {
 
     @Autowired
     private CartService cartService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @GetMapping
-    public ResponseEntity<ApiResponse<CartDto>> getCart(Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<CartDto>> getCart(HttpServletRequest request) {
+        Long userId = extractUserId(request);
         CartDto cart = cartService.getCart(userId);
         ApiResponse<CartDto> response = ApiResponse.<CartDto>builder()
                 .success(true)
@@ -32,10 +34,10 @@ public class CartController {
 
     @PostMapping("/add")
     public ResponseEntity<ApiResponse<CartDto>> addToCart(
-            @Valid @RequestBody AddToCartRequest request,
-            Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
-        CartDto cart = cartService.addToCart(userId, request);
+            @Valid @RequestBody AddToCartRequest requestBody,
+            HttpServletRequest request) {
+        Long userId = extractUserId(request);
+        CartDto cart = cartService.addToCart(userId, requestBody);
         ApiResponse<CartDto> response = ApiResponse.<CartDto>builder()
                 .success(true)
                 .message("Item added to cart successfully")
@@ -47,11 +49,11 @@ public class CartController {
     @PutMapping("/items/{menuItemId}")
     public ResponseEntity<ApiResponse<CartDto>> updateCartItem(
             @PathVariable Long menuItemId,
-            @Valid @RequestBody UpdateCartItemRequest request,
-            Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
-        request.setMenuItemId(menuItemId); // Ensure consistency
-        CartDto cart = cartService.updateCartItem(userId, request);
+            @Valid @RequestBody UpdateCartItemRequest body,
+            HttpServletRequest request) {
+        Long userId = extractUserId(request);
+        body.setMenuItemId(menuItemId); // Ensure consistency
+        CartDto cart = cartService.updateCartItem(userId, body);
         ApiResponse<CartDto> response = ApiResponse.<CartDto>builder()
                 .success(true)
                 .message("Cart item updated successfully")
@@ -64,8 +66,8 @@ public class CartController {
     public ResponseEntity<ApiResponse<CartDto>> removeFromCart(
             @PathVariable Long menuItemId,
             @RequestParam(required = false) String customization,
-            Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+            HttpServletRequest request) {
+        Long userId = extractUserId(request);
         CartDto cart = cartService.removeFromCart(userId, menuItemId, customization);
         ApiResponse<CartDto> response = ApiResponse.<CartDto>builder()
                 .success(true)
@@ -76,8 +78,8 @@ public class CartController {
     }
 
     @DeleteMapping
-    public ResponseEntity<ApiResponse<Void>> clearCart(Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<Void>> clearCart(HttpServletRequest request) {
+        Long userId = extractUserId(request);
         cartService.clearCart(userId);
         ApiResponse<Void> response = ApiResponse.<Void>builder()
                 .success(true)
@@ -89,8 +91,8 @@ public class CartController {
     @PostMapping("/coupon")
     public ResponseEntity<ApiResponse<CartDto>> applyCoupon(
             @RequestParam String couponCode,
-            Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+            HttpServletRequest request) {
+        Long userId = extractUserId(request);
         CartDto cart = cartService.applyCoupon(userId, couponCode);
         ApiResponse<CartDto> response = ApiResponse.<CartDto>builder()
                 .success(true)
@@ -101,8 +103,8 @@ public class CartController {
     }
 
     @DeleteMapping("/coupon")
-    public ResponseEntity<ApiResponse<CartDto>> removeCoupon(Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<CartDto>> removeCoupon(HttpServletRequest request) {
+        Long userId = extractUserId(request);
         CartDto cart = cartService.removeCoupon(userId);
         ApiResponse<CartDto> response = ApiResponse.<CartDto>builder()
                 .success(true)
@@ -113,8 +115,8 @@ public class CartController {
     }
 
     @GetMapping("/pricing")
-    public ResponseEntity<ApiResponse<CartPricingBreakdown>> getCartPricing(Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<CartPricingBreakdown>> getCartPricing(HttpServletRequest request) {
+        Long userId = extractUserId(request);
         CartPricingBreakdown pricing = cartService.getCartPricing(userId);
         ApiResponse<CartPricingBreakdown> response = ApiResponse.<CartPricingBreakdown>builder()
                 .success(true)
@@ -122,5 +124,15 @@ public class CartController {
                 .data(pricing)
                 .build();
         return ResponseEntity.ok(response);
+    }
+    private Long extractUserId(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            String token = auth.substring(7);
+            try {
+                return jwtUtil.getAllClaimsFromToken(token).get("userId", Long.class);
+            } catch (Exception ignored) {}
+        }
+        throw new RuntimeException("Unauthorized");
     }
 }

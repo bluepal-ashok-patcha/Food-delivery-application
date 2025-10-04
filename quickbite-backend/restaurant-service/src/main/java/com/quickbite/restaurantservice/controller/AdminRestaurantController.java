@@ -9,15 +9,14 @@ import com.quickbite.restaurantservice.service.RestaurantApprovalService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpServletRequest;
+import com.quickbite.restaurantservice.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/restaurants/admin")
-@PreAuthorize("hasRole('ADMIN')")
 public class AdminRestaurantController {
 
     @Autowired
@@ -25,6 +24,9 @@ public class AdminRestaurantController {
 
     @Autowired
     private RestaurantApprovalService approvalService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @GetMapping("/pending")
     public ResponseEntity<ApiResponse<List<RestaurantDto>>> getPendingRestaurants(
@@ -42,8 +44,8 @@ public class AdminRestaurantController {
     public ResponseEntity<ApiResponse<RestaurantDto>> approveRestaurant(
             @PathVariable Long restaurantId,
             @Valid @RequestBody RestaurantApprovalRequest request,
-            Authentication authentication) {
-        Long adminUserId = (Long) authentication.getPrincipal();
+            HttpServletRequest httpRequest) {
+        Long adminUserId = extractUserId(httpRequest);
         RestaurantDto approvedRestaurant = approvalService.approveRestaurant(restaurantId, adminUserId, request.getApprovalNotes());
         return ResponseEntity.ok(ApiResponse.<RestaurantDto>builder()
                 .success(true)
@@ -56,8 +58,8 @@ public class AdminRestaurantController {
     public ResponseEntity<ApiResponse<RestaurantDto>> rejectRestaurant(
             @PathVariable Long restaurantId,
             @Valid @RequestBody RestaurantApprovalRequest request,
-            Authentication authentication) {
-        Long adminUserId = (Long) authentication.getPrincipal();
+            HttpServletRequest httpRequest) {
+        Long adminUserId = extractUserId(httpRequest);
         RestaurantDto rejectedRestaurant = approvalService.rejectRestaurant(restaurantId, adminUserId, request.getRejectionReason());
         return ResponseEntity.ok(ApiResponse.<RestaurantDto>builder()
                 .success(true)
@@ -85,13 +87,24 @@ public class AdminRestaurantController {
     public ResponseEntity<ApiResponse<RestaurantDto>> updateRestaurantStatus(
             @PathVariable Long restaurantId,
             @RequestParam RestaurantStatus status,
-            Authentication authentication) {
-        Long adminUserId = (Long) authentication.getPrincipal();
+            HttpServletRequest httpRequest) {
+        Long adminUserId = extractUserId(httpRequest);
         RestaurantDto updatedRestaurant = approvalService.updateRestaurantStatus(restaurantId, status, adminUserId);
         return ResponseEntity.ok(ApiResponse.<RestaurantDto>builder()
                 .success(true)
                 .message("Restaurant status updated successfully")
                 .data(updatedRestaurant)
                 .build());
+    }
+
+    private Long extractUserId(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            String token = auth.substring(7);
+            try {
+                return jwtUtil.getAllClaimsFromToken(token).get("userId", Long.class);
+            } catch (Exception ignored) {}
+        }
+        throw new RuntimeException("Unauthorized");
     }
 }

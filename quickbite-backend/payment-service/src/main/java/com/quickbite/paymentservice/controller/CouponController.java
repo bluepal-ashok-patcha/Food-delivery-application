@@ -9,8 +9,8 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpServletRequest;
+import com.quickbite.paymentservice.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -21,6 +21,9 @@ public class CouponController {
 
     @Autowired
     private CouponService couponService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @PostMapping("/validate")
     public ResponseEntity<ApiResponse<CouponValidationResponse>> validateCoupon(
@@ -36,8 +39,8 @@ public class CouponController {
     @GetMapping("/applicable")
     public ResponseEntity<ApiResponse<List<CouponDto>>> getApplicableCoupons(
             @RequestParam(required = false) Long restaurantId,
-            Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+            HttpServletRequest request) {
+        Long userId = extractUserId(request);
         List<CouponDto> coupons = couponService.getApplicableCoupons(restaurantId, userId);
         return ResponseEntity.ok(ApiResponse.<List<CouponDto>>builder()
                 .success(true)
@@ -48,11 +51,10 @@ public class CouponController {
 
     // Admin endpoints
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<CouponDto>> createCoupon(
             @Valid @RequestBody CouponDto couponDto,
-            Authentication authentication) {
-        Long adminUserId = (Long) authentication.getPrincipal();
+            HttpServletRequest request) {
+        Long adminUserId = extractUserId(request);
         CouponDto createdCoupon = couponService.createCoupon(couponDto, adminUserId);
         return new ResponseEntity<>(ApiResponse.<CouponDto>builder()
                 .success(true)
@@ -62,7 +64,6 @@ public class CouponController {
     }
 
     @PutMapping("/{couponId}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<CouponDto>> updateCoupon(
             @PathVariable Long couponId,
             @Valid @RequestBody CouponDto couponDto) {
@@ -75,7 +76,6 @@ public class CouponController {
     }
 
     @DeleteMapping("/{couponId}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deactivateCoupon(@PathVariable Long couponId) {
         couponService.deactivateCoupon(couponId);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
@@ -85,7 +85,6 @@ public class CouponController {
     }
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<CouponDto>>> getAllCoupons(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
@@ -98,7 +97,6 @@ public class CouponController {
     }
 
     @GetMapping("/{couponId}")
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<CouponDto>> getCouponById(@PathVariable Long couponId) {
         CouponDto coupon = couponService.getCouponById(couponId);
         return ResponseEntity.ok(ApiResponse.<CouponDto>builder()
@@ -106,6 +104,17 @@ public class CouponController {
                 .message("Coupon fetched successfully")
                 .data(coupon)
                 .build());
+    }
+
+    private Long extractUserId(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            String token = auth.substring(7);
+            try {
+                return jwtUtil.getAllClaimsFromToken(token).get("userId", Long.class);
+            } catch (Exception ignored) {}
+        }
+        throw new RuntimeException("Unauthorized");
     }
 }
 

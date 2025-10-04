@@ -7,8 +7,8 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpServletRequest;
+import com.quickbite.deliveryservice.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,8 +20,10 @@ public class DeliveryAssignmentController {
     @Autowired
     private DeliveryAssignmentService assignmentService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'RESTAURANT_OWNER')")
     public ResponseEntity<ApiResponse<DeliveryAssignmentDto>> assignOrder(@Valid @RequestBody DeliveryAssignmentRequest request) {
         DeliveryAssignmentDto assignment = assignmentService.assignOrder(request);
         ApiResponse<DeliveryAssignmentDto> body = ApiResponse.<DeliveryAssignmentDto>builder()
@@ -33,9 +35,8 @@ public class DeliveryAssignmentController {
     }
 
     @PutMapping("/{assignmentId}/accept")
-    @PreAuthorize("hasRole('DELIVERY_PARTNER')")
-    public ResponseEntity<ApiResponse<DeliveryAssignmentDto>> acceptAssignment(@PathVariable Long assignmentId, Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<DeliveryAssignmentDto>> acceptAssignment(@PathVariable Long assignmentId, HttpServletRequest request) {
+        Long userId = extractUserId(request);
         DeliveryAssignmentDto assignment = assignmentService.acceptAssignment(assignmentId, userId);
         ApiResponse<DeliveryAssignmentDto> body = ApiResponse.<DeliveryAssignmentDto>builder()
                 .success(true)
@@ -46,12 +47,11 @@ public class DeliveryAssignmentController {
     }
 
     @PutMapping("/{assignmentId}/status")
-    @PreAuthorize("hasRole('DELIVERY_PARTNER')")
     public ResponseEntity<ApiResponse<DeliveryAssignmentDto>> updateDeliveryStatus(
             @PathVariable Long assignmentId,
             @RequestParam DeliveryStatus status,
-            Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+            HttpServletRequest request) {
+        Long userId = extractUserId(request);
         DeliveryAssignmentDto assignment = assignmentService.updateDeliveryStatus(assignmentId, status, userId);
         ApiResponse<DeliveryAssignmentDto> body = ApiResponse.<DeliveryAssignmentDto>builder()
                 .success(true)
@@ -73,9 +73,8 @@ public class DeliveryAssignmentController {
     }
 
     @GetMapping("/my")
-    @PreAuthorize("hasRole('DELIVERY_PARTNER')")
-    public ResponseEntity<ApiResponse<List<DeliveryAssignmentDto>>> getMyAssignments(Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<List<DeliveryAssignmentDto>>> getMyAssignments(HttpServletRequest request) {
+        Long userId = extractUserId(request);
         List<DeliveryAssignmentDto> assignments = assignmentService.getPartnerAssignments(userId);
         ApiResponse<List<DeliveryAssignmentDto>> body = ApiResponse.<List<DeliveryAssignmentDto>>builder()
                 .success(true)
@@ -86,9 +85,8 @@ public class DeliveryAssignmentController {
     }
 
     @GetMapping("/active")
-    @PreAuthorize("hasRole('DELIVERY_PARTNER')")
-    public ResponseEntity<ApiResponse<List<DeliveryAssignmentDto>>> getActiveAssignments(Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<List<DeliveryAssignmentDto>>> getActiveAssignments(HttpServletRequest request) {
+        Long userId = extractUserId(request);
         List<DeliveryAssignmentDto> assignments = assignmentService.getActiveAssignments(userId);
         ApiResponse<List<DeliveryAssignmentDto>> body = ApiResponse.<List<DeliveryAssignmentDto>>builder()
                 .success(true)
@@ -99,9 +97,8 @@ public class DeliveryAssignmentController {
     }
 
     @PutMapping("/location")
-    @PreAuthorize("hasRole('DELIVERY_PARTNER')")
-    public ResponseEntity<ApiResponse<String>> updateLocation(@Valid @RequestBody LocationUpdateRequest request, Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<String>> updateLocation(@Valid @RequestBody LocationUpdateRequest request, HttpServletRequest httpRequest) {
+        Long userId = extractUserId(httpRequest);
         assignmentService.updatePartnerLocation(userId, request);
         ApiResponse<String> body = ApiResponse.<String>builder()
                 .success(true)
@@ -109,5 +106,16 @@ public class DeliveryAssignmentController {
                 .data("Location updated")
                 .build();
         return ResponseEntity.ok(body);
+    }
+
+    private Long extractUserId(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            String token = auth.substring(7);
+            try {
+                return jwtUtil.getAllClaimsFromToken(token).get("userId", Long.class);
+            } catch (Exception ignored) {}
+        }
+        throw new RuntimeException("Unauthorized");
     }
 }

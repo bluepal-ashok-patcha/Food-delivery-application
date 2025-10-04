@@ -10,7 +10,8 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpServletRequest;
+import com.quickbite.deliveryservice.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -22,17 +23,12 @@ public class DeliveryController {
     @Autowired
     private DeliveryService deliveryService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @PostMapping("/partners")
-    public ResponseEntity<ApiResponse<DeliveryPartnerDto>> createDeliveryPartner(@Valid @RequestBody DeliveryPartnerDto partnerDto, Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
-        
-        if (userId == null) {
-            return ResponseEntity.badRequest().body(ApiResponse.<DeliveryPartnerDto>builder()
-                    .success(false)
-                    .message("User ID not found in JWT token")
-                    .build());
-        }
-        
+    public ResponseEntity<ApiResponse<DeliveryPartnerDto>> createDeliveryPartner(@Valid @RequestBody DeliveryPartnerDto partnerDto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
         partnerDto.setUserId(userId); // Set userId from authenticated token
         DeliveryPartnerDto createdPartner = deliveryService.createDeliveryPartner(partnerDto);
         ApiResponse<DeliveryPartnerDto> body = ApiResponse.<DeliveryPartnerDto>builder()
@@ -44,8 +40,8 @@ public class DeliveryController {
     }
 
     @GetMapping("/partners/profile")
-    public ResponseEntity<ApiResponse<DeliveryPartnerDto>> getDeliveryPartner(Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<DeliveryPartnerDto>> getDeliveryPartner(HttpServletRequest request) {
+        Long userId = extractUserId(request);
         DeliveryPartnerDto partner = deliveryService.getDeliveryPartnerByUserId(userId);
         return ResponseEntity.ok(ApiResponse.<DeliveryPartnerDto>builder()
                 .success(true)
@@ -55,8 +51,8 @@ public class DeliveryController {
     }
 
     @PutMapping("/partners/status")
-    public ResponseEntity<ApiResponse<DeliveryPartnerDto>> updatePartnerStatus(@RequestParam DeliveryPartnerStatus status, Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<DeliveryPartnerDto>> updatePartnerStatus(@RequestParam DeliveryPartnerStatus status, HttpServletRequest request) {
+        Long userId = extractUserId(request);
         DeliveryPartnerDto updatedPartner = deliveryService.updateDeliveryPartnerStatus(userId, status);
         return ResponseEntity.ok(ApiResponse.<DeliveryPartnerDto>builder()
                 .success(true)
@@ -66,8 +62,8 @@ public class DeliveryController {
     }
 
     @PutMapping("/partners/location")
-    public ResponseEntity<ApiResponse<Void>> updatePartnerLocation(@Valid @RequestBody LocationUpdateDto locationDto, Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<Void>> updatePartnerLocation(@Valid @RequestBody LocationUpdateDto locationDto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
         deliveryService.updateDeliveryPartnerLocation(userId, locationDto);
         return ResponseEntity.ok(ApiResponse.<Void>builder()
                 .success(true)
@@ -89,8 +85,8 @@ public class DeliveryController {
     // --- Reviews ---
 
     @PostMapping("/partners/{partnerUserId}/reviews")
-    public ResponseEntity<ApiResponse<DeliveryPartnerReviewDto>> addPartnerReview(@PathVariable Long partnerUserId, @Valid @RequestBody DeliveryPartnerReviewDto dto, Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<DeliveryPartnerReviewDto>> addPartnerReview(@PathVariable Long partnerUserId, @Valid @RequestBody DeliveryPartnerReviewDto dto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
         dto.setPartnerUserId(partnerUserId);
         dto.setUserId(userId);
         DeliveryPartnerReviewDto saved = deliveryService.addPartnerReview(dto);
@@ -109,5 +105,16 @@ public class DeliveryController {
                 .message("Reviews fetched successfully")
                 .data(list)
                 .build());
+    }
+
+    private Long extractUserId(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            String token = auth.substring(7);
+            try {
+                return jwtUtil.getAllClaimsFromToken(token).get("userId", Long.class);
+            } catch (Exception ignored) {}
+        }
+        throw new RuntimeException("Unauthorized");
     }
 }

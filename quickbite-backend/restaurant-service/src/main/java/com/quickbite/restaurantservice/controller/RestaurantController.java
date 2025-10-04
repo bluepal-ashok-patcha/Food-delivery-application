@@ -13,7 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpServletRequest;
+import com.quickbite.restaurantservice.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,9 @@ public class RestaurantController {
 
     @Autowired
     private RestaurantService restaurantService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     // --- Public Endpoints ---
 
@@ -85,8 +89,8 @@ public class RestaurantController {
     // --- Reviews ---
 
     @PostMapping("/{restaurantId}/reviews")
-    public ResponseEntity<ApiResponse<RestaurantReviewDto>> addReview(@PathVariable Long restaurantId, @Valid @RequestBody RestaurantReviewDto reviewDto, Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<RestaurantReviewDto>> addReview(@PathVariable Long restaurantId, @Valid @RequestBody RestaurantReviewDto reviewDto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
         reviewDto.setRestaurantId(restaurantId);
         reviewDto.setUserId(userId);
         RestaurantReviewDto saved = restaurantService.addReview(reviewDto);
@@ -110,11 +114,11 @@ public class RestaurantController {
     // --- Restaurant Owner Endpoints ---
 
     @PostMapping
-    public ResponseEntity<ApiResponse<RestaurantDto>> createRestaurant(@Valid @RequestBody RestaurantDto restaurantDto, Authentication authentication) {
-        boolean isAdmin = authentication != null && authentication.getAuthorities() != null && authentication.getAuthorities().stream()
-                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-
-        if (isAdmin) {
+    public ResponseEntity<ApiResponse<RestaurantDto>> createRestaurant(@Valid @RequestBody RestaurantDto restaurantDto, HttpServletRequest request) {
+        String userRole = extractUserRole(request);
+        Long userId = extractUserId(request);
+        
+        if ("ADMIN".equals(userRole)) {
             if (restaurantDto.getOwnerId() == null) {
                 return new ResponseEntity<>(ApiResponse.<RestaurantDto>builder()
                         .success(false)
@@ -124,8 +128,7 @@ public class RestaurantController {
             }
             // use ownerId from request body
         } else {
-            Long ownerId = (Long) authentication.getPrincipal();
-            restaurantDto.setOwnerId(ownerId);
+            restaurantDto.setOwnerId(userId);
         }
         RestaurantDto createdRestaurant = restaurantService.createRestaurant(restaurantDto);
         ApiResponse<RestaurantDto> body = ApiResponse.<RestaurantDto>builder()
@@ -255,5 +258,27 @@ public class RestaurantController {
                 .data(updatedRestaurant)
                 .build();
         return ResponseEntity.ok(body);
+    }
+
+    private Long extractUserId(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            String token = auth.substring(7);
+            try {
+                return jwtUtil.getAllClaimsFromToken(token).get("userId", Long.class);
+            } catch (Exception ignored) {}
+        }
+        throw new RuntimeException("Unauthorized");
+    }
+
+    private String extractUserRole(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            String token = auth.substring(7);
+            try {
+                return jwtUtil.getAllClaimsFromToken(token).get("role", String.class);
+            } catch (Exception ignored) {}
+        }
+        throw new RuntimeException("Unauthorized");
     }
 }

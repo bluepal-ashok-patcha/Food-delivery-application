@@ -10,9 +10,9 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpServletRequest;
+import com.quickbite.orderservice.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.security.access.prepost.PreAuthorize;
 
 import java.util.List;
 
@@ -23,9 +23,12 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @PostMapping
-    public ResponseEntity<ApiResponse<OrderResponseDto>> placeOrder(@Valid @RequestBody OrderRequestDto orderRequestDto, Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+    public ResponseEntity<ApiResponse<OrderResponseDto>> placeOrder(@Valid @RequestBody OrderRequestDto orderRequestDto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
         orderRequestDto.setUserId(userId); // Set userId from the authenticated token
         OrderResponseDto createdOrder = orderService.placeOrder(orderRequestDto);
         ApiResponse<OrderResponseDto> body = ApiResponse.<OrderResponseDto>builder()
@@ -37,12 +40,11 @@ public class OrderController {
     }
 
     @PostMapping("/from-cart")
-    @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<ApiResponse<OrderResponseDto>> createOrderFromCart(
             @RequestParam Long addressId,
             @RequestParam(required = false) String specialInstructions,
-            Authentication authentication) {
-        Long userId = (Long) authentication.getPrincipal();
+            HttpServletRequest request) {
+        Long userId = extractUserId(request);
         OrderResponseDto createdOrder = orderService.createOrderFromCart(userId, addressId, specialInstructions);
         ApiResponse<OrderResponseDto> body = ApiResponse.<OrderResponseDto>builder()
                 .success(true)
@@ -54,14 +56,14 @@ public class OrderController {
 
     @GetMapping("/user")
     public ResponseEntity<ApiResponse<List<OrderResponseDto>>> getOrdersByUserId(
-            Authentication authentication,
+            HttpServletRequest request,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "desc") String sortDir,
             @RequestParam(required = false) String status
     ) {
-        Long userId = (Long) authentication.getPrincipal();
+        Long userId = extractUserId(request);
         org.springframework.data.domain.Page<com.quickbite.orderservice.entity.Order> pageData = orderService.getOrdersByUserIdPage(userId, page, size, sortBy, sortDir, status);
         List<OrderResponseDto> orders = pageData.getContent().stream().map(o -> {
             OrderResponseDto dto = new OrderResponseDto();
@@ -85,7 +87,6 @@ public class OrderController {
     }
 
     @GetMapping("/restaurant/{restaurantId}")
-    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER','ADMIN')")
     public ResponseEntity<ApiResponse<List<OrderResponseDto>>> getOrdersByRestaurantId(
             @PathVariable Long restaurantId,
             @RequestParam(defaultValue = "0") int page,
@@ -117,7 +118,6 @@ public class OrderController {
     }
 
     @PutMapping("/{orderId}/status")
-    @PreAuthorize("hasAnyRole('RESTAURANT_OWNER','ADMIN','DELIVERY_PARTNER')")
     public ResponseEntity<ApiResponse<OrderResponseDto>> updateOrderStatus(@PathVariable Long orderId, @RequestParam OrderStatus status) {
         OrderResponseDto updatedOrder = orderService.updateOrderStatus(orderId, status);
         ApiResponse<OrderResponseDto> body = ApiResponse.<OrderResponseDto>builder()
@@ -130,7 +130,6 @@ public class OrderController {
 
     // --- Admin list/filter ---
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<List<OrderResponseDto>>> listAll(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -160,5 +159,16 @@ public class OrderController {
                         .build())
                 .build();
         return ResponseEntity.ok(body);
+    }
+
+    private Long extractUserId(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            String token = auth.substring(7);
+            try {
+                return jwtUtil.getAllClaimsFromToken(token).get("userId", Long.class);
+            } catch (Exception ignored) {}
+        }
+        throw new RuntimeException("Unauthorized");
     }
 }

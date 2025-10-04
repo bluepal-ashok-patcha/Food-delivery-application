@@ -8,7 +8,8 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import jakarta.servlet.http.HttpServletRequest;
+import com.quickbite.userservice.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,9 +19,12 @@ public class UserProfileController {
     @Autowired
     private UserProfileService userProfileService;
 
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @PostMapping("/profile")
-    public ResponseEntity<ApiResponse<UserProfileDto>> createUserProfile(@Valid @RequestBody UserProfileDto userProfileDto, Authentication authentication) {
-        Long userId = (Long) authentication.getDetails();
+    public ResponseEntity<ApiResponse<UserProfileDto>> createUserProfile(@Valid @RequestBody UserProfileDto userProfileDto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
         userProfileDto.setUserId(userId); // Set userId from the authenticated token
         UserProfileDto createdProfile = userProfileService.createUserProfile(userProfileDto);
         ApiResponse<UserProfileDto> body = ApiResponse.<UserProfileDto>builder()
@@ -32,8 +36,8 @@ public class UserProfileController {
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<ApiResponse<UserProfileDto>> getUserProfile(Authentication authentication) {
-        Long userId = (Long) authentication.getDetails();
+    public ResponseEntity<ApiResponse<UserProfileDto>> getUserProfile(HttpServletRequest request) {
+        Long userId = extractUserId(request);
         UserProfileDto userProfileDto = userProfileService.getUserProfileByUserId(userId);
         ApiResponse<UserProfileDto> body = ApiResponse.<UserProfileDto>builder()
                 .success(true)
@@ -44,8 +48,8 @@ public class UserProfileController {
     }
 
     @PutMapping("/profile")
-    public ResponseEntity<ApiResponse<UserProfileDto>> updateUserProfile(@Valid @RequestBody UserProfileDto userProfileDto, Authentication authentication) {
-        Long userId = (Long) authentication.getDetails();
+    public ResponseEntity<ApiResponse<UserProfileDto>> updateUserProfile(@Valid @RequestBody UserProfileDto userProfileDto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
         UserProfileDto updatedProfile = userProfileService.updateUserProfile(userId, userProfileDto);
         ApiResponse<UserProfileDto> body = ApiResponse.<UserProfileDto>builder()
                 .success(true)
@@ -56,8 +60,8 @@ public class UserProfileController {
     }
 
     @GetMapping("/location")
-    public ResponseEntity<ApiResponse<UserProfileDto>> getCurrentLocation(Authentication authentication) {
-        Long userId = (Long) authentication.getDetails();
+    public ResponseEntity<ApiResponse<UserProfileDto>> getCurrentLocation(HttpServletRequest request) {
+        Long userId = extractUserId(request);
         UserProfileDto userProfileDto = userProfileService.getUserProfileByUserId(userId);
         ApiResponse<UserProfileDto> body = ApiResponse.<UserProfileDto>builder()
                 .success(true)
@@ -68,8 +72,8 @@ public class UserProfileController {
     }
 
     @PutMapping("/location")
-    public ResponseEntity<ApiResponse<UserProfileDto>> updateCurrentLocation(@RequestBody UserProfileDto userProfileDto, Authentication authentication) {
-        Long userId = (Long) authentication.getDetails();
+    public ResponseEntity<ApiResponse<UserProfileDto>> updateCurrentLocation(@RequestBody UserProfileDto userProfileDto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
         // Only latitude/longitude are relevant here; service will persist them
         UserProfileDto updated = userProfileService.updateUserLocation(userId, userProfileDto.getCurrentLatitude(), userProfileDto.getCurrentLongitude());
         ApiResponse<UserProfileDto> body = ApiResponse.<UserProfileDto>builder()
@@ -81,8 +85,8 @@ public class UserProfileController {
     }
 
     @PostMapping("/addresses")
-    public ResponseEntity<ApiResponse<AddressDto>> addAddress(@Valid @RequestBody AddressDto addressDto, Authentication authentication) {
-        Long userId = (Long) authentication.getDetails();
+    public ResponseEntity<ApiResponse<AddressDto>> addAddress(@Valid @RequestBody AddressDto addressDto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
         AddressDto newAddress = userProfileService.addAddress(userId, addressDto);
         ApiResponse<AddressDto> body = ApiResponse.<AddressDto>builder()
                 .success(true)
@@ -111,5 +115,16 @@ public class UserProfileController {
                 .message("Address deleted successfully")
                 .data(null)
                 .build());
+    }
+
+    private Long extractUserId(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            String token = auth.substring(7);
+            try {
+                return jwtUtil.getAllClaimsFromToken(token).get("userId", Long.class);
+            } catch (Exception ignored) {}
+        }
+        throw new RuntimeException("Unauthorized");
     }
 }
