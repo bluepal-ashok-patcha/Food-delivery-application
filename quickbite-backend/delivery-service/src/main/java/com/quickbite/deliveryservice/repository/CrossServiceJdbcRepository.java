@@ -1,4 +1,4 @@
-package com.quickbite.restaurantservice.repository;
+package com.quickbite.deliveryservice.repository;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,18 +26,9 @@ public class CrossServiceJdbcRepository {
         }
     }
 
-    public Map<String, Object> findUserProfileByUserId(Long userId) {
-        try {
-            return jdbcTemplate.queryForMap(
-                "SELECT id, user_id, first_name, last_name, phone_number FROM user_profiles WHERE user_id = ?",
-                userId
-            );
-        } catch (EmptyResultDataAccessException ex) {
-            return null;
-        }
-    }
-
-    public int updateUserRole(Long userId, String role) {
-        return jdbcTemplate.update("UPDATE users SET role = ? WHERE id = ?", role, userId);
+    public void updateUserRole(Long userId, String role) {
+        jdbcTemplate.update("UPDATE users SET role = ? WHERE id = ?", role, userId);
     }
 }
+
+

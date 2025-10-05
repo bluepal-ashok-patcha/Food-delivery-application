@@ -107,6 +107,10 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         // ===== RESTAURANT OWNER ENDPOINTS =====
         // Restaurant management
         mappings.put("POST:/api/restaurants", List.of("RESTAURANT_OWNER", "ADMIN"));
+        // Onboarding endpoints
+        mappings.put("POST:/api/restaurants/owners/apply", List.of("CUSTOMER", "ADMIN"));
+        mappings.put("POST:/api/delivery/partners/self-register", List.of("CUSTOMER", "ADMIN"));
+        mappings.put("GET:/api/delivery/admin/pending", List.of("ADMIN"));
         mappings.put("PUT:/api/restaurants/{id}/profile", List.of("RESTAURANT_OWNER"));
         mappings.put("GET:/api/restaurants/my", List.of("RESTAURANT_OWNER"));
         

@@ -39,8 +39,12 @@ public class RestaurantController {
             @RequestParam(defaultValue = "asc") String sortDir,
             @RequestParam(required = false) String search
     ) {
-        Page<com.quickbite.restaurantservice.entity.Restaurant> pageData = restaurantService.getAllRestaurantsPage(page, size, sortBy, sortDir, search);
-        List<RestaurantDto> data = pageData.getContent().stream().map(r -> {
+        Page<com.quickbite.restaurantservice.entity.Restaurant> pageData = restaurantService.getAllRestaurantsPage(page, size, sortBy, sortDir, search)
+                .map(r -> r); // keep as is
+        List<RestaurantDto> data = pageData.getContent().stream()
+                .filter(r -> r.getStatus() == com.quickbite.restaurantservice.entity.RestaurantStatus.ACTIVE
+                        || r.getStatus() == com.quickbite.restaurantservice.entity.RestaurantStatus.APPROVED)
+                .map(r -> {
             RestaurantDto dto = new RestaurantDto();
             org.springframework.beans.BeanUtils.copyProperties(r, dto);
             if (r.getMenuCategories() != null) {
@@ -86,6 +90,17 @@ public class RestaurantController {
         return ResponseEntity.ok(body);
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<ApiResponse<List<RestaurantDto>>> getMyRestaurants(HttpServletRequest request) {
+        Long userId = extractUserId(request);
+        List<RestaurantDto> list = restaurantService.getMyRestaurants(userId);
+        return ResponseEntity.ok(ApiResponse.<List<RestaurantDto>>builder()
+                .success(true)
+                .message("My restaurants fetched successfully")
+                .data(list)
+                .build());
+    }
+
     // --- Reviews ---
 
     @PostMapping("/{restaurantId}/reviews")
@@ -112,6 +127,19 @@ public class RestaurantController {
     }
 
     // --- Restaurant Owner Endpoints ---
+
+    @PostMapping("/owners/apply")
+    public ResponseEntity<ApiResponse<RestaurantDto>> applyAsOwner(@Valid @RequestBody RestaurantDto restaurantDto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
+        restaurantDto.setOwnerId(userId);
+        RestaurantDto createdRestaurant = restaurantService.createRestaurant(restaurantDto);
+        ApiResponse<RestaurantDto> body = ApiResponse.<RestaurantDto>builder()
+                .success(true)
+                .message("Restaurant application submitted successfully")
+                .data(createdRestaurant)
+                .build();
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
+    }
 
     @PostMapping
     public ResponseEntity<ApiResponse<RestaurantDto>> createRestaurant(@Valid @RequestBody RestaurantDto restaurantDto, HttpServletRequest request) {

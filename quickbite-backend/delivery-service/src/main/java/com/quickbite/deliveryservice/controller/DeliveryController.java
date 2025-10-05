@@ -82,6 +82,24 @@ public class DeliveryController {
                 .build());
     }
 
+    // --- Onboarding ---
+
+    @PostMapping("/partners/self-register")
+    public ResponseEntity<ApiResponse<DeliveryPartnerDto>> selfRegister(@Valid @RequestBody DeliveryPartnerDto partnerDto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
+        partnerDto.setUserId(userId);
+        // Force status to OFFLINE as initial state (treated as PENDING by admin workflow)
+        if (partnerDto.getStatus() == null) {
+            partnerDto.setStatus(com.quickbite.deliveryservice.entity.DeliveryPartnerStatus.OFFLINE);
+        }
+        DeliveryPartnerDto saved = deliveryService.selfRegisterOrUpdate(partnerDto);
+        return new ResponseEntity<>(ApiResponse.<DeliveryPartnerDto>builder()
+                .success(true)
+                .message("Delivery partner application submitted successfully")
+                .data(saved)
+                .build(), HttpStatus.CREATED);
+    }
+
     // --- Reviews ---
 
     @PostMapping("/partners/{partnerUserId}/reviews")

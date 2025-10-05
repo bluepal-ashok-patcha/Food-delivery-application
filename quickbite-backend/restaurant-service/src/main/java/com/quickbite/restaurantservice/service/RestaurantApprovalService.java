@@ -52,6 +52,13 @@ public class RestaurantApprovalService {
                 .build();
         approvalRepository.save(approval);
 
+        // Elevate owner role in auth-service DB
+        try {
+            crossServiceRepository.updateUserRole(restaurant.getOwnerId(), "RESTAURANT_OWNER");
+        } catch (Exception e) {
+            log.warn("Failed to update user role to RESTAURANT_OWNER for ownerId {}: {}", restaurant.getOwnerId(), e.getMessage());
+        }
+
         // Send approval email
         sendApprovalNotification(restaurant, "APPROVED", null);
 
@@ -114,6 +121,15 @@ public class RestaurantApprovalService {
                 .newStatus(newStatus)
                 .build();
         approvalRepository.save(approval);
+
+        // If status moved to APPROVED or ACTIVE, ensure role elevation
+        if (newStatus == RestaurantStatus.APPROVED || newStatus == RestaurantStatus.ACTIVE) {
+            try {
+                crossServiceRepository.updateUserRole(restaurant.getOwnerId(), "RESTAURANT_OWNER");
+            } catch (Exception e) {
+                log.warn("Failed to update user role to RESTAURANT_OWNER for ownerId {}: {}", restaurant.getOwnerId(), e.getMessage());
+            }
+        }
 
         // Send notification email
         sendApprovalNotification(restaurant, newStatus.toString(), null);

@@ -82,6 +82,14 @@ public class RestaurantService {
     }
 
     @Transactional(readOnly = true)
+    public List<RestaurantDto> getMyRestaurants(Long ownerId) {
+        return restaurantRepository.findAll().stream()
+                .filter(r -> ownerId.equals(r.getOwnerId()))
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public Page<Restaurant> getAllRestaurantsPage(int page, int size, String sortBy, String sortDir, String search) {
         Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
         Pageable pageable = PageRequest.of(page, size, sort);
@@ -98,9 +106,23 @@ public class RestaurantService {
     public RestaurantDto updateRestaurantStatus(Long id, RestaurantStatus status) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Restaurant not found"));
+        RestaurantStatus previousStatus = restaurant.getStatus();
         restaurant.setStatus(status);
+        // Keep isActive in sync with APPROVED/ACTIVE
+        restaurant.setIsActive(status == RestaurantStatus.APPROVED || status == RestaurantStatus.ACTIVE);
         Restaurant updatedRestaurant = restaurantRepository.save(restaurant);
-        log.info("Restaurant '{}' status updated to {}.", updatedRestaurant.getName(), status);
+
+        // Elevate owner role if status is APPROVED or ACTIVE
+        if (status == RestaurantStatus.APPROVED || status == RestaurantStatus.ACTIVE) {
+            try {
+                crossServiceRepository.updateUserRole(updatedRestaurant.getOwnerId(), "RESTAURANT_OWNER");
+            } catch (Exception e) {
+                log.warn("Failed to elevate user role for ownerId {} to RESTAURANT_OWNER: {}",
+                        updatedRestaurant.getOwnerId(), e.getMessage());
+            }
+        }
+
+        log.info("Restaurant '{}' status updated from {} to {}.", updatedRestaurant.getName(), previousStatus, status);
         return convertToDto(updatedRestaurant);
     }
 

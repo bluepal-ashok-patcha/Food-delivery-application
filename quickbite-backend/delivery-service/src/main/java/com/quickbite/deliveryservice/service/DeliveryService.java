@@ -108,4 +108,21 @@ public class DeliveryService {
             return d;
         }).collect(Collectors.toList());
     }
+
+    // --- Onboarding ---
+
+    @Transactional
+    public DeliveryPartnerDto selfRegisterOrUpdate(DeliveryPartnerDto dto) {
+        DeliveryPartner partner = deliveryPartnerRepository.findByUserId(dto.getUserId())
+                .orElseGet(DeliveryPartner::new);
+        // Preserve id if exists
+        if (partner.getId() != null) {
+            dto.setId(partner.getId());
+        }
+        BeanUtils.copyProperties(dto, partner, "id");
+        DeliveryPartner saved = deliveryPartnerRepository.save(partner);
+        DeliveryPartnerDto out = new DeliveryPartnerDto();
+        BeanUtils.copyProperties(saved, out);
+        return out;
+    }
 }
