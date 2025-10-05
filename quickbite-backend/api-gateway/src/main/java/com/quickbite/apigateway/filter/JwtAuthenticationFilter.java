@@ -195,6 +195,23 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         // Additional Delivery Endpoints (fixing role access)
         mappings.put("GET:/api/delivery/assignments/order/{orderId}", List.of("CUSTOMER", "RESTAURANT_OWNER", "ADMIN", "DELIVERY_PARTNER"));
         
+        // ===== ANALYTICS ENDPOINTS =====
+        // Restaurant Analytics
+        mappings.put("GET:/api/restaurants/{restaurantId}/analytics", List.of("RESTAURANT_OWNER", "ADMIN"));
+        mappings.put("GET:/api/restaurants/analytics/summary", List.of("ADMIN"));
+        
+        // Order Analytics
+        mappings.put("GET:/api/orders/analytics", List.of("ADMIN"));
+        mappings.put("GET:/api/orders/analytics/summary", List.of("ADMIN"));
+        
+        // Delivery Analytics
+        mappings.put("GET:/api/delivery/analytics", List.of("ADMIN", "DELIVERY_PARTNER"));
+        mappings.put("GET:/api/delivery/analytics/summary", List.of("ADMIN"));
+        
+        // Payment Analytics
+        mappings.put("GET:/api/payments/analytics", List.of("ADMIN"));
+        mappings.put("GET:/api/payments/analytics/summary", List.of("ADMIN"));
+        
         return mappings;
     }
 
@@ -264,6 +281,7 @@ public class JwtAuthenticationFilter implements GatewayFilter {
                 System.out.println("DEBUG: User ID: " + userId + ", Role: " + role + ", Email: " + email);
                 
                 // Check role-based authorization
+                System.out.println("DEBUG: Checking role-based authorization for role: " + role);
                 if (!hasRequiredRole(request.getMethod().toString(), request.getURI().getPath(), role)) {
                     System.out.println("DEBUG: Access denied - User role '" + role + "' not authorized for " + request.getMethod() + " " + request.getURI().getPath());
                     return this.onError(exchange, "Access denied - insufficient permissions", HttpStatus.FORBIDDEN);
@@ -331,6 +349,7 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         
         // First check for exact method:path match
         String exactKey = method + ":" + path;
+        System.out.println("DEBUG: Checking exact match for key: " + exactKey);
         if (roleMappings.containsKey(exactKey)) {
             List<String> allowedRoles = roleMappings.get(exactKey);
             boolean hasAccess = allowedRoles.contains("PUBLIC") || allowedRoles.contains(userRole);
@@ -339,10 +358,13 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         }
         
         // Check for pattern matches (with wildcards)
+        System.out.println("DEBUG: No exact match, checking pattern matches...");
         for (Map.Entry<String, List<String>> entry : roleMappings.entrySet()) {
             String pattern = entry.getKey();
             String methodPattern = pattern.split(":")[0];
             String pathPattern = pattern.split(":", 2)[1];
+            
+            System.out.println("DEBUG: Checking pattern: " + pattern + " (method: " + methodPattern + ", path: " + pathPattern + ")");
             
             if (method.equals(methodPattern) && matchesPath(path, pathPattern)) {
                 List<String> allowedRoles = entry.getValue();
@@ -358,8 +380,28 @@ public class JwtAuthenticationFilter implements GatewayFilter {
     }
     
     private boolean matchesPath(String actualPath, String pattern) {
-        // Simple pattern matching - convert * to regex
-        String regex = pattern.replace("*", ".*");
-        return actualPath.matches(regex);
+        System.out.println("DEBUG: Matching path '" + actualPath + "' against pattern '" + pattern + "'");
+        
+        // Convert path pattern to regex
+        // First handle path variables {variableName} -> [^/]+
+        String regex = pattern.replaceAll("\\{[^}]+\\}", "[^/]+");
+        
+        // Then escape special regex characters (but NOT the ones we just added)
+        regex = regex
+            .replace(".", "\\.")
+            .replace("?", "\\?")
+            .replace("$", "\\$")
+            .replace("|", "\\|")
+            .replace("(", "\\(")
+            .replace(")", "\\)");
+        
+        // Convert wildcards
+        regex = regex.replace("*", ".*");
+        
+        System.out.println("DEBUG: Converted regex: '" + regex + "'");
+        boolean matches = actualPath.matches(regex);
+        System.out.println("DEBUG: Pattern match result: " + matches);
+        
+        return matches;
     }
 }

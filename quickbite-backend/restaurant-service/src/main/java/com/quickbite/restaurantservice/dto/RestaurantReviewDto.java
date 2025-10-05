@@ -10,8 +10,7 @@ import java.time.Instant;
 @Data
 public class RestaurantReviewDto {
     private Long id;
-    @NotNull
-    private Long restaurantId;
+    private Long restaurantId; // Set by controller from path variable
     private Long userId; // from token
     @Min(1)
     @Max(5)

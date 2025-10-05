@@ -10,7 +10,7 @@ import java.time.Instant;
 @Data
 public class DeliveryPartnerReviewDto {
     private Long id;
-    @NotNull
+    
     private Long partnerUserId;
     private Long userId;
     @Min(1)
