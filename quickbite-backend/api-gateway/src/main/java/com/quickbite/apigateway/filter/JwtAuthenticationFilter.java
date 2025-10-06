@@ -172,6 +172,14 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         mappings.put("GET:/api/delivery/admin/**", List.of("ADMIN"));
         mappings.put("PUT:/api/delivery/admin/**", List.of("ADMIN"));
         
+        //----------------------------------------------------------------------------------------------
+        
+     // ===== ADMIN IMPORT/EXPORT (PDF/Excel) =====
+        mappings.put("POST:/admin/users/import", List.of("ADMIN"));
+        mappings.put("GET:/admin/users/export/pdf", List.of("ADMIN"));
+        mappings.put("GET:/admin/users/export/pdf/{role}", List.of("ADMIN"));
+
+        
         // ===== MISSING ENDPOINTS FROM README =====
         
         // Admin User Management (from auth-service)
