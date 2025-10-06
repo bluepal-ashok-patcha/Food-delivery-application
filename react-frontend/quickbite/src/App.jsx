@@ -46,11 +46,22 @@ function App() {
   useEffect(() => {
     try {
       const raw = localStorage.getItem('auth');
-      if (raw) {
+      const token = localStorage.getItem('authToken');
+      
+      if (raw && token) {
         const parsed = JSON.parse(raw);
-        store.dispatch({ type: 'auth/loginUser/fulfilled', payload: { ...parsed.user, role: parsed.userRole } });
+        // Ensure we have the user data with the correct structure
+        const userData = parsed.user || parsed;
+        store.dispatch({ type: 'auth/loginUser/fulfilled', payload: userData });
+      } else if (raw && !token) {
+        // Clear invalid auth data if no token
+        localStorage.removeItem('auth');
       }
-    } catch {}
+    } catch (error) {
+      // Clear invalid auth data
+      localStorage.removeItem('auth');
+      localStorage.removeItem('authToken');
+    }
   }, []);
   return (
     <Provider store={store}>

@@ -111,7 +111,7 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         mappings.put("POST:/api/restaurants/owners/apply", List.of("CUSTOMER", "ADMIN"));
         mappings.put("POST:/api/delivery/partners/self-register", List.of("CUSTOMER", "ADMIN"));
         mappings.put("GET:/api/delivery/admin/pending", List.of("ADMIN"));
-        mappings.put("PUT:/api/restaurants/{id}/profile", List.of("RESTAURANT_OWNER"));
+        mappings.put("PUT:/api/restaurants/{id}/profile", List.of("RESTAURANT_OWNER","ADMIN"));
         mappings.put("GET:/api/restaurants/my", List.of("RESTAURANT_OWNER"));
         
         // Category management
@@ -260,6 +260,12 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         ServerHttpRequest request = exchange.getRequest();
         
         System.out.println("DEBUG: JwtAuthenticationFilter processing request: " + request.getURI().getPath());
+
+        // Handle OPTIONS requests (CORS preflight) - allow them through without authentication
+        if ("OPTIONS".equals(request.getMethod().toString())) {
+            System.out.println("DEBUG: OPTIONS request detected, allowing through for CORS preflight");
+            return chain.filter(exchange);
+        }
 
         if (isSecured.test(request)) {
             System.out.println("DEBUG: Request requires authentication");

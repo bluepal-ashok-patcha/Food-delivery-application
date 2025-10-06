@@ -1,23 +1,28 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { mockUsers } from '../../constants/mockData';
+import { authAPI } from '../../services/api';
 
 // Async thunks
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async ({ email, password }, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await authAPI.login({ email, password });
       
-      const user = mockUsers.find(u => u.email === email);
-      if (!user) {
-        throw new Error('User not found');
+      // Handle nested response structure from backend
+      const userData = response.data?.user || response.user;
+      const token = response.data?.token || response.token;
+      
+      // Debug logs removed for production
+      
+      // Store JWT token
+      if (token) {
+        localStorage.setItem('authToken', token);
       }
       
-      // In real app, verify password
-      return user;
+      return userData;
     } catch (error) {
-      return rejectWithValue(error.message);
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -26,20 +31,21 @@ export const registerUser = createAsyncThunk(
   'auth/registerUser',
   async (userData, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await authAPI.register(userData);
       
-      const newUser = {
-        id: mockUsers.length + 1,
-        ...userData,
-        role: 'customer',
-        addresses: [],
-        createdAt: new Date().toISOString()
-      };
+      // Handle nested response structure from backend
+      const user = response.data?.user || response.user;
+      const token = response.data?.token || response.token;
       
-      return newUser;
+      // Store JWT token if provided
+      if (token) {
+        localStorage.setItem('authToken', token);
+      }
+      
+      return user;
     } catch (error) {
-      return rejectWithValue(error.message);
+      const errorMessage = error.response?.data?.message || error.message || 'Registration failed';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -61,7 +67,10 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.userRole = null;
       state.error = null;
-      try { localStorage.removeItem('auth'); } catch {}
+      try { 
+        localStorage.removeItem('auth'); 
+        localStorage.removeItem('authToken');
+      } catch {}
     },
     clearError: (state) => {
       state.error = null;

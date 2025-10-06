@@ -1,39 +1,28 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { mockRestaurants } from '../../constants/mockData';
+import { restaurantAPI } from '../../services/api';
+import { mapRestaurantsFromBackend, mapRestaurantFromBackend } from '../../utils/restaurantMapper';
 
 // Async thunks
 export const fetchRestaurants = createAsyncThunk(
   'restaurants/fetchRestaurants',
   async (filters = {}, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('Fetching restaurants with filters:', filters);
+      const response = await restaurantAPI.getRestaurants(filters);
       
-      let filteredRestaurants = [...mockRestaurants];
+      console.log('Restaurants API response:', response);
       
-      if (filters.cuisine) {
-        filteredRestaurants = filteredRestaurants.filter(
-          restaurant => restaurant.cuisine.toLowerCase() === filters.cuisine.toLowerCase()
-        );
-      }
+      // Handle nested response structure from backend
+      const restaurants = response.data || response;
       
-      if (filters.search) {
-        filteredRestaurants = filteredRestaurants.filter(
-          restaurant => 
-            restaurant.name.toLowerCase().includes(filters.search.toLowerCase()) ||
-            restaurant.description.toLowerCase().includes(filters.search.toLowerCase())
-        );
-      }
+      // Map backend data to frontend format
+      const mappedRestaurants = mapRestaurantsFromBackend(restaurants);
       
-      if (filters.isOpen !== undefined) {
-        filteredRestaurants = filteredRestaurants.filter(
-          restaurant => restaurant.isOpen === filters.isOpen
-        );
-      }
-      
-      return filteredRestaurants;
+      return mappedRestaurants;
     } catch (error) {
-      return rejectWithValue(error.message);
+      console.error('Error fetching restaurants:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch restaurants';
+      return rejectWithValue(errorMessage);
     }
   }
 );
@@ -42,17 +31,22 @@ export const fetchRestaurantById = createAsyncThunk(
   'restaurants/fetchRestaurantById',
   async (restaurantId, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 300));
+      console.log('Fetching restaurant by ID:', restaurantId);
+      const response = await restaurantAPI.getRestaurantById(restaurantId);
       
-      const restaurant = mockRestaurants.find(r => r.id === parseInt(restaurantId));
-      if (!restaurant) {
-        throw new Error('Restaurant not found');
-      }
+      console.log('Restaurant API response:', response);
       
-      return restaurant;
+      // Handle nested response structure from backend
+      const restaurant = response.data || response;
+      
+      // Map backend data to frontend format
+      const mappedRestaurant = mapRestaurantFromBackend(restaurant);
+      
+      return mappedRestaurant;
     } catch (error) {
-      return rejectWithValue(error.message);
+      console.error('Error fetching restaurant:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Restaurant not found';
+      return rejectWithValue(errorMessage);
     }
   }
 );
