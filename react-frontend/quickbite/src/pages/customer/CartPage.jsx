@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Container, Typography, Paper, Button, IconButton, Divider, TextField, Chip, Grid, Card, CardContent, Avatar, Badge, Stepper, Step, StepLabel, Alert } from '@mui/material';
 import { Add, Remove, Delete, LocalShipping, ArrowBack, LocationOn, Star } from '@mui/icons-material';
-import { updateQuantity, removeFromCart, applyCoupon, removeCoupon, clearCart } from '../../store/slices/cartSlice';
+import { updateCartItemAsync, removeCartItemAsync, removeCouponAsync, clearCartAsync, applyCouponAsync, fetchCartPricing, checkoutAndPlaceOrder } from '../../store/slices/cartSlice';
 import { createOrder } from '../../store/slices/orderSlice';
 import { showNotification } from '../../store/slices/uiSlice';
-import { mockCoupons, mockRestaurants, mockUsers } from '../../constants/mockData';
+import { mockRestaurants } from '../../constants/mockData';
 import { useNavigate } from 'react-router-dom';
+import { paymentAPI } from '../../services/api';
 import CartHeader from '../../components/cart/CartHeader';
 import CartItemRow from '../../components/cart/CartItemRow';
+import { fetchCart } from '../../store/slices/cartSlice';
 import CouponAccordion from '../../components/cart/CouponAccordion';
 import PaymentMethodAccordion from '../../components/cart/PaymentMethodAccordion';
 import OrderSummaryCard from '../../components/cart/OrderSummaryCard';
@@ -16,7 +18,7 @@ import OrderSummaryCard from '../../components/cart/OrderSummaryCard';
 const CartPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { items, subtotal, deliveryFee, tax, total, restaurantName, appliedCoupon } = useSelector((state) => state.cart);
+  const { items, subtotal, deliveryFee, tax, total, restaurantName, appliedCoupon, appliedCouponCode } = useSelector((state) => state.cart);
   const { user } = useSelector((state) => state.auth);
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
@@ -27,33 +29,30 @@ const CartPage = () => {
 
   const steps = ['Cart', 'Delivery', 'Payment', 'Confirm'];
 
-  const handleQuantityChange = (itemId, customization, newQuantity) => {
+  useEffect(() => {
+    dispatch(fetchCart());
+  }, [dispatch]);
+
+  const handleQuantityChange = async (itemId, customization, newQuantity) => {
     if (newQuantity <= 0) {
-      dispatch(removeFromCart({ itemId, customization }));
+      await dispatch(removeCartItemAsync({ menuItemId: itemId, customization })).unwrap();
     } else {
-      dispatch(updateQuantity({ itemId, customization, quantity: newQuantity }));
+      await dispatch(updateCartItemAsync({ menuItemId: itemId, quantity: newQuantity, customization })).unwrap();
     }
+    await dispatch(fetchCartPricing());
   };
 
-  const handleApplyCoupon = () => {
+  const handleApplyCoupon = async () => {
     setIsApplyingCoupon(true);
-    const coupon = mockCoupons.find(c => c.code === couponCode.toUpperCase());
-    
-    setTimeout(() => {
-      if (coupon) {
-        dispatch(applyCoupon(coupon));
-        dispatch(showNotification({ 
-          message: 'Coupon applied successfully!', 
-          type: 'success' 
-        }));
-      } else {
-        dispatch(showNotification({ 
-          message: 'Invalid coupon code', 
-          type: 'error' 
-        }));
-      }
+    try {
+      await dispatch(applyCouponAsync({ code: couponCode })).unwrap();
+      await dispatch(fetchCartPricing());
+      dispatch(showNotification({ message: 'Coupon applied successfully!', type: 'success' }));
+    } catch (e) {
+      dispatch(showNotification({ message: e || 'Invalid coupon code', type: 'error' }));
+    } finally {
       setIsApplyingCoupon(false);
-    }, 1000);
+    }
   };
 
   const loadRazorpay = () => new Promise((resolve) => {
@@ -105,17 +104,18 @@ const CartPage = () => {
       deliveryLocation
     };
 
-    const proceedCreate = () => {
-      setTimeout(() => {
-        dispatch(createOrder(orderData));
-        dispatch(showNotification({ 
-          message: 'Order placed successfully!', 
-          type: 'success' 
-        }));
+    const proceedCreate = async () => {
+      try {
+        // If you want to bypass payment flow, call createOrder directly
+        const result = await dispatch(createOrder(orderData)).unwrap();
+        dispatch(showNotification({ message: 'Order placed successfully!', type: 'success' }));
         dispatch(clearCart());
-        setIsProcessing(false);
         navigate('/orders/confirmation');
-      }, 1000);
+      } catch (e) {
+        dispatch(showNotification({ message: e || 'Failed to place order', type: 'error' }));
+      } finally {
+        setIsProcessing(false);
+      }
     };
 
     if (paymentMethod === 'razorpay') {
@@ -126,27 +126,74 @@ const CartPage = () => {
         return;
       }
 
-      const options = {
-        key: 'rzp_test_R6s6aVW39Oqimg', // Replace with your Razorpay key
-        amount: Math.round(total * 100),
-        currency: 'INR',
-        name: 'QuickBite',
-        description: `Payment to ${restaurantName}`,
-        prefill: {
-          name: user?.name || 'Customer',
-          email: user?.email || 'customer@example.com',
-          contact: user?.phone || '9999999999'
-        },
-        theme: { color: '#fc8019' },
-        handler: function () {
-          proceedCreate();
-        },
-        modal: {
-          ondismiss: () => setIsProcessing(false)
+      try {
+        // 1. First create order from cart to get orderId
+        const addressId = user?.addresses?.[0]?.id || 1;
+        const orderResult = await dispatch(checkoutAndPlaceOrder({ 
+          paymentMethod: 'razorpay', 
+          addressId, 
+          specialInstructions: deliveryInstructions 
+        })).unwrap();
+        
+        if (!orderResult || !orderResult.id) {
+          throw new Error('Failed to create order');
         }
-      };
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+
+        // 2. Create payment intent with orderId
+        const paymentIntent = await paymentAPI.createPaymentIntent(total, 'INR', orderResult.id);
+        console.log('Payment intent response:', paymentIntent);
+        const razorpayOrderId = paymentIntent.data?.id; // Razorpay order ID is in the 'id' field
+
+        if (!razorpayOrderId) {
+          console.error('No Razorpay order ID found in response:', paymentIntent);
+          throw new Error('Failed to create payment intent - no Razorpay order ID returned');
+        }
+
+        // 3. Open Razorpay with the backend-generated order ID
+        const options = {
+          key: 'rzp_test_R6s6aVW39Oqimg', // Replace with your Razorpay key
+          order_id: razorpayOrderId, // Use backend-generated order ID
+          name: 'QuickBite',
+          description: `Payment to ${restaurantName}`,
+          prefill: {
+            name: user?.name || 'Customer',
+            email: user?.email || 'customer@example.com',
+            contact: user?.phone || '9999999999'
+          },
+          theme: { color: '#fc8019' },
+          handler: async function (response) {
+            try {
+              // Verify payment with backend
+              const verifyResult = await paymentAPI.verifyPayment(
+                response.razorpay_order_id,
+                response.razorpay_payment_id,
+                response.razorpay_signature
+              );
+              
+              if (verifyResult.success) {
+                dispatch(showNotification({ message: 'Payment successful! Order placed.', type: 'success' }));
+                navigate('/orders/confirmation');
+              } else {
+                dispatch(showNotification({ message: 'Payment verification failed', type: 'error' }));
+              }
+            } catch (e) {
+              const errorMessage = e instanceof Error ? e.message : (e || 'Payment processing failed');
+              dispatch(showNotification({ message: errorMessage, type: 'error' }));
+            } finally {
+              setIsProcessing(false);
+            }
+          },
+          modal: {
+            ondismiss: () => setIsProcessing(false)
+          }
+        };
+        const rzp = new window.Razorpay(options);
+        rzp.open();
+      } catch (e) {
+        const errorMessage = e instanceof Error ? e.message : (e || 'Failed to initialize payment');
+        dispatch(showNotification({ message: errorMessage, type: 'error' }));
+        setIsProcessing(false);
+      }
     } else {
       proceedCreate();
     }
@@ -256,9 +303,6 @@ const CartPage = () => {
                     item={item}
                     index={index}
                     itemsLength={items.length}
-                    onDec={() => handleQuantityChange(item.id, item.customization, item.quantity - 1)}
-                    onInc={() => handleQuantityChange(item.id, item.customization, item.quantity + 1)}
-                    onRemove={() => dispatch(removeFromCart({ itemId: item.id, customization: item.customization }))}
                     formatPrice={formatPrice}
                   />
                 ))}
@@ -353,7 +397,7 @@ const CartPage = () => {
                   </Typography>
                 </Box>
 
-                <CouponAccordion couponCode={couponCode} setCouponCode={setCouponCode} isApplying={isApplyingCoupon} onApply={handleApplyCoupon} appliedCoupon={appliedCoupon} onRemoveCoupon={() => dispatch(removeCoupon())} />
+                <CouponAccordion couponCode={couponCode} setCouponCode={setCouponCode} isApplying={isApplyingCoupon} onApply={handleApplyCoupon} appliedCoupon={appliedCoupon} appliedCouponCode={appliedCouponCode} onRemoveCoupon={async () => { await dispatch(removeCouponAsync()).unwrap(); await dispatch(fetchCartPricing()); }} />
                 <PaymentMethodAccordion paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} />
 
                 <OrderSummaryCard subtotal={subtotal} deliveryFee={deliveryFee} tax={tax} total={total} appliedCoupon={appliedCoupon} onPlaceOrder={handlePlaceOrder} isProcessing={isProcessing} formatPrice={formatPrice} />

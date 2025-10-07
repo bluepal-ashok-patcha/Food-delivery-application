@@ -4,11 +4,12 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Box, Container, Typography, Grid, Chip, Divider, Paper, Avatar, Rating, Button, IconButton, Modal, List, ListItem, ListItemText, ListItemButton } from '@mui/material';
 import { ArrowBack, Star, AccessTime, LocalShipping, Phone, LocationOn, FavoriteBorder, Share, Menu } from '@mui/icons-material';
 import { fetchRestaurantById } from '../../store/slices/restaurantSlice';
-import { addToCart } from '../../store/slices/cartSlice';
+import { addToCartAsync, updateCartItemAsync, removeCartItemAsync, fetchCartPricing } from '../../store/slices/cartSlice';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import MenuItemRow from '../../components/restaurant/MenuItemRow';
 import FloatingCartButton from '../../components/common/FloatingCartButton';
 import RestaurantReviews from '../../components/restaurant/RestaurantReviews';
+import { fetchRestaurantReviews } from '../../store/slices/reviewsSlice';
 
 const RestaurantPage = () => {
   const { id } = useParams();
@@ -22,22 +23,18 @@ const RestaurantPage = () => {
   useEffect(() => {
     if (id) {
       dispatch(fetchRestaurantById(id));
+      dispatch(fetchRestaurantReviews(id));
     }
   }, [dispatch, id]);
 
-  const handleAddToCart = (item) => {
-    dispatch(addToCart({
-      item: {
-        id: item.id,
-        name: item.name,
-        price: item.price,
-        image: item.image,
-        customization: {}
-      },
+  const handleAddToCart = async (item) => {
+    await dispatch(addToCartAsync({
       restaurantId: currentRestaurant.id,
-      restaurantName: currentRestaurant.name
+      menuItemId: item.id,
+      quantity: 1,
+      customization: {}
     }));
-    
+    await dispatch(fetchCartPricing());
     setQuantities(prev => ({
       ...prev,
       [item.id]: (prev[item.id] || 0) + 1
@@ -53,7 +50,10 @@ const RestaurantPage = () => {
     }).format(price);
   };
 
-  const handleRemoveFromCart = (item) => {
+  const handleRemoveFromCart = async (item) => {
+    const nextQty = Math.max(0, (quantities[item.id] || 1) - 1);
+    await dispatch(updateCartItemAsync({ menuItemId: item.id, quantity: nextQty, customization: {} }));
+    await dispatch(fetchCartPricing());
     setQuantities(prev => ({
       ...prev,
       [item.id]: Math.max(0, (prev[item.id] || 0) - 1)

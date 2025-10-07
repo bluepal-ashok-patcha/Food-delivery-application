@@ -50,6 +50,7 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         mappings.put("GET:/api/delivery/partners/available", List.of("PUBLIC"));
         mappings.put("GET:/api/delivery/partners/{partnerUserId}/reviews", List.of("PUBLIC"));
         mappings.put("POST:/api/payments/webhook", List.of("PUBLIC"));
+        mappings.put("GET:/api/payments/webhook/test", List.of("PUBLIC"));
         mappings.put("POST:/api/payments/coupons/validate", List.of("PUBLIC"));
         
         // ===== CUSTOMER ENDPOINTS =====
@@ -82,6 +83,7 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         
         // Payment endpoints
         mappings.put("POST:/api/payments/process", List.of("CUSTOMER"));
+        mappings.put("POST:/api/payments/verify-payment", List.of("CUSTOMER"));
         mappings.put("POST:/api/payments/refund", List.of("CUSTOMER"));
         mappings.put("GET:/api/payments/history", List.of("CUSTOMER"));
         mappings.put("GET:/api/payments/coupons/applicable", List.of("CUSTOMER"));

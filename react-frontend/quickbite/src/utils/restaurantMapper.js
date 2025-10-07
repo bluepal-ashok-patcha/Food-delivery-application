@@ -1,6 +1,13 @@
 // Utility functions to map backend restaurant data to frontend format
 
 export const mapRestaurantFromBackend = (backendRestaurant) => {
+  // Map menu categories and items into UI-friendly shape
+  const mappedMenuCategories = (backendRestaurant.menuCategories || []).map((backendCategory) => ({
+    id: backendCategory.id,
+    category: backendCategory.name,
+    items: (backendCategory.menuItems || []).map(mapMenuItemFromBackend)
+  }));
+
   return {
     id: backendRestaurant.id,
     name: backendRestaurant.name,
@@ -24,11 +31,15 @@ export const mapRestaurantFromBackend = (backendRestaurant) => {
     tags: backendRestaurant.tags ? backendRestaurant.tags.split(',') : [],
     address: backendRestaurant.address || '',
     contactNumber: backendRestaurant.contactNumber || '',
+    phone: backendRestaurant.contactNumber || '',
     ownerId: backendRestaurant.ownerId,
     status: backendRestaurant.status,
     openingTime: backendRestaurant.openingTime,
     closingTime: backendRestaurant.closingTime,
+    // Preserve original for potential admin screens
     menuCategories: backendRestaurant.menuCategories || [],
+    // UI expects 'menu' with { id, category, items }
+    menu: mappedMenuCategories,
     // Add offers array for compatibility (can be populated from backend later)
     offers: [],
     // Add location object for compatibility

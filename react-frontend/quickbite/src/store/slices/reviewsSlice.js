@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { restaurantAPI } from '../../services/api';
 
 // Mock initial data
 const initialReviews = {
@@ -41,6 +42,26 @@ export const submitPartnerReview = createAsyncThunk(
   }
 );
 
+export const fetchRestaurantReviews = createAsyncThunk(
+  'reviews/fetchRestaurantReviews',
+  async (restaurantId, { rejectWithValue }) => {
+    try {
+      const response = await restaurantAPI.getRestaurantReviews(restaurantId);
+      const payload = response.data || response;
+      // Normalize to [{ rating, comment, userName, date }]
+      const reviews = (payload || []).map((r) => ({
+        rating: r.rating || r.stars || 0,
+        comment: r.comment || r.review || r.text || '',
+        userName: r.userName || r.user || r.author || 'Anonymous',
+        date: r.createdAt || r.date || ''
+      }));
+      return { restaurantId, reviews };
+    } catch (e) {
+      return rejectWithValue('Failed to fetch reviews');
+    }
+  }
+);
+
 const reviewsSlice = createSlice({
   name: 'reviews',
   initialState: {
@@ -51,6 +72,13 @@ const reviewsSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+      .addCase(fetchRestaurantReviews.pending, (state) => { state.loading = true; state.error = null; })
+      .addCase(fetchRestaurantReviews.fulfilled, (state, action) => {
+        state.loading = false;
+        const { restaurantId, reviews } = action.payload;
+        state.data.restaurants[restaurantId] = reviews;
+      })
+      .addCase(fetchRestaurantReviews.rejected, (state, action) => { state.loading = false; state.error = action.payload; })
       .addCase(submitRestaurantReview.pending, (state) => { state.loading = true; state.error = null; })
       .addCase(submitRestaurantReview.fulfilled, (state, action) => {
         state.loading = false;

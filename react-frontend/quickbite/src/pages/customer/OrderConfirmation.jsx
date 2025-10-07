@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSelector } from 'react-redux';
-import { Container, Paper, Typography, Box, Divider, Button } from '@mui/material';
+import { Container, Paper, Typography, Box, Divider, Button, Alert, Chip } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
 const OrderConfirmation = () => {
@@ -22,12 +22,20 @@ const OrderConfirmation = () => {
   }
 
   const eta = '30-40 mins';
+  const paymentStatus = order.paymentStatus || 'PENDING';
 
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
       <Paper sx={{ p: 3, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>Order Confirmed!</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Order ID: #{order.id}</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>Payment Status:</Typography>
+          <Chip size="small" label={paymentStatus} color={paymentStatus === 'PAID' ? 'success' : paymentStatus === 'FAILED' ? 'error' : 'warning'} />
+        </Box>
+        {paymentStatus !== 'PAID' && (
+          <Alert severity="info" sx={{ mb: 2 }}>Payment will be marked as PAID after the payment service webhook confirms success.</Alert>
+        )}
         <Box sx={{ p: 2, backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #f0f0f0', mb: 2 }}>
           <Typography variant="body1" sx={{ fontWeight: 600 }}>Estimated Delivery: {eta}</Typography>
           <Typography variant="body2" color="text.secondary">We'll notify you as the order progresses.</Typography>
@@ -43,7 +51,7 @@ const OrderConfirmation = () => {
         <Divider sx={{ my: 1.5 }} />
         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
           <Typography variant="body1" sx={{ fontWeight: 700 }}>Total</Typography>
-          <Typography variant="body1" sx={{ fontWeight: 700, color: '#fc8019' }}>₹{order.total.toFixed(0)}</Typography>
+          <Typography variant="body1" sx={{ fontWeight: 700, color: '#fc8019' }}>₹{(order.total || order.totalAmount || 0).toFixed(0)}</Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5, mt: 3 }}>
           <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={() => navigate('/orders')}>View Orders</Button>

@@ -125,8 +125,13 @@ export const restaurantAPI = {
   // Get all restaurants
   getRestaurants: async (filters = {}) => {
     const params = new URLSearchParams();
-    if (filters.cuisine) params.append('cuisine', filters.cuisine);
-    if (filters.search) params.append('search', filters.search);
+    // Backend supports 'search' (matches name or cuisineType). Use cuisine as search.
+    const searchValue = filters.search || filters.cuisine;
+    if (searchValue) params.append('search', searchValue);
+    if (filters.page !== undefined) params.append('page', filters.page);
+    if (filters.size !== undefined) params.append('size', filters.size);
+    if (filters.sortBy) params.append('sortBy', filters.sortBy);
+    if (filters.sortDir) params.append('sortDir', filters.sortDir);
     if (filters.isOpen !== undefined) params.append('isOpen', filters.isOpen);
     
     const response = await api.get(`/api/restaurants?${params.toString()}`);
@@ -166,21 +171,26 @@ export const cartAPI = {
     return response.data;
   },
 
-  // Add item to cart
-  addToCart: async (itemData) => {
-    const response = await api.post('/api/cart/add', itemData);
+  // Add item to cart (expects AddToCartRequest: { restaurantId, item: { menuItemId, quantity, customization } })
+  addToCart: async ({ restaurantId, menuItemId, quantity, customization }) => {
+    const body = { restaurantId, item: { menuItemId, quantity, customization } };
+    const response = await api.post('/api/cart/add', body);
     return response.data;
   },
 
-  // Update cart item quantity
-  updateCartItem: async (menuItemId, quantity) => {
-    const response = await api.put(`/api/cart/items/${menuItemId}`, { quantity });
+  // Update cart item quantity (supports customization to target line)
+  updateCartItem: async (menuItemId, quantity, customization) => {
+    const body = { menuItemId, quantity };
+    if (customization !== undefined) body.customization = customization;
+    const response = await api.put(`/api/cart/items/${menuItemId}`, body);
     return response.data;
   },
 
-  // Remove item from cart
-  removeFromCart: async (menuItemId) => {
-    const response = await api.delete(`/api/cart/items/${menuItemId}`);
+  // Remove item from cart (supports customization to target line)
+  removeFromCart: async (menuItemId, customization) => {
+    // Always send customization; backend matches strictly on string (use {} for none)
+    const qs = `?customization=${encodeURIComponent(customization || '{}')}`;
+    const response = await api.delete(`/api/cart/items/${menuItemId}${qs}`);
     return response.data;
   },
 
@@ -192,7 +202,9 @@ export const cartAPI = {
 
   // Apply coupon to cart
   applyCoupon: async (couponCode) => {
-    const response = await api.post('/api/cart/coupon', { code: couponCode });
+    const params = new URLSearchParams();
+    if (couponCode) params.append('couponCode', couponCode);
+    const response = await api.post(`/api/cart/coupon?${params.toString()}`);
     return response.data;
   },
 
@@ -218,8 +230,9 @@ export const orderAPI = {
   },
 
   // Create order from cart
-  createOrderFromCart: async () => {
-    const response = await api.post('/api/orders/from-cart');
+  createOrderFromCart: async (queryString) => {
+    const qs = queryString ? `?${queryString}` : '';
+    const response = await api.post(`/api/orders/from-cart${qs}`);
     return response.data;
   },
 
@@ -251,8 +264,22 @@ export const paymentAPI = {
   },
 
   // Create payment intent
-  createPaymentIntent: async (amount, currency = 'INR') => {
-    const response = await api.post('/api/payments/intent', { amount, currency });
+  createPaymentIntent: async (amount, currency = 'INR', orderId) => {
+    const body = {};
+    if (orderId !== undefined) body.orderId = orderId;
+    if (amount !== undefined) body.amount = amount;
+    body.currency = currency || 'INR';
+    const response = await api.post('/api/payments/intent', body);
+    return response.data;
+  },
+
+  // Verify payment
+  verifyPayment: async (razorpayOrderId, razorpayPaymentId, razorpaySignature) => {
+    const response = await api.post('/api/payments/verify-payment', {
+      razorpayOrderId,
+      razorpayPaymentId,
+      razorpaySignature
+    });
     return response.data;
   },
 

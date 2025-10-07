@@ -32,6 +32,7 @@ eureka:
 razorpay:
   key_id: rzp_test_R6s6aVW39Oqimg
   key_secret: DB2j6m9jJ31hc5I0Lt4eNmof
+  webhook_secret: ${RAZORPAY_WEBHOOK_SECRET:change_me}
 
 # JWT Configuration (must match auth-service)
 jwt:

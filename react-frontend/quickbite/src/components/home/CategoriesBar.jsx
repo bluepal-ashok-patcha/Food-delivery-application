@@ -10,7 +10,7 @@ const CategoriesBar = ({ title = 'Popular Categories', categories, activeCuisine
       {categories.map((category) => (
         <Chip
           key={category.id}
-          label={`${category.icon} ${category.name}`}
+          label={category.icon ? `${category.icon} ${category.name}` : category.name}
           onClick={() => onSelect(category.name)}
           variant={activeCuisine === category.name ? 'filled' : 'outlined'}
           sx={{

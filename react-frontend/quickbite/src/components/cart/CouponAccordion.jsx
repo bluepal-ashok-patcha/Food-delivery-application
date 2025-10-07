@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Accordion, AccordionSummary, AccordionDetails, TextField, Button, Chip, Typography } from '@mui/material';
 import { ExpandMore, Discount } from '@mui/icons-material';
 
-const CouponAccordion = ({ couponCode, setCouponCode, isApplying, onApply, appliedCoupon, onRemoveCoupon }) => (
+const CouponAccordion = ({ couponCode, setCouponCode, isApplying, onApply, appliedCoupon, appliedCouponCode, onRemoveCoupon }) => (
   <Accordion sx={{ mb: 2, boxShadow: 'none', border: '1px solid #e0e0e0' }}>
     <AccordionSummary expandIcon={<ExpandMore />}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -19,9 +19,9 @@ const CouponAccordion = ({ couponCode, setCouponCode, isApplying, onApply, appli
           {isApplying ? 'Applying...' : 'Apply'}
         </Button>
       </Box>
-      {appliedCoupon && (
+      {(appliedCouponCode || appliedCoupon) && (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Chip label={`${appliedCoupon.code} applied`} color="success" onDelete={onRemoveCoupon} sx={{ fontWeight: 500, fontSize: '12px' }} />
+          <Chip label={`${(appliedCouponCode || appliedCoupon?.code)} applied`} color="success" onDelete={onRemoveCoupon} sx={{ fontWeight: 500, fontSize: '12px' }} />
         </Box>
       )}
     </AccordionDetails>

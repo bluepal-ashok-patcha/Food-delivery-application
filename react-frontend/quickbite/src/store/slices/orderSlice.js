@@ -1,22 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { mockOrders } from '../../constants/mockData';
+import { orderAPI } from '../../services/api';
 
 // Async thunks
 export const createOrder = createAsyncThunk(
   'orders/createOrder',
   async (orderData, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const newOrder = {
-        id: mockOrders.length + 1,
-        ...orderData,
-        status: 'placed',
-        orderDate: new Date().toISOString()
-      };
-      
-      return newOrder;
+      const response = await orderAPI.createOrder(orderData);
+      return response.data || response;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -25,26 +16,10 @@ export const createOrder = createAsyncThunk(
 
 export const fetchOrders = createAsyncThunk(
   'orders/fetchOrders',
-  async (filters = {}, { rejectWithValue }) => {
+  async (_filters = {}, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      let filteredOrders = [...mockOrders];
-      
-      if (filters.userId) {
-        filteredOrders = filteredOrders.filter(order => order.customerId === filters.userId);
-      }
-      
-      if (filters.status) {
-        filteredOrders = filteredOrders.filter(order => order.status === filters.status);
-      }
-      
-      if (filters.restaurantId) {
-        filteredOrders = filteredOrders.filter(order => order.restaurantId === filters.restaurantId);
-      }
-      
-      return filteredOrders;
+      const response = await orderAPI.getUserOrders();
+      return response.data || response;
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -55,9 +30,7 @@ export const updateOrderStatus = createAsyncThunk(
   'orders/updateOrderStatus',
   async ({ orderId, status }, { rejectWithValue }) => {
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await orderAPI.updateOrderStatus(orderId, status);
       return { orderId, status };
     } catch (error) {
       return rejectWithValue(error.message);

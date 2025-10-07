@@ -15,19 +15,44 @@ const HomePage = () => {
   const { restaurants, loading, filters } = useSelector((state) => state.restaurants);
   const { isAuthenticated } = useSelector((state) => state.auth);
   const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState('relevance');
+  const [sortBy, setSortBy] = useState('name');
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchRestaurants());
-  }, [dispatch]);
+    dispatch(fetchRestaurants(filters));
+  }, [dispatch, filters]);
+
+  // Debounce live search to avoid rapid re-fetches and focus loss
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (searchQuery !== filters.search) {
+        dispatch(setFilters({ search: searchQuery }));
+      }
+    }, 300);
+    return () => clearTimeout(handler);
+  }, [searchQuery, filters.search, dispatch]);
+
+  // Initialize default sort only once
+  useEffect(() => {
+    if (!filters.sortBy || !filters.sortDir) {
+      dispatch(setFilters({ sortBy: 'name', sortDir: 'asc' }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleCategoryFilter = (category) => {
-    dispatch(setFilters({ cuisine: category }));
+    if (category === 'All') {
+      // Clear both cuisine and search when selecting All
+      dispatch(setFilters({ cuisine: '', search: '' }));
+      setSearchQuery('');
+    } else {
+      dispatch(setFilters({ cuisine: category }));
+    }
   };
 
-  const handleSearch = () => {
-    dispatch(setFilters({ search: searchQuery }));
+  const handleSearch = (value) => {
+    const v = value !== undefined ? value : searchQuery;
+    dispatch(setFilters({ search: v }));
   };
 
   const handleRestaurantClick = (restaurantId) => {
@@ -47,20 +72,40 @@ const HomePage = () => {
     }).format(price);
   };
 
-  if (loading) {
-    return <LoadingSpinner fullScreen message="Loading restaurants..." />;
-  }
+  // Keep header mounted; show loading state inline below
+
+  // Build cuisine categories from CURRENT results (respecting active search)
+  const cuisineCategories = (() => {
+    const names = Array.from(new Set(restaurants.map(r => r.cuisine).filter(Boolean)));
+    const source = names.length ? names : (mockCategories.map(c => c.name));
+    const items = source.map((name, idx) => ({ id: idx + 1, name }));
+    return [{ id: 0, name: 'All' }, ...items];
+  })();
+
+  const activeCuisineName = filters.cuisine || 'All';
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
       <HomeHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSearch={handleSearch} />
 
       <Container maxWidth="lg">
-        <CategoriesBar categories={mockCategories} activeCuisine={filters.cuisine} onSelect={handleCategoryFilter} />
+        <CategoriesBar categories={cuisineCategories} activeCuisine={activeCuisineName} onSelect={handleCategoryFilter} />
 
-        <SortFilterBar count={restaurants.length} onToggleFilters={() => setShowFilters(!showFilters)} />
+        <SortFilterBar
+          count={restaurants.length}
+          onSelectSort={({ sortBy: sb, sortDir: sd }) => {
+            if (!sb || !sd) {
+              // Clear sorting to default
+              dispatch(setFilters({ sortBy: 'name', sortDir: 'asc', page: 0 }));
+            } else {
+              dispatch(setFilters({ sortBy: sb, sortDir: sd, page: 0 }));
+            }
+          }}
+        />
 
-        {restaurants.length === 0 ? (
+        {loading ? (
+          <LoadingSpinner fullScreen={false} message="Loading restaurants..." />
+        ) : restaurants.length === 0 ? (
           <Paper sx={{ p: 3, textAlign: 'center', borderRadius: '3px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
             <Typography variant="h6" color="text.secondary" sx={{ fontSize: '16px', fontWeight: 600 }}>
               No restaurants found
