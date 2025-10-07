@@ -211,6 +211,13 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         mappings.put("GET:/api/restaurants/orders", List.of("RESTAURANT_OWNER"));
         mappings.put("PUT:/api/restaurants/orders/{orderId}/status", List.of("RESTAURANT_OWNER"));
         
+        // ===== RESTAURANT ADMIN IMPORT/EXPORT (Excel/PDF) =====
+        mappings.put("POST:/api/restaurants/import/excel", List.of("ADMIN")); 
+        mappings.put("GET:/api/restaurants/{id}/export/pdf", List.of("ADMIN"));
+        mappings.put("GET:/api/restaurants/export/excel", List.of("ADMIN"));
+        mappings.put("GET:/api/restaurants/export/admin/all/pdf", List.of("ADMIN"));
+        mappings.put("GET:/api/restaurants/export/pdf/{ownerId}", List.of("ADMIN"));
+        
         // Additional Delivery Endpoints (fixing role access)
         mappings.put("GET:/api/delivery/assignments/order/{orderId}", List.of("CUSTOMER", "RESTAURANT_OWNER", "ADMIN", "DELIVERY_PARTNER"));
         

@@ -1,23 +1,43 @@
 package com.quickbite.restaurantservice.controller;
 
-import com.quickbite.restaurantservice.dto.ApiResponse;
-import com.quickbite.restaurantservice.dto.MenuCategoryDto;
-import com.quickbite.restaurantservice.dto.MenuItemDto;
-import com.quickbite.restaurantservice.dto.RestaurantDto;
-import com.quickbite.restaurantservice.dto.RestaurantReviewDto;
-import com.quickbite.restaurantservice.dto.PageMeta;
-import com.quickbite.restaurantservice.entity.RestaurantStatus;
-import com.quickbite.restaurantservice.service.RestaurantService;
-import jakarta.validation.Valid;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import jakarta.servlet.http.HttpServletRequest;
-import com.quickbite.restaurantservice.util.JwtUtil;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
+import com.quickbite.restaurantservice.dto.ApiResponse;
+import com.quickbite.restaurantservice.dto.ImportReportDto;
+import com.quickbite.restaurantservice.dto.MenuCategoryDto;
+import com.quickbite.restaurantservice.dto.MenuItemDto;
+import com.quickbite.restaurantservice.dto.ParsedRestaurant;
+import com.quickbite.restaurantservice.dto.RestaurantDto;
+import com.quickbite.restaurantservice.dto.RestaurantReviewDto;
+import com.quickbite.restaurantservice.entity.RestaurantStatus;
+import com.quickbite.restaurantservice.service.ExcelRestaurantImporter;
+import com.quickbite.restaurantservice.service.RestaurantService;
+import com.quickbite.restaurantservice.util.JwtUtil;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+
+
+
+
 
 @RestController
 @RequestMapping("/api/restaurants")
@@ -309,4 +329,100 @@ public class RestaurantController {
         }
         throw new RuntimeException("Unauthorized");
     }
+    
+
+ // ✅ Export Restaurant to PDF
+ 	@GetMapping("/{id}/export/pdf")
+ 	public ResponseEntity<byte[]> exportRestaurantPdf(@PathVariable Long id) {
+ 		return restaurantService.exportRestaurantPdf(id);
+ 	}
+
+ 	// 🟥 NEW: Export All Restaurants as Excel
+ 	@GetMapping("/export/excel")
+ 	public ResponseEntity<byte[]> exportRestaurantsExcel() {
+ 		return restaurantService.exportRestaurantsToExcel();
+ 	}
+
+ 	@GetMapping("/export/admin/all/pdf")
+ 	public ResponseEntity<byte[]> adminExportAllRestaurantsPdf() {
+ 		return restaurantService.adminDownloadAllRestaurantsPdf();
+ 	}
+
+ 	@Autowired
+ 	private ExcelRestaurantImporter excelImporter;
+
+ 	@PostMapping("/import/excel")
+ 	public ResponseEntity<ApiResponse<ImportReportDto>> importRestaurantsFromExcel(
+ 			@RequestParam("file") MultipartFile file, HttpServletRequest request) throws IOException {
+
+ 		String userRole = extractUserRole(request); // your existing helper
+ 		if (!"ADMIN".equals(userRole)) {
+ 			ApiResponse<ImportReportDto> body = ApiResponse.<ImportReportDto>builder().success(false)
+ 					.message("Only ADMIN can import restaurants").data(null).build();
+ 			return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
+ 		}
+
+ 		if (file == null || file.isEmpty()) {
+ 			ApiResponse<ImportReportDto> body = ApiResponse.<ImportReportDto>builder().success(false)
+ 					.message("File is required").data(null).build();
+ 			return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+ 		}
+
+ 		if (!file.getOriginalFilename().toLowerCase().endsWith(".xlsx")) {
+ 			ApiResponse<ImportReportDto> body = ApiResponse.<ImportReportDto>builder().success(false)
+ 					.message("Only .xlsx files are supported").data(null).build();
+ 			return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+ 		}
+
+ 		List<ParsedRestaurant> parsed;
+ 		try (InputStream is = file.getInputStream()) {
+ 			parsed = excelImporter.parse(is);
+ 		} catch (Exception ex) {
+ 			ApiResponse<ImportReportDto> body = ApiResponse.<ImportReportDto>builder().success(false)
+ 					.message("Failed to parse Excel: " + ex.getMessage()).data(null).build();
+ 			return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+ 		}
+
+ 		ImportReportDto report = new ImportReportDto();
+ 		report.setTotal(parsed.size());
+
+ 		for (ParsedRestaurant pr : parsed) {
+ 			try {
+ // Ensure ownerId present (ADMIN requirement)
+ 				if (pr.getRestaurantDto().getOwnerId() == null) {
+ 					report.addFailure(pr.getRowNumber(),
+ 							"ownerId is required for ADMIN-created restaurant (Restaurants sheet, row "
+ 									+ pr.getRowNumber() + ")");
+ 					continue;
+ 				}
+ // Do not set IDs (explicitly null)
+ 				pr.getRestaurantDto().setId(null);
+ 				if (pr.getRestaurantDto().getMenuCategories() != null) {
+ 					pr.getRestaurantDto().getMenuCategories().forEach(cat -> {
+ 						cat.setId(null);
+ 						if (cat.getMenuItems() != null) {
+ 							cat.getMenuItems().forEach(item -> item.setId(null));
+ 						}
+ 					});
+ 				}
+
+ 				RestaurantDto created = restaurantService.createRestaurant(pr.getRestaurantDto());
+ 				report.addSuccess(pr.getRowNumber(), created);
+ 			} catch (Exception e) {
+ 				report.addFailure(pr.getRowNumber(), e.getMessage());
+ 			}
+ 		}
+
+ 		ApiResponse<ImportReportDto> body = ApiResponse.<ImportReportDto>builder().success(true)
+ 				.message("Import completed").data(report).build();
+
+ 		return new ResponseEntity<>(body, HttpStatus.OK);
+ 	}
+
+ 	@GetMapping("/export/pdf/{ownerId}")
+ 	public ResponseEntity<byte[]> exportByOwnerPdf(@PathVariable Long ownerId,HttpServletRequest request) {
+ 	    return restaurantService.exportRestaurantsByOwnerPdf(ownerId);
+ 	}
+
+
 }

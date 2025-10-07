@@ -1,6 +1,59 @@
 package com.quickbite.restaurantservice.service;
 
+import java.awt.Color;
+import java.io.ByteArrayOutputStream;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+
+
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.lowagie.text.Document;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
 import com.quickbite.restaurantservice.dto.MenuCategoryDto;
+import com.quickbite.restaurantservice.dto.MenuItemDto;
+import com.quickbite.restaurantservice.dto.RestaurantDto;
+import com.quickbite.restaurantservice.dto.RestaurantReviewDto;
+import com.quickbite.restaurantservice.entity.MenuCategory;
+import com.quickbite.restaurantservice.entity.MenuItem;
+import com.quickbite.restaurantservice.entity.Restaurant;
+import com.quickbite.restaurantservice.entity.RestaurantReview;
+import com.quickbite.restaurantservice.entity.RestaurantStatus;
+import com.quickbite.restaurantservice.repository.CrossServiceJdbcRepository;
+import com.quickbite.restaurantservice.repository.MenuCategoryRepository;
+import com.quickbite.restaurantservice.repository.MenuItemRepository;
+import com.quickbite.restaurantservice.repository.RestaurantRepository;
+import com.quickbite.restaurantservice.repository.RestaurantReviewRepository;
 import com.quickbite.restaurantservice.dto.MenuItemDto;
 import com.quickbite.restaurantservice.dto.RestaurantDto;
 import com.quickbite.restaurantservice.dto.RestaurantReviewDto;
@@ -338,5 +391,391 @@ public class RestaurantService {
         } catch (Exception e) {
             log.error("Failed to send pending approval notification for restaurant {}", restaurant.getId(), e);
         }
+    }
+    
+    
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> exportRestaurantPdf(Long restaurantId) {
+        RestaurantDto restaurant = getRestaurantById(restaurantId);
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4);
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            // Title
+            Font titleFont = new Font(Font.HELVETICA, 18, Font.BOLD, Color.BLACK);
+            Paragraph title = new Paragraph("Restaurant Report", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            document.add(new Paragraph("Generated on: " + java.time.LocalDateTime.now()));
+            document.add(new Paragraph(" "));
+
+            // Restaurant Info
+            document.add(new Paragraph("Name: " + restaurant.getName()));
+            document.add(new Paragraph("Cuisine: " + restaurant.getCuisineType()));
+            document.add(new Paragraph("Address: " + restaurant.getAddress()));
+            document.add(new Paragraph("Status: " + restaurant.getStatus()));
+            document.add(new Paragraph("Rating: " + restaurant.getRating()));
+            document.add(new Paragraph(" "));
+
+            // Menu Categories + Items
+            Font sectionFont = new Font(Font.HELVETICA, 14, Font.BOLD, Color.BLUE);
+            document.add(new Paragraph("Menu", sectionFont));
+            document.add(new Paragraph(" "));
+
+            if (restaurant.getMenuCategories() != null) {
+                for (var category : restaurant.getMenuCategories()) {
+                    Paragraph categoryHeader = new Paragraph(category.getName(),
+                            new Font(Font.HELVETICA, 13, Font.BOLD, Color.DARK_GRAY));
+                    categoryHeader.setSpacingBefore(10);
+                    categoryHeader.setSpacingAfter(5);
+                    document.add(categoryHeader);
+
+                    float[] widths = {3f, 6f, 2f};
+                    PdfPTable table = new PdfPTable(widths);
+                    table.setWidthPercentage(100);
+
+                    addHeaderCell(table, "Item");
+                    addHeaderCell(table, "Description");
+                    addHeaderCell(table, "Price");
+
+                    if (category.getMenuItems() != null) {
+                        for (var item : category.getMenuItems()) {
+                            table.addCell(item.getName());
+                            table.addCell(item.getDescription() != null ? item.getDescription() : "-");
+                            table.addCell(item.getPrice() != null ? item.getPrice().toString() : "-");
+                        }
+                    }
+
+                    document.add(table);
+                }
+            }
+
+            document.close();
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=restaurant_" + restaurantId + ".pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(out.toByteArray());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to export PDF: " + e.getMessage());
+        }
+    }
+
+    private void addHeaderCell(PdfPTable table, String text) {
+        PdfPCell cell = new PdfPCell(new Phrase(text, new Font(Font.HELVETICA, 12, Font.BOLD)));
+        cell.setBackgroundColor(new Color(230, 230, 230));
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        table.addCell(cell);
+    }
+
+    
+    
+   
+    
+ // 🟥 NEW: Export Multiple Restaurants to Excel
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> exportRestaurantsToExcel() {
+        List<RestaurantDto> restaurants = getAllRestaurants(); // already available in your service
+
+        try (Workbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+            Sheet sheet = workbook.createSheet("Restaurants");
+
+            // 🟥 Header Row
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"ID", "Name", "Address", "Contact Number", "Cuisine Type", "Owner ID", "Status"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                org.apache.poi.ss.usermodel.CellStyle headerStyle = workbook.createCellStyle();
+                org.apache.poi.ss.usermodel.Font font = workbook.createFont();
+                font.setBold(true);
+                headerStyle.setFont(font);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // 🟥 Data Rows
+            int rowIdx = 1;
+            for (RestaurantDto dto : restaurants) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(dto.getId() != null ? dto.getId() : 0);
+                row.createCell(1).setCellValue(dto.getName() != null ? dto.getName() : "");
+                row.createCell(2).setCellValue(dto.getAddress() != null ? dto.getAddress() : "");
+                row.createCell(3).setCellValue(dto.getContactNumber() != null ? dto.getContactNumber() : "");
+                row.createCell(4).setCellValue(dto.getCuisineType() != null ? dto.getCuisineType() : "");
+                row.createCell(5).setCellValue(dto.getOwnerId() != null ? dto.getOwnerId() : 0);
+                row.createCell(6).setCellValue(dto.getStatus() != null ? dto.getStatus().name() : "");
+            }
+
+            // Auto-size columns
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=restaurants.xlsx")
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(out.toByteArray());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to export Excel: " + e.getMessage());
+        }
+        
+        
+    }
+    
+    
+ // 🟡 NEW: Export All Restaurants to One PDF (For Admin)
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> exportAllRestaurantsPdf() {
+        List<RestaurantDto> restaurants = getAllRestaurants();  // Existing method to get all
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4);
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            // Title
+            Font titleFont = new Font(Font.HELVETICA, 18, Font.BOLD, Color.BLACK);
+            Paragraph title = new Paragraph("All Restaurants Report", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            document.add(new Paragraph("Generated on: " + java.time.LocalDateTime.now()));
+            document.add(new Paragraph(" "));
+
+            Font sectionFont = new Font(Font.HELVETICA, 14, Font.BOLD, Color.BLUE);
+            Font infoFont = new Font(Font.HELVETICA, 12, Font.NORMAL, Color.BLACK);
+
+            for (RestaurantDto restaurant : restaurants) {
+                // Section header for each restaurant
+                Paragraph restaurantHeader = new Paragraph("Restaurant: " + restaurant.getName(), sectionFont);
+                restaurantHeader.setSpacingBefore(10);
+                restaurantHeader.setSpacingAfter(5);
+                document.add(restaurantHeader);
+
+                // Basic Info
+                document.add(new Paragraph("Cuisine: " + (restaurant.getCuisineType() != null ? restaurant.getCuisineType() : ""), infoFont));
+                document.add(new Paragraph("Address: " + (restaurant.getAddress() != null ? restaurant.getAddress() : ""), infoFont));
+                document.add(new Paragraph("Status: " + (restaurant.getStatus() != null ? restaurant.getStatus() : ""), infoFont));
+                document.add(new Paragraph("Rating: " + (restaurant.getRating() != null ? restaurant.getRating() : "N/A"), infoFont));
+                document.add(new Paragraph(" "));
+
+                // Menu Table (if exists)
+                if (restaurant.getMenuCategories() != null) {
+                    for (var category : restaurant.getMenuCategories()) {
+                        Paragraph categoryHeader = new Paragraph("Category: " + category.getName(),
+                                new Font(Font.HELVETICA, 13, Font.BOLD, Color.DARK_GRAY));
+                        categoryHeader.setSpacingBefore(5);
+                        categoryHeader.setSpacingAfter(3);
+                        document.add(categoryHeader);
+
+                        float[] widths = {3f, 6f, 2f};
+                        PdfPTable table = new PdfPTable(widths);
+                        table.setWidthPercentage(100);
+
+                        addHeaderCell(table, "Item");
+                        addHeaderCell(table, "Description");
+                        addHeaderCell(table, "Price");
+
+                        if (category.getMenuItems() != null) {
+                            for (var item : category.getMenuItems()) {
+                                table.addCell(item.getName() != null ? item.getName() : "");
+                                table.addCell(item.getDescription() != null ? item.getDescription() : "-");
+                                table.addCell(item.getPrice() != null ? item.getPrice().toString() : "-");
+                            }
+                        }
+
+                        document.add(table);
+                    }
+                }
+
+                // Line separator between restaurants
+                document.add(new Paragraph("------------------------------------------------------------"));
+            }
+
+            document.close();
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=all_restaurants.pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(out.toByteArray());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to export all restaurants PDF: " + e.getMessage());
+        }
+    }
+
+   
+ // 🟡 NEW: Admin can download ALL Restaurants PDF in one go
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> adminDownloadAllRestaurantsPdf() {
+        List<RestaurantDto> restaurants = getAllRestaurants();  // Existing method
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4);
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            // 🟡 Title
+            Font titleFont = new Font(Font.HELVETICA, 18, Font.BOLD, Color.BLACK);
+            Paragraph title = new Paragraph("All Restaurants - Admin Report", titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            document.add(new Paragraph("Generated on: " + java.time.LocalDateTime.now()));
+            document.add(new Paragraph(" "));
+
+            Font sectionFont = new Font(Font.HELVETICA, 14, Font.BOLD, Color.BLUE);
+            Font infoFont = new Font(Font.HELVETICA, 12, Font.NORMAL, Color.BLACK);
+
+            for (RestaurantDto restaurant : restaurants) {
+                // 🟡 Restaurant Header
+                Paragraph restaurantHeader = new Paragraph(restaurant.getName(), sectionFont);
+                restaurantHeader.setSpacingBefore(10);
+                restaurantHeader.setSpacingAfter(5);
+                document.add(restaurantHeader);
+
+                document.add(new Paragraph("Cuisine: " + safe(restaurant.getCuisineType()), infoFont));
+                document.add(new Paragraph("Address: " + safe(restaurant.getAddress()), infoFont));
+                document.add(new Paragraph("Status: " + (restaurant.getStatus() != null ? restaurant.getStatus().toString() : "N/A"), infoFont));
+                document.add(new Paragraph("Rating: " + (restaurant.getRating() != null ? restaurant.getRating().toString() : "N/A"), infoFont));
+                document.add(new Paragraph(" "));
+
+                // 🟡 Menu Categories & Items
+                if (restaurant.getMenuCategories() != null) {
+                    for (var category : restaurant.getMenuCategories()) {
+                        Paragraph catHeader = new Paragraph("Category: " + safe(category.getName()),
+                                new Font(Font.HELVETICA, 13, Font.BOLD, Color.DARK_GRAY));
+                        catHeader.setSpacingBefore(5);
+                        catHeader.setSpacingAfter(3);
+                        document.add(catHeader);
+
+                        float[] widths = {3f, 6f, 2f};
+                        PdfPTable table = new PdfPTable(widths);
+                        table.setWidthPercentage(100);
+
+                        addHeaderCell(table, "Item");
+                        addHeaderCell(table, "Description");
+                        addHeaderCell(table, "Price");
+
+                        if (category.getMenuItems() != null) {
+                            for (var item : category.getMenuItems()) {
+                                table.addCell(safe(item.getName()));
+                                table.addCell(safe(item.getDescription()));
+                                table.addCell(item.getPrice() != null ? item.getPrice().toString() : "-");
+                            }
+                        }
+
+                        document.add(table);
+                    }
+                }
+
+                // Separator Line
+                document.add(new Paragraph("------------------------------------------------------------"));
+            }
+
+            document.close();
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=admin_all_restaurants.pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(out.toByteArray());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to generate admin PDF: " + e.getMessage());
+        }
+    }
+
+    private String safe(String value) {
+        return value != null ? value : "-";
+    }
+    
+    
+    @Transactional(readOnly = true)
+    public ResponseEntity<byte[]> exportRestaurantsByOwnerPdf(Long ownerId) {
+        List<RestaurantDto> restaurants = getMyRestaurants(ownerId);
+
+        if (restaurants == null || restaurants.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(("No restaurants found for owner ID: " + ownerId).getBytes());
+        }
+
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document document = new Document(PageSize.A4);
+            PdfWriter.getInstance(document, out);
+            document.open();
+
+            Font titleFont = new Font(Font.HELVETICA, 18, Font.BOLD, Color.BLACK);
+            Paragraph title = new Paragraph("Owner Report - Restaurants for Owner ID: " + ownerId, titleFont);
+            title.setAlignment(Element.ALIGN_CENTER);
+            document.add(title);
+            document.add(new Paragraph("Generated on: " + java.time.LocalDateTime.now()));
+            document.add(new Paragraph(" "));
+
+            Font sectionFont = new Font(Font.HELVETICA, 14, Font.BOLD, Color.BLUE);
+            Font infoFont = new Font(Font.HELVETICA, 12, Font.NORMAL, Color.BLACK);
+
+            for (RestaurantDto restaurant : restaurants) {
+                Paragraph restaurantHeader = new Paragraph(safe(restaurant.getName()), sectionFont);
+                restaurantHeader.setSpacingBefore(10);
+                restaurantHeader.setSpacingAfter(5);
+                document.add(restaurantHeader);
+
+                document.add(new Paragraph("Cuisine: " + safe(restaurant.getCuisineType()), infoFont));
+                document.add(new Paragraph("Address: " + safe(restaurant.getAddress()), infoFont));
+                document.add(new Paragraph("Status: " + (restaurant.getStatus() != null ? restaurant.getStatus().toString() : "N/A"), infoFont));
+                document.add(new Paragraph("Rating: " + (restaurant.getRating() != null ? restaurant.getRating().toString() : "N/A"), infoFont));
+                document.add(new Paragraph(" "));
+
+                if (restaurant.getMenuCategories() != null) {
+                    for (var category : restaurant.getMenuCategories()) {
+                        Paragraph catHeader = new Paragraph("Category: " + safe(category.getName()),
+                                new Font(Font.HELVETICA, 13, Font.BOLD, Color.DARK_GRAY));
+                        catHeader.setSpacingBefore(5);
+                        catHeader.setSpacingAfter(3);
+                        document.add(catHeader);
+
+                        float[] widths = {3f, 6f, 2f};
+                        PdfPTable table = new PdfPTable(widths);
+                        table.setWidthPercentage(100);
+
+                        addHeaderCell(table, "Item");
+                        addHeaderCell(table, "Description");
+                        addHeaderCell(table, "Price");
+
+                        if (category.getMenuItems() != null) {
+                            for (var item : category.getMenuItems()) {
+                                table.addCell(safe(item.getName()));
+                                table.addCell(safe(item.getDescription()));
+                                table.addCell(item.getPrice() != null ? item.getPrice().toString() : "-");
+                            }
+                        }
+
+                        document.add(table);
+                    }
+                }
+
+                document.add(new Paragraph("------------------------------------------------------------"));
+            }
+
+            document.close();
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=owner_" + ownerId + "_restaurants.pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(out.toByteArray());
+
+        } catch (Exception e) {
+            e.printStackTrace();  // 👈 This prints full error
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .header(HttpHeaders.CONTENT_TYPE, "text/plain; charset=UTF-8")
+                    .body(("Failed to generate owner PDF: " + e.getClass().getName() + " - " + e.getMessage()).getBytes());
+        }
+
     }
 }
