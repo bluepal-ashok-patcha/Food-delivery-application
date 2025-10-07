@@ -161,6 +161,16 @@ public class OrderService {
         return convertToDto(order);
     }
 
+    @Transactional(readOnly = true)
+    public OrderResponseDto getLatestActiveOrderForUser(Long userId) {
+        // Use JDBC to fetch the most recent non-terminal order for user (more flexible if repo lacks method)
+        String sql = "SELECT id FROM orders WHERE user_id = ? AND order_status NOT IN ('DELIVERED','CANCELLED','REJECTED') ORDER BY created_at DESC LIMIT 1";
+        List<Long> ids = jdbcTemplate.query(sql, ps -> ps.setLong(1, userId), (rs, rowNum) -> rs.getLong(1));
+        if (ids.isEmpty()) return null;
+        Optional<Order> opt = orderRepository.findById(ids.get(0));
+        return opt.map(this::convertToDto).orElse(null);
+    }
+
     @Transactional
     public OrderResponseDto createOrderFromCart(Long userId, Long addressId, String specialInstructions) {
         // 1. Get user's cart

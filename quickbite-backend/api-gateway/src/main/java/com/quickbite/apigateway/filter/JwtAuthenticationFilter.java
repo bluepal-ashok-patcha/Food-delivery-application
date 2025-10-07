@@ -59,6 +59,7 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         mappings.put("POST:/api/orders/from-cart", List.of("CUSTOMER"));
         mappings.put("GET:/api/orders/user", List.of("CUSTOMER"));
         mappings.put("GET:/api/orders/user/**", List.of("CUSTOMER"));
+        mappings.put("GET:/api/orders/user/active", List.of("CUSTOMER"));
         mappings.put("GET:/api/orders/restaurant/{restaurantId}", List.of("RESTAURANT_OWNER", "ADMIN"));
         
         // Cart endpoints

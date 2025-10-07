@@ -101,6 +101,18 @@ public class OrderController {
         return ResponseEntity.ok(body);
     }
 
+    @GetMapping("/user/active")
+    public ResponseEntity<ApiResponse<OrderResponseDto>> getLatestActiveOrderForUser(HttpServletRequest request) {
+        Long userId = extractUserId(request);
+        OrderResponseDto order = orderService.getLatestActiveOrderForUser(userId);
+        ApiResponse<OrderResponseDto> body = ApiResponse.<OrderResponseDto>builder()
+                .success(true)
+                .message(order != null ? "Active order fetched successfully" : "No active order")
+                .data(order)
+                .build();
+        return ResponseEntity.ok(body);
+    }
+
     @GetMapping("/restaurant/{restaurantId}")
     public ResponseEntity<ApiResponse<List<OrderResponseDto>>> getOrdersByRestaurantId(
             @PathVariable Long restaurantId,
