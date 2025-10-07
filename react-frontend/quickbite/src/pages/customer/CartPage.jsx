@@ -7,7 +7,7 @@ import { createOrder } from '../../store/slices/orderSlice';
 import { showNotification } from '../../store/slices/uiSlice';
 import { mockRestaurants } from '../../constants/mockData';
 import { useNavigate } from 'react-router-dom';
-import { paymentAPI } from '../../services/api';
+import { paymentAPI, deliveryAPI } from '../../services/api';
 import CartHeader from '../../components/cart/CartHeader';
 import CartItemRow from '../../components/cart/CartItemRow';
 import { fetchCart } from '../../store/slices/cartSlice';
@@ -171,8 +171,14 @@ const CartPage = () => {
               );
               
               if (verifyResult.success) {
-                dispatch(showNotification({ message: 'Payment successful! Order placed.', type: 'success' }));
-                navigate('/orders/confirmation');
+                // Create delivery assignment (idempotent on backend if already exists)
+                try {
+                  await deliveryAPI.createAssignment(orderResult.id);
+                } catch (e) {
+                  // Ignore if already assigned or partner not available; proceed to tracking
+                }
+                dispatch(showNotification({ message: 'Payment successful! Redirecting to tracking…', type: 'success' }));
+                navigate(`/orders/${orderResult.id}`);
               } else {
                 dispatch(showNotification({ message: 'Payment verification failed', type: 'error' }));
               }

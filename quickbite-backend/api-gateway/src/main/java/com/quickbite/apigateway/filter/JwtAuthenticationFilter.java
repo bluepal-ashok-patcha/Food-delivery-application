@@ -105,6 +105,8 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         mappings.put("GET:/api/delivery/assignments/my", List.of("DELIVERY_PARTNER"));
         mappings.put("GET:/api/delivery/assignments/active", List.of("DELIVERY_PARTNER"));
         mappings.put("PUT:/api/delivery/location", List.of("DELIVERY_PARTNER"));
+        // Live location updates for assignments
+        mappings.put("PUT:/api/delivery/assignments/location", List.of("DELIVERY_PARTNER"));
         
         // ===== RESTAURANT OWNER ENDPOINTS =====
         // Restaurant management
@@ -139,10 +141,12 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         mappings.put("PUT:/api/orders/{orderId}/status", List.of("RESTAURANT_OWNER", "ADMIN", "DELIVERY_PARTNER"));
         
         // Delivery assignment creation
-        mappings.put("POST:/api/delivery/assignments", List.of("RESTAURANT_OWNER", "ADMIN"));
+        mappings.put("POST:/api/delivery/assignments", List.of("RESTAURANT_OWNER", "ADMIN","CUSTOMER"));
         
         // Assignment lookup (multiple roles can view)
         mappings.put("GET:/api/delivery/assignments/order/{orderId}", List.of("RESTAURANT_OWNER", "ADMIN", "DELIVERY_PARTNER"));
+        
+
         
         // ===== ADMIN ENDPOINTS =====
         // Restaurant admin

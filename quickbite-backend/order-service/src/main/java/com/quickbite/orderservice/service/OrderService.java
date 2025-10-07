@@ -151,6 +151,16 @@ public class OrderService {
         return orderRepository.findAll(pageable);
     }
 
+    @Transactional(readOnly = true)
+    public OrderResponseDto getOrderByIdForUser(Long orderId, Long userId) {
+        Optional<Order> opt = orderRepository.findById(orderId);
+        Order order = opt.orElseThrow(() -> new RuntimeException("Order not found"));
+        if (!order.getUserId().equals(userId)) {
+            throw new RuntimeException("Forbidden: order does not belong to current user");
+        }
+        return convertToDto(order);
+    }
+
     @Transactional
     public OrderResponseDto createOrderFromCart(Long userId, Long addressId, String specialInstructions) {
         // 1. Get user's cart

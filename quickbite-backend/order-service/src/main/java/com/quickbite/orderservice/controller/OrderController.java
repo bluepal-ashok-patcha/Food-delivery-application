@@ -86,6 +86,21 @@ public class OrderController {
         return ResponseEntity.ok(body);
     }
 
+    @GetMapping("/user/{orderId}")
+    public ResponseEntity<ApiResponse<OrderResponseDto>> getOrderByIdForUser(
+            @PathVariable Long orderId,
+            HttpServletRequest request
+    ) {
+        Long userId = extractUserId(request);
+        OrderResponseDto order = orderService.getOrderByIdForUser(orderId, userId);
+        ApiResponse<OrderResponseDto> body = ApiResponse.<OrderResponseDto>builder()
+                .success(true)
+                .message("Order fetched successfully")
+                .data(order)
+                .build();
+        return ResponseEntity.ok(body);
+    }
+
     @GetMapping("/restaurant/{restaurantId}")
     public ResponseEntity<ApiResponse<List<OrderResponseDto>>> getOrdersByRestaurantId(
             @PathVariable Long restaurantId,

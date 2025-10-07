@@ -302,4 +302,20 @@ export const paymentAPI = {
   }
 };
 
+// Delivery API endpoints
+export const deliveryAPI = {
+  // Create delivery assignment
+  createAssignment: async (orderId, extra = {}) => {
+    const body = { orderId, ...extra };
+    const response = await api.post('/api/delivery/assignments', body);
+    return response.data;
+  },
+
+  // Get assignment by order id
+  getAssignmentByOrder: async (orderId) => {
+    const response = await api.get(`/api/delivery/assignments/order/${orderId}`);
+    return response.data;
+  }
+};
+
 export default api;

@@ -51,17 +51,71 @@ function interpolatePoints(start, end, numPoints) {
 
 
 // phase: 'to_restaurant' | 'to_customer'
+// If currentPosition is provided, we render courier at that point and disable auto-animation
 // restaurantPosition, customerPosition, startPosition are optional explicit pins
-const DeliveryMap = ({ path, initialCenter, onReachedEnd, forceResize, phase = 'to_restaurant', restaurantPosition, customerPosition, startPosition }) => {
+const DeliveryMap = ({ path, initialCenter, onReachedEnd, forceResize, phase = 'to_restaurant', restaurantPosition, customerPosition, startPosition, currentPosition }) => {
   const mapRef = useRef(null);
   const containerRef = useRef(null);
   const [index, setIndex] = useState(0);
+  const [routedPath, setRoutedPath] = useState(null);
 
-  // Interpolate path if only two points (restaurant, destination)
-  let animatedPath = path;
-  if (path && path.length === 2) {
-    animatedPath = interpolatePoints(path[0], path[1], 60); // smoother: more steps
+  // Build base path for display
+  const basePath = path || [];
+  // If currentPosition is provided, we do not animate; just show a static polyline
+  let animatedPath = basePath;
+  if (!currentPosition && basePath && basePath.length === 2) {
+    animatedPath = interpolatePoints(basePath[0], basePath[1], 60); // smoother: more steps
   }
+
+  // Build OSRM routed polyline between successive points (or from currentPosition to destination)
+  useEffect(() => {
+    let abort = false;
+    async function fetchOsrmSegment(a, b) {
+      const url = `https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=full&geometries=geojson`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Routing failed');
+      const data = await res.json();
+      const coords = data?.routes?.[0]?.geometry?.coordinates || [];
+      return coords.map(([lng, lat]) => ({ lat, lng }));
+    }
+    async function buildRoute(points) {
+      const segments = [];
+      for (let i = 0; i < points.length - 1; i++) {
+        try {
+          const seg = await fetchOsrmSegment(points[i], points[i + 1]);
+          if (seg.length) segments.push(seg);
+        } catch (e) {
+          // ignore segment routing failures; fallback later
+        }
+        if (abort) return;
+      }
+      if (abort) return;
+      if (segments.length) {
+        // flatten but avoid duplicating joint points
+        const merged = segments.reduce((acc, seg, idx) => {
+          if (idx === 0) return seg.slice();
+          // drop first point to avoid duplication
+          return acc.concat(seg.slice(1));
+        }, []);
+        setRoutedPath(merged);
+      } else {
+        setRoutedPath(null);
+      }
+    }
+    // Determine waypoint list for routing
+    if (currentPosition && basePath && basePath.length >= 2) {
+      const dest = basePath[basePath.length - 1];
+      buildRoute([currentPosition, dest]);
+    } else if (basePath && basePath.length >= 2) {
+      // Route through all provided waypoints (pickup -> destination)
+      // Limit to first 3 points to keep routing light
+      const pts = basePath.slice(0, 3);
+      buildRoute(pts);
+    } else {
+      setRoutedPath(null);
+    }
+    return () => { abort = true; };
+  }, [JSON.stringify(basePath), currentPosition && currentPosition.lat, currentPosition && currentPosition.lng]);
 
 
 
@@ -97,6 +151,11 @@ const DeliveryMap = ({ path, initialCenter, onReachedEnd, forceResize, phase = '
 
   useEffect(() => {
     if (!animatedPath || animatedPath.length === 0) return;
+    if (currentPosition) {
+      // No animation; index selects a reasonable point on base path
+      setIndex(0);
+      return;
+    }
     setIndex(0);
     const id = setInterval(() => {
       setIndex((prev) => {
@@ -107,20 +166,20 @@ const DeliveryMap = ({ path, initialCenter, onReachedEnd, forceResize, phase = '
         }
         return next;
       });
-    }, 500); // faster updates for realtime feel
+    }, 500);
     return () => clearInterval(id);
-  }, [JSON.stringify(animatedPath)]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [JSON.stringify(animatedPath), !!currentPosition]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Follow courier marker
   useEffect(() => {
     if (!mapRef.current) return;
-    const point = animatedPath && animatedPath[index] ? animatedPath[index] : initialCenter;
+    const point = currentPosition || (animatedPath && animatedPath[index] ? animatedPath[index] : initialCenter);
     mapRef.current.setView([point.lat, point.lng], 14, { animate: true });
-  }, [index]);
+  }, [index, currentPosition && currentPosition.lat, currentPosition && currentPosition.lng]);
 
-  const courier = animatedPath && animatedPath[index] ? animatedPath[index] : initialCenter;
-  const destination = animatedPath && animatedPath[animatedPath.length - 1] ? animatedPath[animatedPath.length - 1] : initialCenter;
-  const restaurant = animatedPath && animatedPath[0] ? animatedPath[0] : initialCenter;
+  const courier = currentPosition || (animatedPath && animatedPath[index] ? animatedPath[index] : initialCenter);
+  const destination = (basePath && basePath[basePath.length - 1]) ? basePath[basePath.length - 1] : initialCenter;
+  const restaurant = (basePath && basePath[0]) ? basePath[0] : initialCenter;
   const restaurantMarker = restaurantPosition || (phase === 'to_restaurant' ? restaurant : null);
   const customerMarker = customerPosition || (phase === 'to_customer' ? destination : null);
 
@@ -137,8 +196,12 @@ const DeliveryMap = ({ path, initialCenter, onReachedEnd, forceResize, phase = '
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {animatedPath && animatedPath.length > 0 && (
-        <Polyline positions={animatedPath.map(p => [p.lat, p.lng])} color="#2196f3" weight={4} opacity={0.7} />
+      {(routedPath && routedPath.length > 0) ? (
+        <Polyline positions={routedPath.map(p => [p.lat, p.lng])} color="#2196f3" weight={5} opacity={0.85} />
+      ) : (
+        animatedPath && animatedPath.length > 0 && (
+          <Polyline positions={animatedPath.map(p => [p.lat, p.lng])} color="#2196f3" weight={4} opacity={0.7} />
+        )
       )}
       {/* Restaurant marker (only when navigating to it or explicit) */}
       {restaurantMarker && (

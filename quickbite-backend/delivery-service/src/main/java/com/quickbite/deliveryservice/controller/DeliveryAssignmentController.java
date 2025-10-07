@@ -12,6 +12,7 @@ import com.quickbite.deliveryservice.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 @RestController
 @RequestMapping("/api/delivery/assignments")
@@ -23,8 +24,20 @@ public class DeliveryAssignmentController {
     @Autowired
     private JwtUtil jwtUtil;
 
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @PostMapping
-    public ResponseEntity<ApiResponse<DeliveryAssignmentDto>> assignOrder(@Valid @RequestBody DeliveryAssignmentRequest request) {
+    public ResponseEntity<ApiResponse<DeliveryAssignmentDto>> assignOrder(@Valid @RequestBody DeliveryAssignmentRequest request, HttpServletRequest httpRequest) {
+        // Enforce ownership when CUSTOMER creates assignment
+        String role = extractRole(httpRequest);
+        if ("CUSTOMER".equalsIgnoreCase(role)) {
+            Long jwtUserId = extractUserId(httpRequest);
+            Long orderUserId = jdbcTemplate.query("SELECT user_id FROM orders WHERE id = ?", ps -> ps.setLong(1, request.getOrderId()), rs -> rs.next() ? rs.getLong(1) : null);
+            if (orderUserId == null || !orderUserId.equals(jwtUserId)) {
+                throw new RuntimeException("Forbidden: order does not belong to current user");
+            }
+        }
         DeliveryAssignmentDto assignment = assignmentService.assignOrder(request);
         ApiResponse<DeliveryAssignmentDto> body = ApiResponse.<DeliveryAssignmentDto>builder()
                 .success(true)
@@ -114,6 +127,17 @@ public class DeliveryAssignmentController {
             String token = auth.substring(7);
             try {
                 return jwtUtil.getAllClaimsFromToken(token).get("userId", Long.class);
+            } catch (Exception ignored) {}
+        }
+        throw new RuntimeException("Unauthorized");
+    }
+
+    private String extractRole(HttpServletRequest request) {
+        String auth = request.getHeader("Authorization");
+        if (auth != null && auth.startsWith("Bearer ")) {
+            String token = auth.substring(7);
+            try {
+                return jwtUtil.getAllClaimsFromToken(token).get("role", String.class);
             } catch (Exception ignored) {}
         }
         throw new RuntimeException("Unauthorized");

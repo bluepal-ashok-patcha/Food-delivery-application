@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Box, Container, Paper, Typography } from '@mui/material';
+import { Box, Container, Paper, Typography, Button, Chip, LinearProgress } from '@mui/material';
+import { deliveryAPI, orderAPI } from '../../services/api';
 import { fetchRestaurants, setFilters } from '../../store/slices/restaurantSlice';
 import { openLoginModal } from '../../store/slices/uiSlice';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
@@ -14,6 +15,9 @@ const HomePage = () => {
   const dispatch = useDispatch();
   const { restaurants, loading, filters } = useSelector((state) => state.restaurants);
   const { isAuthenticated } = useSelector((state) => state.auth);
+  const [activeOrder, setActiveOrder] = useState(null);
+  const [activeAssignment, setActiveAssignment] = useState(null);
+  const [activeLoading, setActiveLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [showFilters, setShowFilters] = useState(false);
@@ -21,6 +25,67 @@ const HomePage = () => {
   useEffect(() => {
     dispatch(fetchRestaurants(filters));
   }, [dispatch, filters]);
+  // Fetch latest active order and assignment for banner
+  useEffect(() => {
+    let cancelled = false;
+    async function loadActive() {
+      try {
+        setActiveLoading(true);
+        const ordersRes = await orderAPI.getUserOrders();
+        const list = ordersRes?.data || ordersRes || [];
+        const active = list.find(o => {
+          const s = (o.orderStatus || o.status || '').toUpperCase();
+          return s !== 'DELIVERED' && s !== 'CANCELLED' && s !== 'REJECTED';
+        });
+        if (!cancelled && active) {
+          setActiveOrder(active);
+          try {
+            const assignRes = await deliveryAPI.getAssignmentByOrder(active.id);
+            const a = assignRes?.data;
+            if (!cancelled) setActiveAssignment(a);
+          } catch (_) {
+            if (!cancelled) setActiveAssignment(null);
+          }
+        } else if (!cancelled) {
+          setActiveOrder(null);
+          setActiveAssignment(null);
+        }
+      } catch (_) {
+        if (!cancelled) {
+          setActiveOrder(null);
+          setActiveAssignment(null);
+        }
+      } finally {
+        if (!cancelled) setActiveLoading(false);
+      }
+    }
+    if (isAuthenticated) loadActive();
+    const id = setInterval(() => { if (isAuthenticated) loadActive(); }, 10000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [isAuthenticated]);
+
+  const goToTrack = () => {
+    if (activeOrder) window.location.href = `/orders/${activeOrder.id}`;
+  };
+
+  const computeProgress = () => {
+    const o = (activeOrder?.orderStatus || activeOrder?.status || '').toUpperCase();
+    const d = (activeAssignment?.status || '').toUpperCase();
+    if (o === 'DELIVERED' || d === 'DELIVERED') return 100;
+    if (o === 'OUT_FOR_DELIVERY' || ['PICKED_UP','HEADING_TO_DELIVERY','ARRIVED_AT_DELIVERY'].includes(d)) return 75;
+    if (['PREPARING','ACCEPTED','READY_FOR_PICKUP'].includes(o) || ['ACCEPTED','HEADING_TO_PICKUP','ARRIVED_AT_PICKUP'].includes(d)) return 45;
+    return 20;
+  };
+
+  const statusText = () => {
+    const o = (activeOrder?.orderStatus || activeOrder?.status || '').toUpperCase();
+    const d = (activeAssignment?.status || '').toUpperCase();
+    if (o === 'DELIVERED' || d === 'DELIVERED') return 'Delivered';
+    if (o === 'OUT_FOR_DELIVERY' || ['PICKED_UP','HEADING_TO_DELIVERY','ARRIVED_AT_DELIVERY'].includes(d)) return 'Out for delivery';
+    if (['PREPARING','ACCEPTED','READY_FOR_PICKUP'].includes(o) || ['ACCEPTED','HEADING_TO_PICKUP','ARRIVED_AT_PICKUP'].includes(d)) return 'Preparing your order';
+    return 'Order placed';
+  };
+
 
   // Debounce live search to avoid rapid re-fetches and focus loss
   useEffect(() => {
@@ -89,6 +154,30 @@ const HomePage = () => {
       <HomeHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSearch={handleSearch} />
 
       <Container maxWidth="lg">
+        {isAuthenticated && (activeLoading || activeOrder) && (
+          <Paper sx={{ p: 2, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', background: 'linear-gradient(135deg, #fff6ed 0%, #ffffff 60%, #fdf1e6 100%)', mb: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Box sx={{ width: 52, height: 52, borderRadius: '50%', backgroundColor: '#fc8019', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 26, boxShadow: '0 6px 14px rgba(252,128,25,0.35)' }}>🛵</Box>
+                <Box>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800, letterSpacing: 0.2 }}>{statusText()}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {activeAssignment?.status ? `Status: ${activeAssignment.status}` : (activeLoading ? 'Checking your active orders…' : 'Preparing your order…')}
+                  </Typography>
+                </Box>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {activeAssignment?.estimatedDuration && (
+                  <Chip size="small" color="primary" label={`~ ${activeAssignment.estimatedDuration} mins`} />
+                )}
+                <Button variant="contained" onClick={goToTrack} sx={{ textTransform: 'none', backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' }, borderRadius: '10px', px: 2.2 }}>Track</Button>
+              </Box>
+            </Box>
+            <Box sx={{ mt: 1.5 }}>
+              <LinearProgress variant="determinate" value={computeProgress()} sx={{ height: 6, borderRadius: 3, backgroundColor: '#ffe8d6', '& .MuiLinearProgress-bar': { backgroundColor: '#fc8019' } }} />
+            </Box>
+          </Paper>
+        )}
         <CategoriesBar categories={cuisineCategories} activeCuisine={activeCuisineName} onSelect={handleCategoryFilter} />
 
         <SortFilterBar
