@@ -451,6 +451,10 @@ export const adminAPI = {
     const response = await api.get('/api/delivery/admin/pending');
     return response.data;
   },
+  getAvailablePartners: async () => {
+    const response = await api.get('/api/delivery/partners/available');
+    return response.data;
+  },
 
   approveDeliveryPartner: async (partnerUserId) => {
     const response = await api.put(`/api/delivery/admin/${partnerUserId}/approve`);

@@ -214,6 +214,10 @@ const fetchDeliveryPartners = createAsyncThunk(
   'admin/fetchDeliveryPartners',
   async (_, { rejectWithValue }) => {
     try {
+      // Prefer available partners; fallback to pending if empty
+      const available = await adminAPI.getAvailablePartners();
+      const dataA = available?.data || available || [];
+      if (Array.isArray(dataA) && dataA.length > 0) return available;
       const response = await adminAPI.getPendingPartners();
       return response;
     } catch (error) {
@@ -333,7 +337,7 @@ const fetchAnalytics = createAsyncThunk(
           response = await adminAPI.getOrderAnalytics(period);
           break;
         case 'delivery':
-          response = await adminAPI.getDeliveryAnalytics(period);
+          response = await adminAPI.getDeliveryAnalyticsSummary(period);
           break;
         case 'payment':
           response = await adminAPI.getPaymentAnalytics(period);

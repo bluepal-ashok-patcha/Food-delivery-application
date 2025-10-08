@@ -332,7 +332,7 @@ public class RestaurantService {
     @Transactional
     public RestaurantReviewDto addReview(RestaurantReviewDto dto) {
         RestaurantReview entity = new RestaurantReview();
-        BeanUtils.copyProperties(dto, entity, "id", "createdAt");
+        BeanUtils.copyProperties(dto, entity, "id");
         RestaurantReview saved = restaurantReviewRepository.save(entity);
         
         // Update restaurant rating and totalRatings
@@ -360,7 +360,7 @@ public class RestaurantService {
         // Store restaurantId before updating
         Long restaurantId = existing.getRestaurantId();
         
-        BeanUtils.copyProperties(dto, existing, "id", "createdAt", "restaurantId", "userId");
+        BeanUtils.copyProperties(dto, existing, "id", "restaurantId", "userId");
         RestaurantReview saved = restaurantReviewRepository.save(existing);
         
         // Update restaurant rating and totalRatings
@@ -454,7 +454,7 @@ public class RestaurantService {
 
     @Transactional(readOnly = true)
     public List<RestaurantDto> getRestaurantsByStatus(RestaurantStatus status, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Pageable pageable = PageRequest.of(page, size);
         Page<Restaurant> restaurants = restaurantRepository.findByStatus(status, pageable);
         return restaurants.getContent().stream()
                 .map(this::convertToDto)
@@ -463,7 +463,7 @@ public class RestaurantService {
 
     @Transactional(readOnly = true)
     public List<RestaurantDto> getAllRestaurants(int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Pageable pageable = PageRequest.of(page, size);
         Page<Restaurant> restaurants = restaurantRepository.findAll(pageable);
         return restaurants.getContent().stream()
                 .map(this::convertToDto)

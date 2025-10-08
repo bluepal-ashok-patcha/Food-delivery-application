@@ -1,6 +1,6 @@
 import React from 'react';
 import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, Avatar, Typography, Chip } from '@mui/material';
-import { Phone, Email, Star, DirectionsBike, DirectionsCar, DirectionsWalk } from '@mui/icons-material';
+import { Phone, DirectionsBike } from '@mui/icons-material';
 import ActionButtons from './ActionButtons';
 
 const DeliveryPartnersTable = ({ partners, onViewPartner, onEditPartner, onDeletePartner }) => {
@@ -14,15 +14,14 @@ const DeliveryPartnersTable = ({ partners, onViewPartner, onEditPartner, onDelet
         <TableHead sx={{ background: '#f8f9fa' }}>
           <TableRow>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Partner</TableCell>
-            <TableCell sx={{ fontWeight: 700, color: '#333' }}>Contact</TableCell>
-            <TableCell sx={{ fontWeight: 700, color: '#333' }}>Vehicle</TableCell>
-            <TableCell sx={{ fontWeight: 700, color: '#333' }}>Rating</TableCell>
+            <TableCell sx={{ fontWeight: 700, color: '#333' }}>Phone</TableCell>
+            <TableCell sx={{ fontWeight: 700, color: '#333' }}>Vehicle Details</TableCell>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Status</TableCell>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {partners.map((partner) => (
+          {(partners || []).map((partner) => (
             <TableRow 
               key={partner.id}
               sx={{ 
@@ -49,44 +48,26 @@ const DeliveryPartnersTable = ({ partners, onViewPartner, onEditPartner, onDelet
                 </Box>
               </TableCell>
               <TableCell>
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                    <Phone sx={{ fontSize: 16, color: '#666' }} />
-                    <Typography variant="body2" sx={{ color: '#333' }}>
-                      {partner.phone}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Email sx={{ fontSize: 16, color: '#666' }} />
-                    <Typography variant="body2" sx={{ color: '#666' }}>
-                      {partner.email}
-                    </Typography>
-                  </Box>
-                </Box>
-              </TableCell>
-              <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  {partner.vehicleType === 'Bike' ? <DirectionsBike sx={{ fontSize: 18, color: '#666' }} /> :
-                   partner.vehicleType === 'Car' ? <DirectionsCar sx={{ fontSize: 18, color: '#666' }} /> :
-                   <DirectionsWalk sx={{ fontSize: 18, color: '#666' }} />}
+                  <Phone sx={{ fontSize: 16, color: '#666' }} />
                   <Typography variant="body2" sx={{ color: '#333' }}>
-                    {partner.vehicleType}
+                    {partner.phoneNumber || '—'}
                   </Typography>
                 </Box>
               </TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Star sx={{ fontSize: 18, color: '#ffc107' }} />
-                  <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#333' }}>
-                    {partner.rating}
+                  <DirectionsBike sx={{ fontSize: 18, color: '#666' }} />
+                  <Typography variant="body2" sx={{ color: '#333' }}>
+                    {partner.vehicleDetails || '—'}
                   </Typography>
                 </Box>
               </TableCell>
               <TableCell>
                 <Chip 
-                  label={partner.isOnline ? 'Online' : 'Offline'} 
+                  label={(partner.status || '').toString()} 
                   sx={{
-                    background: partner.isOnline ? '#4caf50' : '#666',
+                    background: (partner.status || '').toString() === 'ONLINE' ? '#4caf50' : '#666',
                     color: 'white',
                     fontWeight: 600,
                     fontSize: '12px'
