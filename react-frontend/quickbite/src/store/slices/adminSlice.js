@@ -1,5 +1,5 @@
 import { createSlice, nanoid, createAsyncThunk } from '@reduxjs/toolkit';
-import { adminAPI } from '../../services/api';
+import { adminAPI, deliveryAPI } from '../../services/api';
 import { showNotification } from './uiSlice';
 
 const initialState = {
@@ -184,6 +184,35 @@ const updateRestaurantStatus = createAsyncThunk(
   }
 );
 
+// Lightweight toggles for open/active without full profile payload
+const setRestaurantOpenAsync = createAsyncThunk(
+  'admin/setRestaurantOpenAsync',
+  async ({ restaurantId, isOpen }, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await adminAPI.setRestaurantOpen(restaurantId, isOpen);
+      dispatch(showNotification({ message: `Restaurant ${isOpen ? 'opened' : 'closed'} successfully`, type: 'success' }));
+      return response;
+    } catch (error) {
+      dispatch(showNotification({ message: error.response?.data?.message || 'Failed to toggle open/closed', type: 'error' }));
+      return rejectWithValue(error.response?.data?.message || 'Failed to toggle open/closed');
+    }
+  }
+);
+
+const setRestaurantActiveAsync = createAsyncThunk(
+  'admin/setRestaurantActiveAsync',
+  async ({ restaurantId, isActive }, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await adminAPI.setRestaurantActive(restaurantId, isActive);
+      dispatch(showNotification({ message: `Restaurant ${isActive ? 'activated' : 'deactivated'} successfully`, type: 'success' }));
+      return response;
+    } catch (error) {
+      dispatch(showNotification({ message: error.response?.data?.message || 'Failed to toggle active', type: 'error' }));
+      return rejectWithValue(error.response?.data?.message || 'Failed to toggle active');
+    }
+  }
+);
+
 const createRestaurant = createAsyncThunk(
   'admin/createRestaurant',
   async (restaurantData, { rejectWithValue, dispatch }) => {
@@ -238,18 +267,58 @@ const updateOrderStatus = createAsyncThunk(
   }
 );
 
+// Create or update delivery assignment for an order (admin/owner)
+const assignOrderToPartner = createAsyncThunk(
+  'admin/assignOrderToPartner',
+  async ({ orderId }, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await deliveryAPI.createAssignment(orderId);
+      dispatch(showNotification({ message: 'Order assigned to partner successfully', type: 'success' }));
+      return response;
+    } catch (error) {
+      dispatch(showNotification({ message: error.response?.data?.message || 'Failed to assign order to partner', type: 'error' }));
+      return rejectWithValue(error.response?.data?.message || 'Failed to assign order to partner');
+    }
+  }
+);
+
 const fetchDeliveryPartners = createAsyncThunk(
   'admin/fetchDeliveryPartners',
   async (_, { rejectWithValue }) => {
     try {
-      // Prefer available partners; fallback to pending if empty
-      const available = await adminAPI.getAvailablePartners();
-      const dataA = available?.data || available || [];
-      if (Array.isArray(dataA) && dataA.length > 0) return available;
+      // Fetch pending partners (includes both pending applications and offline partners)
       const response = await adminAPI.getPendingPartners();
       return response;
     } catch (error) {
       return rejectWithValue(error.response?.data?.message || 'Failed to fetch delivery partners');
+    }
+  }
+);
+
+const fetchAllDeliveryPartners = createAsyncThunk(
+  'admin/fetchAllDeliveryPartners',
+  async (_, { rejectWithValue }) => {
+    try {
+      // Fetch both pending and available partners
+      const [pendingResponse, availableResponse] = await Promise.all([
+        adminAPI.getPendingPartners(),
+        adminAPI.getAvailablePartners()
+      ]);
+      
+      const pending = pendingResponse?.data || [];
+      const available = availableResponse?.data || [];
+      
+      // Combine both lists, avoiding duplicates and marking pending partners
+      const allPartners = [...pending.map(p => ({ ...p, isPending: true }))];
+      available.forEach(partner => {
+        if (!allPartners.find(p => p.userId === partner.userId)) {
+          allPartners.push({ ...partner, isPending: false });
+        }
+      });
+      
+      return { data: allPartners };
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch all delivery partners');
     }
   }
 );
@@ -503,11 +572,7 @@ const adminSlice = createSlice({
         return { payload: { id: nanoid(), status: 'pending', orderDate: new Date().toISOString(), ...order } };
       }
     },
-    assignOrderToPartner(state, action) {
-      const { orderId, partnerId } = action.payload;
-      const order = state.orders.find(o => o.id === orderId);
-      if (order) order.deliveryPartnerId = partnerId;
-    },
+  // assignOrderToPartner reducer removed in favor of server-backed thunk
     cancelOrder(state, action) {
       const { orderId, reason } = action.payload;
       const order = state.orders.find(o => o.id === orderId);
@@ -644,6 +709,17 @@ const adminSlice = createSlice({
         }
       });
 
+    // Lightweight toggles
+    builder
+      .addCase(setRestaurantOpenAsync.fulfilled, (state, action) => {
+        const index = state.restaurants.findIndex(r => r.id === action.payload.data.id);
+        if (index !== -1) state.restaurants[index] = action.payload.data;
+      })
+      .addCase(setRestaurantActiveAsync.fulfilled, (state, action) => {
+        const index = state.restaurants.findIndex(r => r.id === action.payload.data.id);
+        if (index !== -1) state.restaurants[index] = action.payload.data;
+      });
+
     // Orders
     builder
       .addCase(fetchOrders.pending, (state) => {
@@ -681,6 +757,18 @@ const adminSlice = createSlice({
         state.partners = action.payload.data || [];
       })
       .addCase(fetchDeliveryPartners.rejected, (state, action) => {
+        state.loading.partners = false;
+        state.error.partners = action.payload;
+      })
+      .addCase(fetchAllDeliveryPartners.pending, (state) => {
+        state.loading.partners = true;
+        state.error.partners = null;
+      })
+      .addCase(fetchAllDeliveryPartners.fulfilled, (state, action) => {
+        state.loading.partners = false;
+        state.partners = action.payload.data || [];
+      })
+      .addCase(fetchAllDeliveryPartners.rejected, (state, action) => {
         state.loading.partners = false;
         state.error.partners = action.payload;
       })
@@ -756,7 +844,7 @@ export const {
   activateUser, deactivateUser, resetUserPassword, addUser, deleteUser,
   addRestaurant, updateRestaurant, deleteRestaurant, setRestaurantActive, setRestaurantOpen,
   addMenuCategory, updateMenuCategory, deleteMenuCategory, addMenuItem, updateMenuItem, deleteMenuItem, toggleMenuItemAvailability,
-  addOrder, assignOrderToPartner, cancelOrder,
+  addOrder, cancelOrder,
   addPartner, updatePartner, deletePartner,
   addCoupon, addTransaction, setCommissionRate
 } = adminSlice.actions;
@@ -777,6 +865,7 @@ export {
   fetchOrders, 
   updateOrderStatus,
   fetchDeliveryPartners, 
+  fetchAllDeliveryPartners,
   approveDeliveryPartner, 
   rejectDeliveryPartner,
   fetchCoupons, 
@@ -784,7 +873,10 @@ export {
   updateCoupon, 
   deleteCoupon,
   fetchTransactions, 
-  fetchAnalytics
+  fetchAnalytics,
+  assignOrderToPartner,
+  setRestaurantOpenAsync,
+  setRestaurantActiveAsync
 };
 
 export default adminSlice.reducer;

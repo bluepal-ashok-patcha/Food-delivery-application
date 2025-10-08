@@ -119,6 +119,8 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         mappings.put("POST:/api/delivery/partners/self-register", List.of("CUSTOMER", "ADMIN"));
         mappings.put("GET:/api/delivery/admin/pending", List.of("ADMIN"));
         mappings.put("PUT:/api/restaurants/{id}/profile", List.of("RESTAURANT_OWNER","ADMIN"));
+        // Owner toggle for open (owner can change isOpen)
+        mappings.put("PUT:/api/restaurants/{id}/open", List.of("RESTAURANT_OWNER","ADMIN"));
         mappings.put("GET:/api/restaurants/my", List.of("RESTAURANT_OWNER"));
         
         // Category management
@@ -158,6 +160,8 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         mappings.put("PUT:/api/restaurants/admin/{restaurantId}/reject", List.of("ADMIN"));
         mappings.put("GET:/api/restaurants/admin/all", List.of("ADMIN"));
         mappings.put("PUT:/api/restaurants/admin/{restaurantId}/status", List.of("ADMIN"));
+        // Admin toggle for active only (open handled on owner route)
+        mappings.put("PUT:/api/restaurants/admin/{restaurantId}/active", List.of("ADMIN"));
         mappings.put("PUT:/api/restaurants/{id}/status", List.of("ADMIN"));
         mappings.put("POST:/api/restaurants/admin/initialize-ratings", List.of("ADMIN"));
         

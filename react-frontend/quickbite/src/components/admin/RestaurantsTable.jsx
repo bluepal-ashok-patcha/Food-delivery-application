@@ -1,6 +1,6 @@
 import React from 'react';
-import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, Avatar, Typography, Chip } from '@mui/material';
-import { Restaurant, LocationOn, Star } from '@mui/icons-material';
+import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, Avatar, Typography, Chip, Button, Switch } from '@mui/material';
+import { Restaurant, LocationOn, Star, CheckCircle, Cancel } from '@mui/icons-material';
 import ActionButtons from './ActionButtons';
 
 const RestaurantsTable = ({ restaurants, onViewRestaurant, onEditRestaurant, onDeleteRestaurant, onToggleActive, onToggleOpen, onApprove, onReject }) => {
@@ -56,16 +56,14 @@ const RestaurantsTable = ({ restaurants, onViewRestaurant, onEditRestaurant, onD
                 </Box>
               </TableCell>
               <TableCell>
-                <Chip 
-                  label={restaurant.cuisineType || restaurant.cuisine || '—'} 
-                  sx={{
-                    background: '#fc8019',
-                    color: 'white',
-                    fontWeight: 600,
-                    fontSize: '12px'
-                  }}
-                  size="small"
-                />
+                <Typography variant="body2" sx={{ 
+                  color: '#666', 
+                  fontWeight: 500,
+                  fontSize: '13px',
+                  textTransform: 'capitalize'
+                }}>
+                  {restaurant.cuisineType || restaurant.cuisine || '—'}
+                </Typography>
               </TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -76,72 +74,102 @@ const RestaurantsTable = ({ restaurants, onViewRestaurant, onEditRestaurant, onD
                 </Box>
               </TableCell>
               <TableCell>
-                <Chip 
-                  label={restaurant.isOpen ? 'Open' : 'Closed'} 
-                  onClick={() => onToggleOpen && onToggleOpen(restaurant)}
-                  sx={{
-                    background: restaurant.isOpen ? '#4caf50' : '#f44336',
-                    color: 'white',
-                    fontWeight: 600,
-                    fontSize: '12px',
-                    cursor: 'pointer'
-                  }}
-                  size="small"
-                />
-              </TableCell>
-              <TableCell>
-                <Chip 
-                  label={restaurant.isActive ? 'Active' : 'Inactive'} 
-                  onClick={() => onToggleActive && onToggleActive(restaurant)}
-                  sx={{
-                    background: restaurant.isActive ? '#4caf50' : '#9e9e9e',
-                    color: 'white',
-                    fontWeight: 600,
-                    fontSize: '12px',
-                    cursor: 'pointer'
-                  }}
-                  size="small"
-                />
-              </TableCell>
-              <TableCell>
-                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <Chip 
-                    label={(restaurant.status || '').toString() || '—'}
-                    sx={{
-                      background: '#607d8b',
-                      color: 'white',
-                      fontWeight: 600,
-                      fontSize: '12px'
-                    }}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Switch
+                    checked={restaurant.isOpen}
+                    onChange={() => onToggleOpen && onToggleOpen(restaurant)}
                     size="small"
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: '#4caf50',
+                      },
+                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                        backgroundColor: '#4caf50',
+                      },
+                    }}
                   />
+                  <Typography variant="body2" sx={{ 
+                    color: restaurant.isOpen ? '#4caf50' : '#666',
+                    fontWeight: 500,
+                    fontSize: '13px'
+                  }}>
+                    {restaurant.isOpen ? 'Open' : 'Closed'}
+                  </Typography>
+                </Box>
+              </TableCell>
+              <TableCell>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Switch
+                    checked={restaurant.isActive}
+                    onChange={() => onToggleActive && onToggleActive(restaurant)}
+                    size="small"
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: '#2196f3',
+                      },
+                      '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                        backgroundColor: '#2196f3',
+                      },
+                    }}
+                  />
+                  <Typography variant="body2" sx={{ 
+                    color: restaurant.isActive ? '#2196f3' : '#666',
+                    fontWeight: 500,
+                    fontSize: '13px'
+                  }}>
+                    {restaurant.isActive ? 'Active' : 'Inactive'}
+                  </Typography>
+                </Box>
+              </TableCell>
+              <TableCell>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="body2" sx={{ 
+                    color: '#333',
+                    fontWeight: 500,
+                    fontSize: '13px',
+                    textTransform: 'capitalize'
+                  }}>
+                    {(restaurant.status || '').toString().replace('_', ' ') || '—'}
+                  </Typography>
                   {(restaurant.status === 'PENDING_APPROVAL') && (
-                    <>
-                      <Chip 
-                        label={'Approve'}
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        startIcon={<CheckCircle />}
                         onClick={() => onApprove && onApprove(restaurant)}
-                        sx={{
-                          background: '#2196f3',
-                          color: 'white',
-                          fontWeight: 600,
-                          fontSize: '12px',
-                          cursor: 'pointer'
+                        sx={{ 
+                          fontSize: '11px',
+                          px: 1.5,
+                          py: 0.5,
+                          textTransform: 'none',
+                          backgroundColor: '#4caf50',
+                          '&:hover': { backgroundColor: '#388e3c' }
                         }}
+                      >
+                        Approve
+                      </Button>
+                      <Button
                         size="small"
-                      />
-                      <Chip 
-                        label={'Reject'}
+                        variant="outlined"
+                        startIcon={<Cancel />}
                         onClick={() => onReject && onReject(restaurant)}
-                        sx={{
-                          background: '#e91e63',
-                          color: 'white',
-                          fontWeight: 600,
-                          fontSize: '12px',
-                          cursor: 'pointer'
+                        sx={{ 
+                          fontSize: '11px',
+                          px: 1.5,
+                          py: 0.5,
+                          textTransform: 'none',
+                          borderColor: '#f44336',
+                          color: '#f44336',
+                          '&:hover': { 
+                            borderColor: '#d32f2f',
+                            backgroundColor: 'rgba(244, 67, 54, 0.04)'
+                          }
                         }}
-                        size="small"
-                      />
-                    </>
+                      >
+                        Reject
+                      </Button>
+                    </Box>
                   )}
                 </Box>
               </TableCell>

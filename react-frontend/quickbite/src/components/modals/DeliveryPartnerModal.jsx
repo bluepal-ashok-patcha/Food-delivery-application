@@ -22,6 +22,7 @@ const DeliveryPartnerModal = ({ open, onClose }) => {
     name: user?.name || '',
     phoneNumber: '',
     vehicleDetails: '',
+    status: 'OFFLINE', // Initial status for new registrations (matches backend enum)
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -51,6 +52,7 @@ const DeliveryPartnerModal = ({ open, onClose }) => {
         name: user?.name || '',
         phoneNumber: '',
         vehicleDetails: '',
+        status: 'OFFLINE', // Reset to initial status
       });
     } catch (error) {
       setError(error.response?.data?.message || 'Failed to submit registration. Please try again.');

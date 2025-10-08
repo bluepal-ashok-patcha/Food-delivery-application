@@ -326,8 +326,8 @@ export const paymentAPI = {
 // Delivery API endpoints
 export const deliveryAPI = {
   // Create delivery assignment
-  createAssignment: async (orderId, extra = {}) => {
-    const body = { orderId, ...extra };
+  createAssignment: async (orderId) => {
+    const body = { orderId };
     const response = await api.post('/api/delivery/assignments', body);
     return response.data;
   },
@@ -425,6 +425,18 @@ export const adminAPI = {
 
   updateRestaurantStatus: async (restaurantId, status) => {
     const response = await api.put(`/api/restaurants/admin/${restaurantId}/status?status=${status}`);
+    return response.data;
+  },
+
+  // New lightweight toggles
+  setRestaurantOpen: async (restaurantId, isOpen) => {
+    // Use owner route (admin is also allowed by gateway role map)
+    const response = await api.put(`/api/restaurants/${restaurantId}/open?isOpen=${isOpen}`);
+    return response.data;
+  },
+
+  setRestaurantActive: async (restaurantId, isActive) => {
+    const response = await api.put(`/api/restaurants/admin/${restaurantId}/active?isActive=${isActive}`);
     return response.data;
   },
 

@@ -223,6 +223,17 @@ public class RestaurantController {
         return ResponseEntity.ok(body);
     }
 
+    // Lightweight owner/admin toggle: isOpen
+    @PutMapping("/{id}/open")
+    public ResponseEntity<ApiResponse<RestaurantDto>> setRestaurantOpen(@PathVariable Long id, @RequestParam boolean isOpen) {
+        RestaurantDto updated = restaurantService.setRestaurantOpen(id, isOpen);
+        return ResponseEntity.ok(ApiResponse.<RestaurantDto>builder()
+                .success(true)
+                .message("Restaurant open flag updated")
+                .data(updated)
+                .build());
+    }
+
     @PostMapping("/{restaurantId}/categories")
     public ResponseEntity<ApiResponse<MenuCategoryDto>> addMenuCategory(@PathVariable Long restaurantId, @Valid @RequestBody MenuCategoryDto menuCategoryDto) {
         MenuCategoryDto newCategory = restaurantService.addMenuCategory(restaurantId, menuCategoryDto);

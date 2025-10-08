@@ -190,6 +190,32 @@ public class RestaurantService {
         return convertToDto(updatedRestaurant);
     }
 
+    @Transactional
+    public RestaurantDto setRestaurantOpen(Long id, boolean isOpen) {
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Restaurant not found"));
+        restaurant.setIsOpen(isOpen);
+        Restaurant saved = restaurantRepository.save(restaurant);
+        log.info("Restaurant '{}' isOpen set to {}.", saved.getName(), isOpen);
+        return convertToDto(saved);
+    }
+
+    @Transactional
+    public RestaurantDto setRestaurantActive(Long id, boolean isActive) {
+        Restaurant restaurant = restaurantRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Restaurant not found"));
+        restaurant.setIsActive(isActive);
+        // Optionally sync status with ACTIVE/INACTIVE without requiring other fields
+        if (isActive && restaurant.getStatus() == RestaurantStatus.INACTIVE) {
+            restaurant.setStatus(RestaurantStatus.ACTIVE);
+        } else if (!isActive && restaurant.getStatus() == RestaurantStatus.ACTIVE) {
+            restaurant.setStatus(RestaurantStatus.INACTIVE);
+        }
+        Restaurant saved = restaurantRepository.save(restaurant);
+        log.info("Restaurant '{}' isActive set to {}.", saved.getName(), isActive);
+        return convertToDto(saved);
+    }
+
     // --- Menu Management ---
 
     @Transactional

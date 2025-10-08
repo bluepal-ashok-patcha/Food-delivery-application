@@ -97,6 +97,20 @@ public class AdminRestaurantController {
                 .build());
     }
 
+    @PutMapping("/{restaurantId}/active")
+    public ResponseEntity<ApiResponse<RestaurantDto>> setRestaurantActive(
+            @PathVariable Long restaurantId,
+            @RequestParam boolean isActive,
+            HttpServletRequest httpRequest) {
+        extractUserId(httpRequest); // auth check
+        RestaurantDto updated = restaurantService.setRestaurantActive(restaurantId, isActive);
+        return ResponseEntity.ok(ApiResponse.<RestaurantDto>builder()
+                .success(true)
+                .message("Restaurant active flag updated")
+                .data(updated)
+                .build());
+    }
+
     @PostMapping("/initialize-ratings")
     public ResponseEntity<ApiResponse<Void>> initializeAllRestaurantRatings(HttpServletRequest httpRequest) {
         Long adminUserId = extractUserId(httpRequest);

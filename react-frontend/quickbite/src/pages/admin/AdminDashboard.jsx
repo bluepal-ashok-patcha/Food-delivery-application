@@ -1,8 +1,9 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { Box, Container, Paper, Grid, Tabs, Tab, TextField, Stack, Button, CircularProgress, Alert, Chip, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody } from '@mui/material';
+import { Box, Container, Paper, Grid, Tabs, Tab, TextField, Stack, Button, CircularProgress, Alert, Chip, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Divider } from '@mui/material';
 import { People, Restaurant, AttachMoney, LocalShipping, Analytics, Receipt, TrendingUp } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import AdminHeader from '../../components/admin/AdminHeader';
+import { restaurantAPI } from '../../services/api';
 
 import EnhancedStatCard from '../../components/admin/EnhancedStatCard';
 
@@ -13,10 +14,11 @@ import {
   fetchRestaurants, fetchPendingRestaurants, approveRestaurant, rejectRestaurant, updateRestaurantStatus,
   createRestaurant, updateRestaurantProfile,
   fetchOrders, updateOrderStatus,
-  fetchDeliveryPartners, approveDeliveryPartner, rejectDeliveryPartner,
+  fetchDeliveryPartners, fetchAllDeliveryPartners, approveDeliveryPartner, rejectDeliveryPartner,
   fetchCoupons, createCoupon, updateCoupon, deleteCoupon,
   fetchTransactions, fetchAnalytics,
-  deleteUser, deleteRestaurant, assignOrderToPartner, deletePartner
+  deleteUser, deleteRestaurant, assignOrderToPartner, deletePartner,
+  setRestaurantOpenAsync, setRestaurantActiveAsync
 } from '../../store/slices/adminSlice';
 import UsersTable from '../../components/admin/UsersTable';
 
@@ -50,6 +52,7 @@ const AdminDashboard = () => {
 
   const [openTransactionModal, setOpenTransactionModal] = useState(false);
   const [formValues, setFormValues] = useState({});
+  const [restaurantData, setRestaurantData] = useState({ name: 'Restaurant', image: null });
 
   const [userSearch, setUserSearch] = useState('');
 
@@ -69,7 +72,7 @@ const AdminDashboard = () => {
     dispatch(fetchUsers({ page: 0, size: 10 }));
     dispatch(fetchRestaurants({ page: 0, size: 10 }));
     dispatch(fetchOrders({ page: 0, size: 10 }));
-    dispatch(fetchDeliveryPartners());
+    dispatch(fetchAllDeliveryPartners());
     dispatch(fetchCoupons({ page: 0, size: 10 }));
     dispatch(fetchTransactions());
     dispatch(fetchAnalytics({ type: 'order', period: analyticsPeriod }));
@@ -77,6 +80,24 @@ const AdminDashboard = () => {
     dispatch(fetchAnalytics({ type: 'delivery', period: analyticsPeriod }));
   }, [dispatch, analyticsPeriod]);
 
+  // Fetch restaurant data when order modal opens (like OrderCard does)
+  useEffect(() => {
+    let cancel = false;
+    (async () => {
+      try {
+        if (formValues.restaurantId && openOrderModal) {
+          const res = await restaurantAPI.getRestaurantById(formValues.restaurantId);
+          const data = res?.data || res;
+          if (!cancel) {
+            if (data?.name) setRestaurantData({ name: data.name, image: data.image });
+          }
+        }
+      } catch (_) {
+        // Keep default values if API fails
+      }
+    })();
+    return () => { cancel = true; };
+  }, [formValues.restaurantId, openOrderModal]);
 
   const handleTabChange = (event, newValue) => {
 
@@ -482,8 +503,8 @@ const AdminDashboard = () => {
 
                 onDeleteRestaurant={(r) => dispatch(deleteRestaurant(r.id))}
 
-                  onToggleActive={(r) => dispatch(updateRestaurantStatus({ restaurantId: r.id, status: r.isActive ? 'INACTIVE' : 'ACTIVE' }))}
-                  onToggleOpen={(r) => dispatch(updateRestaurantStatus({ restaurantId: r.id, status: r.isOpen ? 'INACTIVE' : 'ACTIVE' }))}
+                  onToggleActive={(r) => dispatch(setRestaurantActiveAsync({ restaurantId: r.id, isActive: !r.isActive }))}
+                  onToggleOpen={(r) => dispatch(setRestaurantOpenAsync({ restaurantId: r.id, isOpen: !r.isOpen }))}
                   onApprove={(r) => dispatch(approveRestaurant({ restaurantId: r.id, approvalData: { approvalNotes: 'Approved by admin' } }))}
                   onReject={(r) => dispatch(rejectRestaurant({ restaurantId: r.id, rejectionData: { rejectionReason: 'Rejected by admin' } }))}
                 />
@@ -536,9 +557,12 @@ const AdminDashboard = () => {
 
                 subtitle="Manage delivery partners and their performance"
 
-                addButtonText="Add Partner"
+                addButtonText="Refresh Partners"
 
-                onAddClick={() => { setFormValues({ name: '', phone: '', vehicleType: 'Bike' }); setOpenPartnerModal(true); }}
+                onAddClick={() => { 
+                  // Refresh partners data
+                  dispatch(fetchAllDeliveryPartners());
+                }}
 
               />
 
@@ -556,19 +580,20 @@ const AdminDashboard = () => {
               )}
               
               {!loading.partners && (
+                <Box>
+                  <Typography variant="body2" sx={{ mb: 2, color: '#666' }}>
+                    Showing all delivery partners. Pending applications can be approved or rejected. 
+                    Approved partners show their current status: AVAILABLE (ready for orders), ON_DELIVERY (currently delivering), or OFFLINE (inactive).
+                  </Typography>
               <DeliveryPartnersTable 
-
                 partners={partners}
-
                 onViewPartner={() => {}}
-
                 onEditPartner={(p) => { setFormValues(p); setOpenPartnerModal(true); }}
-
                 onDeletePartner={(p) => dispatch(deletePartner(p.id))}
-
                   onApprove={(p) => dispatch(approveDeliveryPartner(p.userId))}
                   onReject={(p) => dispatch(rejectDeliveryPartner(p.userId))}
                 />
+                </Box>
               )}
             </Box>
           )}
@@ -746,34 +771,55 @@ const AdminDashboard = () => {
 
             <Stack direction="row" spacing={2}>
 
-              <Button onClick={() => setOpenOrderModal(false)} variant="outlined">Cancel</Button>
+              <Button 
+                onClick={() => setOpenOrderModal(false)} 
+                variant="outlined"
+                sx={{
+                  borderRadius: '6px',
+                  px: 3,
+                  py: 1,
+                  fontWeight: 500,
+                  fontSize: '14px',
+                  textTransform: 'none',
+                  borderColor: '#e0e0e0',
+                  color: '#666',
+                  '&:hover': {
+                    borderColor: '#fc8019',
+                    color: '#fc8019',
+                    backgroundColor: 'rgba(252, 128, 25, 0.04)'
+                  }
+                }}
+              >
+                Cancel
+              </Button>
 
               <Button 
-
                 variant="contained" 
-
-                sx={{ background: '#fc8019' }}
-
                 onClick={() => {
-
                   if (formValues?.id) {
-
                     if (formValues.orderStatus || formValues.status) {
                       const enumStatus = (formValues.orderStatus || formValues.status || '').toString().toUpperCase();
                       dispatch(updateOrderStatus({ orderId: formValues.id, status: enumStatus }));
                     }
-                    if (formValues.deliveryPartnerId) dispatch(assignOrderToPartner({ orderId: formValues.id, partnerId: formValues.deliveryPartnerId }));
-
                   }
-
                   setOpenOrderModal(false);
-
                 }}
-
+                sx={{ 
+                  background: '#fc8019',
+                  borderRadius: '6px',
+                  px: 3,
+                  py: 1,
+                  fontWeight: 500,
+                  fontSize: '14px',
+                  textTransform: 'none',
+                  boxShadow: 'none',
+                  '&:hover': {
+                    background: '#e6730a',
+                    boxShadow: '0 2px 8px rgba(252, 128, 25, 0.2)',
+                  }
+                }}
               >
-
-                Save
-
+                Save Changes
               </Button>
 
             </Stack>
@@ -784,59 +830,313 @@ const AdminDashboard = () => {
 
           <Stack spacing={2}>
 
-            {/* Items with images */}
+            {/* Swiggy-style Order Header */}
+            <Box sx={{ 
+              p: 3, 
+              background: 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)', 
+              borderRadius: '5px',
+              color: 'white',
+              position: 'relative',
+              overflow: 'hidden'
+            }}>
+              {/* Background Pattern */}
+              <Box sx={{
+                position: 'absolute',
+                top: -20,
+                right: -20,
+                width: 100,
+                height: 100,
+                background: 'rgba(255,255,255,0.1)',
+                borderRadius: '50%',
+                opacity: 0.3
+              }} />
+              
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
+                <Box>
+                  <Typography variant="h5" sx={{ fontWeight: 700, mb: 0.5, fontSize: '20px' }}>
+                    Order #{formValues.id || 'N/A'}
+                  </Typography>
+                  <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '13px' }}>
+                    {formValues.createdAt || formValues.orderDate ? new Date(formValues.createdAt || formValues.orderDate).toLocaleString() : 'N/A'}
+                  </Typography>
+                </Box>
+                <Chip 
+                  label={(formValues.orderStatus || formValues.status || '').toString().replace('_', ' ').toUpperCase() || 'UNKNOWN'}
+                  sx={{ 
+                    background: 'rgba(255,255,255,0.2)', 
+                    color: 'white', 
+                    fontWeight: 500,
+                    fontSize: '11px',
+                    height: '28px',
+                    borderRadius: '14px'
+                  }} 
+                />
+              </Box>
 
+              {/* Restaurant & Customer Info */}
+              <Box sx={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                {/* Restaurant Info */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '5px',
+                    background: 'rgba(255,255,255,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden'
+                  }}>
+                    <img 
+                      src={restaurantData.image || '/images/restaurant-placeholder.png'} 
+                      alt="Restaurant"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ opacity: 0.8, fontSize: '10px', fontWeight: 500 }}>FROM</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '14px' }}>
+                      {restaurantData.name}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Customer Info */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{
+                    width: 40,
+                    height: 40,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflow: 'hidden'
+                  }}>
+                    <Typography sx={{ color: 'white', fontSize: '16px', fontWeight: 500 }}>👤</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ opacity: 0.8, fontSize: '10px', fontWeight: 500 }}>TO</Typography>
+                    <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '14px' }}>
+                      Customer #{formValues.userId || formValues.customerId || 'N/A'}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Swiggy-style Order Items */}
             {Array.isArray(formValues.items) && formValues.items.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 600, fontSize: '16px' }}>
+                  Your Order
+                </Typography>
+                <Stack spacing={1.5}>
+                  {formValues.items.map((item, index) => (
+                    <Box key={item.id || index} sx={{ 
+                      display: 'flex', 
+                      alignItems: 'center',
+                      gap: 2,
+                      p: 2, 
+                      border: '1px solid #f0f0f0', 
+                      borderRadius: '5px',
+                      backgroundColor: '#fff',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                      transition: 'all 0.2s ease',
+                      '&:hover': {
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                        transform: 'translateY(-1px)'
+                      }
+                    }}>
+                      {/* Item Image */}
+                      <Box sx={{
+                        width: 50,
+                        height: 50,
+                        borderRadius: '5px',
+                        overflow: 'hidden',
+                        flexShrink: 0,
+                        background: '#f5f5f5'
+                      }}>
+                        <img 
+                          src={item.imageUrl || item.image || '/images/food-placeholder.png'} 
+                          alt={item.name}
+                          style={{ 
+                            width: '100%', 
+                            height: '100%', 
+                            objectFit: 'cover'
+                          }}
+                        />
+                      </Box>
 
-              <Stack spacing={1}>
+                      {/* Item Details */}
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body1" sx={{ 
+                          fontWeight: 600, 
+                          color: '#333', 
+                          fontSize: '14px',
+                          mb: 0.5,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {item.name || 'Unknown Item'}
+                        </Typography>
+                        
+                        <Typography variant="body2" sx={{ 
+                          color: '#666', 
+                          fontSize: '12px',
+                          mb: 0.5
+                        }}>
+                          Qty: {item.quantity || 1}
+                        </Typography>
 
-                {formValues.items.map((it) => (
+                        {/* Customization */}
+                        {item.customization && (
+                          <Typography variant="body2" sx={{ 
+                            color: '#888', 
+                            fontSize: '11px',
+                            fontStyle: 'italic'
+                          }}>
+                            Customization: {item.customization}
+                          </Typography>
+                        )}
 
-                  <Box key={it.id} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-
-                    <img src={it.image || 'https://via.placeholder.com/48'} alt={it.name} width={48} height={48} style={{ borderRadius: 4, objectFit: 'cover' }} />
-
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-
-                      <span>{it.name} × {it.quantity}</span>
-
-                      <span>₹{Number((it.price || 0) * (it.quantity || 0)).toFixed(2)}</span>
-
+                        {/* Special Instructions */}
+                        {item.specialInstructions && (
+                          <Typography variant="body2" sx={{ 
+                            color: '#888', 
+                            fontSize: '11px',
+                            fontStyle: 'italic'
+                          }}>
+                            Note: {item.specialInstructions}
+                          </Typography>
+                        )}
                     </Box>
 
+                      {/* Price */}
+                      <Box sx={{ textAlign: 'right', flexShrink: 0 }}>
+                        <Typography variant="body2" sx={{ 
+                          color: '#666', 
+                          fontSize: '11px',
+                          mb: 0.5
+                        }}>
+                          ₹{Number(item.price || 0).toFixed(2)} each
+                        </Typography>
+                        <Typography variant="body1" sx={{ 
+                          fontWeight: 600, 
+                          color: '#333',
+                          fontSize: '14px'
+                        }}>
+                          ₹{Number((item.price || 0) * (item.quantity || 1)).toFixed(2)}
+                        </Typography>
                   </Box>
-
+                    </Box>
                 ))}
-
               </Stack>
-
+              </Box>
             )}
 
-            {/* Totals */}
+            {/* Swiggy-style Order Summary */}
+            <Box sx={{ 
+              mt: 2, 
+              p: 2.5, 
+              border: '1px solid #f0f0f0', 
+              borderRadius: '5px', 
+              backgroundColor: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+            }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 600, fontSize: '16px' }}>
+                Bill Details
+              </Typography>
+              
+              {/* Calculate subtotal from items like OrderCard does */}
+              {(() => {
+                const subtotal = Array.isArray(formValues.items) 
+                  ? formValues.items.reduce((s, x) => s + ((x.price || 0) * (x.quantity || 1)), 0)
+                  : (formValues.subtotal || 0);
+                const total = formValues.totalAmount || formValues.total || subtotal;
+                
+                return (
+                  <Stack spacing={1.5}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" sx={{ color: '#666', fontSize: '13px' }}>Item Total</Typography>
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: '#333', fontSize: '13px' }}>
+                        ₹{Number(subtotal).toFixed(2)}
+                      </Typography>
+                    </Box>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    {formValues.deliveryFee && formValues.deliveryFee > 0 && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ color: '#666', fontSize: '13px' }}>Delivery Fee</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#333', fontSize: '13px' }}>
+                          ₹{Number(formValues.deliveryFee).toFixed(2)}
+                        </Typography>
+                      </Box>
+                    )}
 
-              <span>Subtotal</span>
+                    {formValues.discount && formValues.discount > 0 && (
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ color: '#4caf50', fontSize: '13px' }}>Discount Applied</Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 600, color: '#4caf50', fontSize: '13px' }}>
+                          -₹{Number(formValues.discount).toFixed(2)}
+                        </Typography>
+            </Box>
+                    )}
 
-              <span>₹{Number((formValues.subtotal != null ? formValues.subtotal : (Array.isArray(formValues.items) ? formValues.items.reduce((s, x) => s + ((x.price || 0) * (x.quantity || 0)), 0) : 0))).toFixed(2)}</span>
+                    <Divider sx={{ my: 1, borderColor: '#f0f0f0' }} />
 
+                    <Box sx={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between', 
+                      alignItems: 'center',
+                      p: 1.5,
+                      background: 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)',
+                      borderRadius: '5px',
+                      color: 'white'
+                    }}>
+                      <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '16px' }}>Total Amount</Typography>
+                      <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '16px' }}>
+                        ₹{Number(total).toFixed(2)}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                );
+              })()}
             </Box>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-
-              <span>Delivery</span>
-
-              <span>₹{Number(formValues.deliveryFee || 0).toFixed(2)}</span>
-
+            {/* Swiggy-style Delivery Information */}
+            {formValues.deliveryAddress && (
+              <Box sx={{ 
+                mt: 2, 
+                p: 2.5, 
+                border: '1px solid #f0f0f0', 
+                borderRadius: '5px', 
+                backgroundColor: '#fff',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+              }}>
+                <Typography variant="h6" sx={{ mb: 1.5, color: '#333', fontWeight: 600, fontSize: '16px' }}>
+                  Delivery Address
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                  <Box sx={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: '50%',
+                    background: '#fc8019',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    mt: 0.5
+                  }}>
+                    <Typography sx={{ color: 'white', fontSize: '12px', fontWeight: 600 }}>📍</Typography>
             </Box>
-
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
-
-              <span>Total</span>
-
-              <span>₹{Number((formValues.total != null ? formValues.total : (formValues.totalAmount != null ? formValues.totalAmount : 0))).toFixed(2)}</span>
-
-            </Box>
+                  <Typography variant="body2" sx={{ color: '#666', fontSize: '13px', lineHeight: 1.4 }}>
+                    {formValues.deliveryAddress}
+                  </Typography>
+                </Box>
+              </Box>
+            )}
 
             <TextField 
               select 
@@ -857,33 +1157,115 @@ const AdminDashboard = () => {
               <option value="REJECTED">Rejected</option>
             </TextField>
 
-            <TextField 
+            {/* Swiggy-style Delivery Assignment Section */}
+            <Box sx={{ 
+              mt: 2, 
+              p: 2.5, 
+              border: '1px solid #f0f0f0', 
+              borderRadius: '5px', 
+              backgroundColor: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+            }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#333', fontWeight: 600, fontSize: '16px' }}>
+                Delivery Partner
+              </Typography>
+              
+              {/* Show assignment status */}
+              {formValues.deliveryAssignment ? (
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1.5, 
+                  p: 1.5,
+                  background: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)',
+                  borderRadius: '5px',
+                  color: 'white'
+                }}>
+                  <Box sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Typography sx={{ color: 'white', fontSize: '14px' }}>✓</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '14px' }}>
+                      Partner Assigned
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '12px' }}>
+                      Partner ID: {formValues.deliveryAssignment.deliveryPartnerId}
+                    </Typography>
+                  </Box>
+                </Box>
+              ) : (
+                <Box sx={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: 1.5, 
+                  p: 1.5,
+                  background: 'linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)',
+                  borderRadius: '5px',
+                  color: 'white',
+                  mb: 1.5
+                }}>
+                  <Box sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    <Typography sx={{ color: 'white', fontSize: '14px' }}>⚠</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '14px' }}>
+                      No Partner Assigned
+                    </Typography>
+                    <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '12px' }}>
+                      Click below to assign a delivery partner
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
 
-              select 
-
-              label="Assign Partner" 
-
-              value={formValues.deliveryPartnerId || ''}
-
-              onChange={(e) => setFormValues(v => ({ ...v, deliveryPartnerId: e.target.value }))}
-
-              fullWidth
-
-              SelectProps={{ native: true }}
-
-              InputLabelProps={{ shrink: true }}
-
-            >
-
-              <option value="">Unassigned</option>
-
-              {partners.map(p => (
-
-                <option key={p.id} value={p.id}>{p.name}</option>
-
-              ))}
-
-            </TextField>
+              {/* Assign for Delivery Button */}
+              {!formValues.deliveryAssignment && (
+                <Button
+                  variant="contained"
+                  onClick={() => {
+                    if (formValues?.id) {
+                      dispatch(assignOrderToPartner({ orderId: formValues.id }));
+                    }
+                  }}
+                  sx={{ 
+                    background: '#fc8019',
+                    borderRadius: '6px',
+                    px: 3,
+                    py: 1,
+                    fontWeight: 500,
+                    fontSize: '14px',
+                    textTransform: 'none',
+                    boxShadow: 'none',
+                    border: '1px solid #fc8019',
+                    '&:hover': {
+                      background: '#e6730a',
+                      borderColor: '#e6730a',
+                      boxShadow: '0 2px 8px rgba(252, 128, 25, 0.2)',
+                    }
+                  }}
+                >
+                  Assign for Delivery
+                </Button>
+              )}
+            </Box>
 
           </Stack>
 

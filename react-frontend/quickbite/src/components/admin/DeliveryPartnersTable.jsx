@@ -1,9 +1,9 @@
 import React from 'react';
-import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, Avatar, Typography, Chip } from '@mui/material';
+import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, Avatar, Typography, Chip, Button } from '@mui/material';
 import { Phone, DirectionsBike } from '@mui/icons-material';
 import ActionButtons from './ActionButtons';
 
-const DeliveryPartnersTable = ({ partners, onViewPartner, onEditPartner, onDeletePartner }) => {
+const DeliveryPartnersTable = ({ partners, onViewPartner, onEditPartner, onDeletePartner, onApprove, onReject }) => {
   return (
     <TableContainer sx={{ 
       borderRadius: '4px',
@@ -65,9 +65,11 @@ const DeliveryPartnersTable = ({ partners, onViewPartner, onEditPartner, onDelet
               </TableCell>
               <TableCell>
                 <Chip 
-                  label={(partner.status || '').toString()} 
+                  label={(partner.status || 'OFFLINE').toString()} 
                   sx={{
-                    background: (partner.status || '').toString() === 'ONLINE' ? '#4caf50' : '#666',
+                    background: (partner.status || 'OFFLINE').toString() === 'AVAILABLE' ? '#4caf50' : 
+                               (partner.status || 'OFFLINE').toString() === 'ON_DELIVERY' ? '#2196f3' : 
+                               (partner.status || 'OFFLINE').toString() === 'OFFLINE' ? '#ff9800' : '#666',
                     color: 'white',
                     fontWeight: 600,
                     fontSize: '12px'
@@ -76,12 +78,45 @@ const DeliveryPartnersTable = ({ partners, onViewPartner, onEditPartner, onDelet
                 />
               </TableCell>
               <TableCell>
-                <ActionButtons 
-                  menuOnly
-                  onView={() => onViewPartner && onViewPartner(partner)}
-                  onEdit={() => onEditPartner && onEditPartner(partner)}
-                  onDelete={() => onDeletePartner && onDeletePartner(partner)}
-                />
+                {partner.isPending ? (
+                  <Box sx={{ display: 'flex', gap: 1 }}>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      color="success"
+                      onClick={() => onApprove && onApprove(partner)}
+                      sx={{ 
+                        fontSize: '12px',
+                        px: 2,
+                        py: 0.5,
+                        textTransform: 'none'
+                      }}
+                    >
+                      Approve
+                    </Button>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      color="error"
+                      onClick={() => onReject && onReject(partner)}
+                      sx={{ 
+                        fontSize: '12px',
+                        px: 2,
+                        py: 0.5,
+                        textTransform: 'none'
+                      }}
+                    >
+                      Reject
+                    </Button>
+                  </Box>
+                ) : (
+                  <ActionButtons 
+                    menuOnly
+                    onView={() => onViewPartner && onViewPartner(partner)}
+                    onEdit={() => onEditPartner && onEditPartner(partner)}
+                    onDelete={() => onDeletePartner && onDeletePartner(partner)}
+                  />
+                )}
               </TableCell>
             </TableRow>
           ))}
