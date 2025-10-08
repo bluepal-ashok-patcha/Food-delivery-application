@@ -64,29 +64,17 @@ public class OrderController {
             @RequestParam(required = false) String status
     ) {
         Long userId = extractUserId(request);
-        org.springframework.data.domain.Page<com.quickbite.orderservice.entity.Order> pageData = orderService.getOrdersByUserIdPage(userId, page, size, sortBy, sortDir, status);
-        List<OrderResponseDto> orders = pageData.getContent().stream().map(o -> {
-            OrderResponseDto dto = new OrderResponseDto();
-            org.springframework.beans.BeanUtils.copyProperties(o, dto);
-            return dto;
-        }).collect(java.util.stream.Collectors.toList());
+        // Return fully-hydrated DTOs including items
+        List<OrderResponseDto> orders = orderService.getOrdersByUserId(userId);
         ApiResponse<List<OrderResponseDto>> body = ApiResponse.<List<OrderResponseDto>>builder()
                 .success(true)
                 .message("Orders fetched successfully")
                 .data(orders)
-                .page(ApiResponse.PageMeta.builder()
-                        .currentPage(pageData.getNumber())
-                        .size(pageData.getSize())
-                        .totalElements(pageData.getTotalElements())
-                        .totalPages(pageData.getTotalPages())
-                        .hasNext(pageData.hasNext())
-                        .hasPrevious(pageData.hasPrevious())
-                        .build())
                 .build();
         return ResponseEntity.ok(body);
     }
 
-    @GetMapping("/user/{orderId}")
+    @GetMapping("/user/{orderId:\\d+}")
     public ResponseEntity<ApiResponse<OrderResponseDto>> getOrderByIdForUser(
             @PathVariable Long orderId,
             HttpServletRequest request

@@ -19,7 +19,7 @@ const CartPage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { items, subtotal, deliveryFee, tax, total, restaurantName, appliedCoupon, appliedCouponCode } = useSelector((state) => state.cart);
-  const { user } = useSelector((state) => state.auth);
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
   const [couponCode, setCouponCode] = useState('');
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [activeStep, setActiveStep] = useState(0);
@@ -30,8 +30,10 @@ const CartPage = () => {
   const steps = ['Cart', 'Delivery', 'Payment', 'Confirm'];
 
   useEffect(() => {
-    dispatch(fetchCart());
-  }, [dispatch]);
+    if (isAuthenticated) {
+      dispatch(fetchCart());
+    }
+  }, [dispatch, isAuthenticated]);
 
   const handleQuantityChange = async (itemId, customization, newQuantity) => {
     if (newQuantity <= 0) {

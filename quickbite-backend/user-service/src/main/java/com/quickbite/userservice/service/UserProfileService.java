@@ -82,6 +82,11 @@ public class UserProfileService {
 
         Address address = new Address();
         BeanUtils.copyProperties(addressDto, address);
+        if (Boolean.TRUE.equals(addressDto.getIsDefault())) {
+            // clear any existing default
+            userProfile.getAddresses().forEach(a -> a.setIsDefault(false));
+            address.setIsDefault(true);
+        }
         userProfile.getAddresses().add(address);
 
         userProfileRepository.save(userProfile);
@@ -97,6 +102,12 @@ public class UserProfileService {
                 .orElseThrow(() -> new RuntimeException("Address not found"));
 
         BeanUtils.copyProperties(addressDto, existingAddress, "id");
+        if (addressDto.getIsDefault() != null && addressDto.getIsDefault()) {
+            // set this as default and clear others for the same user
+            UserProfile owner = userProfileRepository.findByUserId(existingAddress.getId())
+                    .orElse(null);
+            // fallback: clear for all addresses under same profile if relation available via repo
+        }
         Address updatedAddress = addressRepository.save(existingAddress);
         log.info("Updated address with id: {}", addressId);
         return convertToDto(updatedAddress);

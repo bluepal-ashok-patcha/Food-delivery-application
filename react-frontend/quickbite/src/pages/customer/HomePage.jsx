@@ -31,12 +31,8 @@ const HomePage = () => {
     async function loadActive() {
       try {
         setActiveLoading(true);
-        const ordersRes = await orderAPI.getUserOrders();
-        const list = ordersRes?.data || ordersRes || [];
-        const active = list.find(o => {
-          const s = (o.orderStatus || o.status || '').toUpperCase();
-          return s !== 'DELIVERED' && s !== 'CANCELLED' && s !== 'REJECTED';
-        });
+        const activeRes = await orderAPI.getActiveOrder();
+        const active = activeRes?.data || null;
         if (!cancelled && active) {
           setActiveOrder(active);
           try {

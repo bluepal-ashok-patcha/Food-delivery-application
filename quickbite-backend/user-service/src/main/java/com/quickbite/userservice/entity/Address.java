@@ -32,4 +32,7 @@ public class Address {
 
     @Column(nullable = false)
     private String type; // e.g., "Home", "Work"
+
+    @Column(nullable = false)
+    private Boolean isDefault = false;
 }

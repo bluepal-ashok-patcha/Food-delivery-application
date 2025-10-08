@@ -9,6 +9,7 @@ import java.util.List;
 @Repository
 public interface RestaurantReviewRepository extends JpaRepository<RestaurantReview, Long> {
     List<RestaurantReview> findByRestaurantId(Long restaurantId);
+    Long countByRestaurantId(Long restaurantId);
 }
 
 

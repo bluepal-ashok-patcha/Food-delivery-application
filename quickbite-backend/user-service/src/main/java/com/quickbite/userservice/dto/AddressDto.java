@@ -22,4 +22,6 @@ public class AddressDto {
 
     @NotEmpty(message = "Address type cannot be empty")
     private String type; // e.g., "Home", "Work"
+
+    private Boolean isDefault;
 }

@@ -1,12 +1,19 @@
-import React, { useMemo, useState } from 'react';
-import { Box, Container, Paper, Grid, Tabs, Tab, TextField, Stack, Button } from '@mui/material';
-import { People, Restaurant, AttachMoney, LocalShipping } from '@mui/icons-material';
-import { useSelector } from 'react-redux';
+import React, { useMemo, useState, useEffect } from 'react';
+import { Box, Container, Paper, Grid, Tabs, Tab, TextField, Stack, Button, CircularProgress, Alert, Chip } from '@mui/material';
+import { People, Restaurant, AttachMoney, LocalShipping, Analytics, Receipt, TrendingUp } from '@mui/icons-material';
+import { useSelector, useDispatch } from 'react-redux';
 import AdminHeader from '../../components/admin/AdminHeader';
 import EnhancedStatCard from '../../components/admin/EnhancedStatCard';
 import TabHeader from '../../components/admin/TabHeader';
-import { useDispatch } from 'react-redux';
-import { addUser, updateUser, deleteUser, addRestaurant, updateRestaurant, deleteRestaurant, updateOrderStatus, addPartner, updatePartner, deletePartner, setRestaurantActive, setRestaurantOpen, approveRestaurant, assignOrderToPartner, addCoupon, updateCoupon, deleteCoupon, activateUser, deactivateUser, rejectRestaurant } from '../../store/slices/adminSlice';
+import { 
+  fetchUsers, createUser, updateUser, toggleUserStatus,
+  fetchRestaurants, fetchPendingRestaurants, approveRestaurant, rejectRestaurant, updateRestaurantStatus,
+  fetchOrders, updateOrderStatus,
+  fetchDeliveryPartners, approveDeliveryPartner, rejectDeliveryPartner,
+  fetchCoupons, createCoupon, updateCoupon, deleteCoupon,
+  fetchTransactions, fetchAnalytics,
+  deleteUser, deleteRestaurant, assignOrderToPartner, deletePartner
+} from '../../store/slices/adminSlice';
 import UsersTable from '../../components/admin/UsersTable';
 import RestaurantsTable from '../../components/admin/RestaurantsTable';
 import OrdersTable from '../../components/admin/OrdersTable';
@@ -21,54 +28,98 @@ const AdminDashboard = () => {
   const [openPartnerModal, setOpenPartnerModal] = useState(false);
   const [openOrderModal, setOpenOrderModal] = useState(false);
   const [openCouponsModal, setOpenCouponsModal] = useState(false);
+  const [openTransactionModal, setOpenTransactionModal] = useState(false);
   const [formValues, setFormValues] = useState({});
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState('');
-  const { users, restaurants, orders, partners } = useSelector((state) => state.admin);
   const [restaurantFilter, setRestaurantFilter] = useState('ALL');
+  const [analyticsPeriod, setAnalyticsPeriod] = useState('week');
+  
+  const { 
+    users, restaurants, orders, partners, coupons, transactions, analytics,
+    loading, error, pagination 
+  } = useSelector((state) => state.admin);
+
+  // Fetch data on component mount
+  useEffect(() => {
+    dispatch(fetchUsers({ page: 0, size: 10 }));
+    dispatch(fetchRestaurants({ page: 0, size: 10 }));
+    dispatch(fetchOrders({ page: 0, size: 10 }));
+    dispatch(fetchDeliveryPartners());
+    dispatch(fetchCoupons({ page: 0, size: 10 }));
+    dispatch(fetchTransactions());
+    dispatch(fetchAnalytics({ type: 'order', period: analyticsPeriod }));
+  }, [dispatch, analyticsPeriod]);
 
   const handleTabChange = (event, newValue) => {
     setTabValue(newValue);
   };
 
-  const stats = useMemo(() => ([
-    { 
-      title: 'Total Users', 
-      value: users?.length || 0, 
-      icon: <People />, 
-      color: '#fc8019',
-      change: `${Math.min(99, Math.round(((orders?.length || 0) + (restaurants?.length || 0)) / 10))}%`,
-      trend: 'up',
-      subtitle: 'Active users'
-    },
-    { 
-      title: 'Restaurants', 
-      value: restaurants?.length || 0, 
-      icon: <Restaurant />, 
-      color: '#fc8019',
-      change: `${Math.min(99, Math.round(((orders?.length || 0)) / 5))}%`,
-      trend: 'up',
-      subtitle: 'Partner restaurants'
-    },
-    { 
-      title: 'Total Orders', 
-      value: orders?.length || 0, 
-      icon: <AttachMoney />, 
-      color: '#fc8019',
-      change: `${Math.min(99, Math.round(((orders?.length || 0)) * 3))}%`,
-      trend: 'up',
-      subtitle: 'This month'
-    },
-    { 
-      title: 'Delivery Partners', 
-      value: partners?.length || 0, 
-      icon: <LocalShipping />, 
-      color: '#fc8019',
-      change: `${Math.min(99, Math.round(((partners?.length || 0)) * 2))}%`,
-      trend: 'up',
-      subtitle: 'Active partners'
-    },
-  ]), [users, restaurants, orders, partners]);
+  const stats = useMemo(() => {
+    const totalUsers = pagination.users?.total || users?.length || 0;
+    const totalRestaurants = pagination.restaurants?.total || restaurants?.length || 0;
+    const totalOrders = pagination.orders?.total || orders?.length || 0;
+    const totalPartners = partners?.length || 0;
+    const totalTransactions = transactions?.length || 0;
+    const totalCoupons = pagination.coupons?.total || coupons?.length || 0;
+
+    return [
+      { 
+        title: 'Total Users', 
+        value: totalUsers, 
+        icon: <People />, 
+        color: '#fc8019',
+        change: `${Math.min(99, Math.round(totalUsers / 10))}%`,
+        trend: 'up',
+        subtitle: 'Registered users'
+      },
+      { 
+        title: 'Restaurants', 
+        value: totalRestaurants, 
+        icon: <Restaurant />, 
+        color: '#4caf50',
+        change: `${Math.min(99, Math.round(totalRestaurants / 5))}%`,
+        trend: 'up',
+        subtitle: 'Partner restaurants'
+      },
+      { 
+        title: 'Total Orders', 
+        value: totalOrders, 
+        icon: <AttachMoney />, 
+        color: '#2196f3',
+        change: `${Math.min(99, Math.round(totalOrders / 20))}%`,
+        trend: 'up',
+        subtitle: 'All time orders'
+      },
+      { 
+        title: 'Delivery Partners', 
+        value: totalPartners, 
+        icon: <LocalShipping />, 
+        color: '#ff9800',
+        change: `${Math.min(99, Math.round(totalPartners / 3))}%`,
+        trend: 'up',
+        subtitle: 'Active partners'
+      },
+      { 
+        title: 'Transactions', 
+        value: totalTransactions, 
+        icon: <Receipt />, 
+        color: '#9c27b0',
+        change: `${Math.min(99, Math.round(totalTransactions / 50))}%`,
+        trend: 'up',
+        subtitle: 'Payment transactions'
+      },
+      { 
+        title: 'Coupons', 
+        value: totalCoupons, 
+        icon: <TrendingUp />, 
+        color: '#f44336',
+        change: `${Math.min(99, Math.round(totalCoupons / 2))}%`,
+        trend: 'up',
+        subtitle: 'Active coupons'
+      },
+    ];
+  }, [users, restaurants, orders, partners, transactions, coupons, pagination]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -90,7 +141,7 @@ const AdminDashboard = () => {
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
           {stats.map((stat, index) => (
-            <Grid item xs={12} md={4} key={index}>
+            <Grid item xs={12} sm={6} md={4} lg={2} key={index}>
               <EnhancedStatCard stat={stat} />
             </Grid>
           ))}
@@ -126,6 +177,9 @@ const AdminDashboard = () => {
             <Tab label="Restaurants" />
             <Tab label="Orders" />
             <Tab label="Delivery Partners" />
+            <Tab label="Coupons" />
+            <Tab label="Transactions" />
+            <Tab label="Analytics" />
           </Tabs>
         </Paper>
 
@@ -140,7 +194,7 @@ const AdminDashboard = () => {
                 title="User Management" 
                 subtitle="Manage platform users and their roles"
                 addButtonText="Add User"
-                onAddClick={() => { setFormValues({ name: '', email: '', phone: '' }); setOpenUserModal(true); }}
+                onAddClick={() => { setFormValues({ name: '', email: '', phone: '', role: 'CUSTOMER' }); setOpenUserModal(true); }}
               />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
                 <TextField 
@@ -166,21 +220,36 @@ const AdminDashboard = () => {
                   <option value="DELIVERY_PARTNER">Delivery Partner</option>
                 </TextField>
               </Stack>
-              <UsersTable 
-                users={users.filter(u => {
-                  const matchesSearch = userSearch ? (
-                    (u.name || '').toLowerCase().includes(userSearch.toLowerCase()) ||
-                    (u.email || '').toLowerCase().includes(userSearch.toLowerCase()) ||
-                    (u.phone || '').toLowerCase().includes(userSearch.toLowerCase())
-                  ) : true;
-                  const matchesRole = userRoleFilter ? u.role === userRoleFilter : true;
-                  return matchesSearch && matchesRole;
-                })}
-                onViewUser={() => {}}
-                onEditUser={(user) => { setFormValues(user); setOpenUserModal(true); }}
-                onDeleteUser={(user) => dispatch(deleteUser(user.id))}
-                onToggleActive={(user) => dispatch((user.isActive ? deactivateUser : activateUser)(user.id))}
-              />
+              
+              {loading.users && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                  <CircularProgress />
+                </Box>
+              )}
+              
+              {error.users && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error.users}
+                </Alert>
+              )}
+              
+              {!loading.users && (
+                <UsersTable 
+                  users={users.filter(u => {
+                    const matchesSearch = userSearch ? (
+                      (u.name || '').toLowerCase().includes(userSearch.toLowerCase()) ||
+                      (u.email || '').toLowerCase().includes(userSearch.toLowerCase()) ||
+                      (u.phone || '').toLowerCase().includes(userSearch.toLowerCase())
+                    ) : true;
+                    const matchesRole = userRoleFilter ? u.role === userRoleFilter : true;
+                    return matchesSearch && matchesRole;
+                  })}
+                  onViewUser={() => {}}
+                  onEditUser={(user) => { setFormValues(user); setOpenUserModal(true); }}
+                  onDeleteUser={(user) => dispatch(deleteUser(user.id))}
+                  onToggleActive={(user) => dispatch(toggleUserStatus({ id: user.id, isActive: !user.isActive }))}
+                />
+              )}
             </Box>
           )}
 
@@ -197,26 +266,51 @@ const AdminDashboard = () => {
                   select 
                   label="Filter"
                   value={restaurantFilter}
-                  onChange={(e) => setRestaurantFilter(e.target.value)}
+                  onChange={(e) => {
+                    setRestaurantFilter(e.target.value);
+                    if (e.target.value === 'PENDING') {
+                      dispatch(fetchPendingRestaurants({ page: 0, size: 10 }));
+                    } else {
+                      dispatch(fetchRestaurants({ page: 0, size: 10, status: e.target.value === 'ALL' ? null : e.target.value }));
+                    }
+                  }}
                   sx={{ minWidth: 220 }}
                   SelectProps={{ native: true }}
                   InputLabelProps={{ shrink: true }}
                 >
                   <option value="ALL">All</option>
-                  <option value="PENDING">Pending Approval</option>
+                  <option value="PENDING_APPROVAL">Pending Approval</option>
                   <option value="APPROVED">Approved</option>
+                  <option value="REJECTED">Rejected</option>
+                  <option value="ACTIVE">Active</option>
+                  <option value="INACTIVE">Inactive</option>
                 </TextField>
               </Stack>
-              <RestaurantsTable 
-                restaurants={restaurants.filter(r => restaurantFilter === 'ALL' ? true : (restaurantFilter === 'PENDING' ? !r.isApproved : r.isApproved))}
-                onViewRestaurant={() => {}}
-                onEditRestaurant={(r) => { setFormValues(r); setOpenRestaurantModal(true); }}
-                onDeleteRestaurant={(r) => dispatch(deleteRestaurant(r.id))}
-                onToggleActive={(r) => dispatch(setRestaurantActive({ id: r.id, isActive: !r.isActive }))}
-                onToggleOpen={(r) => dispatch(setRestaurantOpen({ id: r.id, isOpen: !r.isOpen }))}
-                onApprove={(r) => dispatch(approveRestaurant(r.id))}
-                onReject={(r) => dispatch(rejectRestaurant(r.id))}
-              />
+              
+              {loading.restaurants && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                  <CircularProgress />
+                </Box>
+              )}
+              
+              {error.restaurants && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error.restaurants}
+                </Alert>
+              )}
+              
+              {!loading.restaurants && (
+                <RestaurantsTable 
+                  restaurants={restaurants}
+                  onViewRestaurant={() => {}}
+                  onEditRestaurant={(r) => { setFormValues(r); setOpenRestaurantModal(true); }}
+                  onDeleteRestaurant={(r) => dispatch(deleteRestaurant(r.id))}
+                  onToggleActive={(r) => dispatch(updateRestaurantStatus({ restaurantId: r.id, status: r.isActive ? 'INACTIVE' : 'ACTIVE' }))}
+                  onToggleOpen={(r) => dispatch(updateRestaurantStatus({ restaurantId: r.id, status: r.isOpen ? 'INACTIVE' : 'ACTIVE' }))}
+                  onApprove={(r) => dispatch(approveRestaurant({ restaurantId: r.id, approvalData: { approvalNotes: 'Approved by admin' } }))}
+                  onReject={(r) => dispatch(rejectRestaurant({ restaurantId: r.id, rejectionData: { rejectionReason: 'Rejected by admin' } }))}
+                />
+              )}
             </Box>
           )}
 
@@ -244,12 +338,167 @@ const AdminDashboard = () => {
                 addButtonText="Add Partner"
                 onAddClick={() => { setFormValues({ name: '', phone: '', vehicleType: 'Bike' }); setOpenPartnerModal(true); }}
               />
-              <DeliveryPartnersTable 
-                partners={partners}
-                onViewPartner={() => {}}
-                onEditPartner={(p) => { setFormValues(p); setOpenPartnerModal(true); }}
-                onDeletePartner={(p) => dispatch(deletePartner(p.id))}
+              
+              {loading.partners && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                  <CircularProgress />
+                </Box>
+              )}
+              
+              {error.partners && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error.partners}
+                </Alert>
+              )}
+              
+              {!loading.partners && (
+                <DeliveryPartnersTable 
+                  partners={partners}
+                  onViewPartner={() => {}}
+                  onEditPartner={(p) => { setFormValues(p); setOpenPartnerModal(true); }}
+                  onDeletePartner={(p) => dispatch(deletePartner(p.id))}
+                  onApprove={(p) => dispatch(approveDeliveryPartner(p.userId))}
+                  onReject={(p) => dispatch(rejectDeliveryPartner(p.userId))}
+                />
+              )}
+            </Box>
+          )}
+
+          {tabValue === 4 && (
+            <Box sx={{ p: 4 }}>
+              <TabHeader 
+                title="Coupon Management" 
+                subtitle="Manage discount coupons and promotions"
+                addButtonText="Add Coupon"
+                onAddClick={() => { setFormValues({ code: '', description: '', discountType: 'PERCENTAGE', discountValue: 10, isActive: true }); setOpenCouponsModal(true); }}
               />
+              
+              {loading.coupons && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                  <CircularProgress />
+                </Box>
+              )}
+              
+              {error.coupons && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error.coupons}
+                </Alert>
+              )}
+              
+              {!loading.coupons && (
+                <Box>
+                  {coupons.map((coupon) => (
+                    <Paper key={coupon.id} sx={{ p: 2, mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box>
+                        <Typography variant="h6">{coupon.code}</Typography>
+                        <Typography variant="body2" color="text.secondary">{coupon.description}</Typography>
+                        <Chip 
+                          label={coupon.isActive ? 'Active' : 'Inactive'} 
+                          color={coupon.isActive ? 'success' : 'default'} 
+                          size="small" 
+                        />
+                      </Box>
+                      <Stack direction="row" spacing={1}>
+                        <Button size="small" onClick={() => { setFormValues(coupon); setOpenCouponsModal(true); }}>Edit</Button>
+                        <Button size="small" color="error" onClick={() => dispatch(deleteCoupon(coupon.id))}>Delete</Button>
+                      </Stack>
+                    </Paper>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          )}
+
+          {tabValue === 5 && (
+            <Box sx={{ p: 4 }}>
+              <TabHeader 
+                title="Transaction Management" 
+                subtitle="View and manage payment transactions"
+                showAddButton={false}
+              />
+              
+              {loading.transactions && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                  <CircularProgress />
+                </Box>
+              )}
+              
+              {error.transactions && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error.transactions}
+                </Alert>
+              )}
+              
+              {!loading.transactions && (
+                <Box>
+                  {transactions.map((transaction) => (
+                    <Paper key={transaction.id} sx={{ p: 2, mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Box>
+                        <Typography variant="h6">Transaction #{transaction.id}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Amount: ₹{transaction.amount} | Status: {transaction.status}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Order ID: {transaction.orderId} | Restaurant ID: {transaction.restaurantId}
+                        </Typography>
+                      </Box>
+                      <Chip 
+                        label={transaction.status} 
+                        color={transaction.status === 'SUCCESS' ? 'success' : transaction.status === 'FAILED' ? 'error' : 'warning'} 
+                        size="small" 
+                      />
+                    </Paper>
+                  ))}
+                </Box>
+              )}
+            </Box>
+          )}
+
+          {tabValue === 6 && (
+            <Box sx={{ p: 4 }}>
+              <TabHeader 
+                title="Analytics Dashboard" 
+                subtitle="View platform analytics and insights"
+                showAddButton={false}
+              />
+              
+              <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+                <TextField
+                  select
+                  label="Time Period"
+                  value={analyticsPeriod}
+                  onChange={(e) => {
+                    setAnalyticsPeriod(e.target.value);
+                    dispatch(fetchAnalytics({ type: 'order', period: e.target.value }));
+                  }}
+                  sx={{ minWidth: 150 }}
+                  SelectProps={{ native: true }}
+                >
+                  <option value="today">Today</option>
+                  <option value="week">This Week</option>
+                  <option value="month">This Month</option>
+                  <option value="year">This Year</option>
+                </TextField>
+              </Stack>
+              
+              {analytics.order && (
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <Paper sx={{ p: 3 }}>
+                      <Typography variant="h6" gutterBottom>Order Analytics</Typography>
+                      <Typography variant="h4" color="primary">{analytics.order.totalOrders || 0}</Typography>
+                      <Typography variant="body2" color="text.secondary">Total Orders</Typography>
+                    </Paper>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Paper sx={{ p: 3 }}>
+                      <Typography variant="h6" gutterBottom>Revenue</Typography>
+                      <Typography variant="h4" color="success.main">₹{analytics.order.totalRevenue || 0}</Typography>
+                      <Typography variant="body2" color="text.secondary">Total Revenue</Typography>
+                    </Paper>
+                  </Grid>
+                </Grid>
+              )}
             </Box>
           )}
         </Paper>
@@ -267,7 +516,7 @@ const AdminDashboard = () => {
                 sx={{ background: '#fc8019' }}
                 onClick={() => {
                   if (formValues?.id) {
-                    if (formValues.status) dispatch(updateOrderStatus({ id: formValues.id, status: formValues.status }));
+                    if (formValues.status) dispatch(updateOrderStatus({ orderId: formValues.id, status: formValues.status }));
                     if (formValues.deliveryPartnerId) dispatch(assignOrderToPartner({ orderId: formValues.id, partnerId: formValues.deliveryPartnerId }));
                   }
                   setOpenOrderModal(false);
@@ -343,19 +592,76 @@ const AdminDashboard = () => {
         <Modal 
           open={openCouponsModal}
           onClose={() => setOpenCouponsModal(false)}
-          title={'Manage Coupons'}
+          title={formValues?.id ? 'Edit Coupon' : 'Add Coupon'}
           actions={
             <Stack direction="row" spacing={2}>
-              <Button onClick={() => setOpenCouponsModal(false)} variant="outlined">Close</Button>
+              <Button onClick={() => setOpenCouponsModal(false)} variant="outlined">Cancel</Button>
+              <Button 
+                variant="contained" 
+                sx={{ background: '#fc8019' }}
+                onClick={() => {
+                  if (formValues?.id) {
+                    dispatch(updateCoupon({ couponId: formValues.id, couponData: formValues }));
+                  } else {
+                    dispatch(createCoupon(formValues));
+                  }
+                  setOpenCouponsModal(false);
+                }}
+              >
+                {formValues?.id ? 'Update' : 'Create'}
+              </Button>
             </Stack>
           }
         >
           <Stack spacing={2}>
-            <TextField label="Code" value={formValues.code || ''} onChange={(e) => setFormValues(v => ({ ...v, code: e.target.value }))} fullWidth />
-            <TextField label="Description" value={formValues.description || ''} onChange={(e) => setFormValues(v => ({ ...v, description: e.target.value }))} fullWidth />
-            <Stack direction="row" spacing={2}>
-              <Button variant="outlined" onClick={() => dispatch(addCoupon({ code: formValues.code, description: formValues.description, discountType: 'percentage', discountValue: 10, isActive: true }))}>Add</Button>
-            </Stack>
+            <TextField 
+              label="Coupon Code" 
+              value={formValues.code || ''} 
+              onChange={(e) => setFormValues(v => ({ ...v, code: e.target.value }))} 
+              fullWidth 
+              required
+            />
+            <TextField 
+              label="Description" 
+              value={formValues.description || ''} 
+              onChange={(e) => setFormValues(v => ({ ...v, description: e.target.value }))} 
+              fullWidth 
+              multiline
+              rows={2}
+            />
+            <TextField 
+              select
+              label="Discount Type"
+              value={formValues.discountType || 'PERCENTAGE'}
+              onChange={(e) => setFormValues(v => ({ ...v, discountType: e.target.value }))}
+              fullWidth
+              SelectProps={{ native: true }}
+            >
+              <option value="PERCENTAGE">Percentage</option>
+              <option value="FIXED">Fixed Amount</option>
+            </TextField>
+            <TextField 
+              label="Discount Value" 
+              value={formValues.discountValue || ''} 
+              onChange={(e) => setFormValues(v => ({ ...v, discountValue: parseFloat(e.target.value) || 0 }))} 
+              fullWidth 
+              type="number"
+              required
+            />
+            <TextField 
+              label="Minimum Order Amount" 
+              value={formValues.minimumOrderAmount || ''} 
+              onChange={(e) => setFormValues(v => ({ ...v, minimumOrderAmount: parseFloat(e.target.value) || 0 }))} 
+              fullWidth 
+              type="number"
+            />
+            <TextField 
+              label="Max Usage Count" 
+              value={formValues.maxUsageCount || ''} 
+              onChange={(e) => setFormValues(v => ({ ...v, maxUsageCount: parseInt(e.target.value) || 0 }))} 
+              fullWidth 
+              type="number"
+            />
           </Stack>
         </Modal>
 
@@ -374,9 +680,9 @@ const AdminDashboard = () => {
                 sx={{ background: '#fc8019' }}
                 onClick={() => {
                   if (formValues?.id) {
-                    dispatch(updateUser({ id: formValues.id, changes: { name: formValues.name, email: formValues.email, phone: formValues.phone, role: formValues.role } }));
+                    dispatch(updateUser({ id: formValues.id, userData: { name: formValues.name, email: formValues.email, phone: formValues.phone, role: formValues.role } }));
                   } else {
-                    dispatch(addUser({ name: formValues.name, email: formValues.email, phone: formValues.phone, role: formValues.role || 'CUSTOMER' }));
+                    dispatch(createUser({ userData: { name: formValues.name, email: formValues.email, phone: formValues.phone }, role: formValues.role || 'CUSTOMER' }));
                   }
                   setOpenUserModal(false);
                 }}

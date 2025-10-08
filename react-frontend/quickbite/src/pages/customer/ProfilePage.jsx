@@ -26,7 +26,9 @@ import * as Yup from 'yup';
 import { updateUserProfile } from '../../store/slices/authSlice';
 import { showNotification } from '../../store/slices/uiSlice';
 import { fetchOrders } from '../../store/slices/orderSlice';
+import { userAPI } from '../../services/api';
 import AddressItem from '../../components/profile/AddressItem';
+import AddressEditModal from '../../components/profile/AddressEditModal';
 import EmptyAddresses from '../../components/profile/EmptyAddresses';
 import OrderCard from '../../components/orders/OrderCard';
 import EmptyOrdersCard from '../../components/orders/EmptyOrdersCard';
@@ -35,10 +37,13 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 const ProfilePage = () => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const [profile, setProfile] = useState(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
   const { orders, loading } = useSelector((state) => state.orders);
   const [isEditing, setIsEditing] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [newAddress, setNewAddress] = useState('');
+  const [editAddress, setEditAddress] = useState(null);
   const [tab, setTab] = useState(0);
 
   useEffect(() => {
@@ -47,70 +52,100 @@ const ProfilePage = () => {
     }
   }, [dispatch, user, tab]);
 
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await userAPI.getProfile();
+        if (!cancelled) setProfile(res?.data || res);
+      } catch (_) {}
+      finally { if (!cancelled) setLoadingProfile(false); }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
   const validationSchema = Yup.object({
-    name: Yup.string().required('Name is required'),
-    email: Yup.string().email('Invalid email').required('Email is required'),
-    phone: Yup.string().required('Phone is required'),
+    firstName: Yup.string().required('First name is required'),
+    lastName: Yup.string().required('Last name is required'),
+    phoneNumber: Yup.string().required('Phone is required'),
   });
 
   const formik = useFormik({
     initialValues: {
-      name: user?.name || '',
-      email: user?.email || '',
-      phone: user?.phone || '',
+      firstName: profile?.firstName || '',
+      lastName: profile?.lastName || '',
+      phoneNumber: profile?.phoneNumber || '',
     },
     validationSchema,
-    onSubmit: (values) => {
-      dispatch(updateUserProfile(values));
-      setIsEditing(false);
-      dispatch(showNotification({ 
-        message: 'Profile updated successfully!', 
-        type: 'success' 
-      }));
+    enableReinitialize: true,
+    onSubmit: async (values) => {
+      try {
+        const body = { ...values };
+        const res = await userAPI.updateProfile(body);
+        setProfile(res?.data || res);
+        dispatch(showNotification({ message: 'Profile updated successfully!', type: 'success' }));
+      } catch (e) {
+        dispatch(showNotification({ message: 'Failed to update profile', type: 'error' }));
+      } finally {
+        setIsEditing(false);
+      }
     },
   });
 
-  const handleAddAddress = () => {
-    if (newAddress.trim()) {
-      const address = {
-        id: Date.now(),
-        type: 'other',
-        address: newAddress,
-        isDefault: false
-      };
-      
-      dispatch(updateUserProfile({
-        addresses: [...(user.addresses || []), address]
-      }));
-      
+  const handleAddAddress = async () => {
+    const [street, city, stateZip] = newAddress.split(',').map(s => s.trim());
+    const [state, zipCode] = (stateZip || '').split(' ').map(s => s.trim());
+    if (!street || !city || !state || !zipCode) {
+      dispatch(showNotification({ message: 'Use format: Street, City, ST 12345', type: 'error' }));
+      return;
+    }
+    try {
+      const res = await userAPI.addAddress({ street, city, state, zipCode, type: 'Home' });
+      const addr = res?.data || res;
+      setProfile({ ...profile, addresses: [...(profile?.addresses || []), addr] });
       setNewAddress('');
       setIsAddingAddress(false);
-      dispatch(showNotification({ 
-        message: 'Address added successfully!', 
-        type: 'success' 
-      }));
+      dispatch(showNotification({ message: 'Address added successfully!', type: 'success' }));
+    } catch (e) {
+      dispatch(showNotification({ message: 'Failed to add address', type: 'error' }));
     }
   };
 
-  const handleDeleteAddress = (addressId) => {
-    const updatedAddresses = user.addresses.filter(addr => addr.id !== addressId);
-    dispatch(updateUserProfile({ addresses: updatedAddresses }));
-    dispatch(showNotification({ 
-      message: 'Address deleted successfully!', 
-      type: 'success' 
-    }));
+  const handleDeleteAddress = async (addressId) => {
+    try {
+      await userAPI.deleteAddress(addressId);
+      setProfile({ ...profile, addresses: (profile?.addresses || []).filter(a => a.id !== addressId) });
+      dispatch(showNotification({ message: 'Address deleted successfully!', type: 'success' }));
+    } catch (e) {
+      dispatch(showNotification({ message: 'Failed to delete address', type: 'error' }));
+    }
   };
 
-  const handleSetDefaultAddress = (addressId) => {
-    const updatedAddresses = user.addresses.map(addr => ({
-      ...addr,
-      isDefault: addr.id === addressId
-    }));
-    dispatch(updateUserProfile({ addresses: updatedAddresses }));
-    dispatch(showNotification({ 
-      message: 'Default address updated!', 
-      type: 'success' 
-    }));
+  const handleEditAddressSave = async (form) => {
+    try {
+      const res = await userAPI.updateAddress(editAddress.id, form);
+      const updated = res?.data || res;
+      setProfile({ ...profile, addresses: (profile?.addresses || []).map(a => a.id === editAddress.id ? updated : a) });
+      setEditAddress(null);
+      dispatch(showNotification({ message: 'Address updated successfully!', type: 'success' }));
+    } catch (e) {
+      dispatch(showNotification({ message: 'Failed to update address', type: 'error' }));
+    }
+  };
+
+  const handleSetDefaultAddress = async (addressId) => {
+    try {
+      const addr = (profile?.addresses || []).find(a => a.id === addressId);
+      if (!addr) return;
+      const res = await userAPI.updateAddress(addressId, { ...addr, isDefault: true });
+      const updated = res?.data || res;
+      // clear others
+      const updatedList = (profile?.addresses || []).map(a => a.id === addressId ? updated : { ...a, isDefault: false });
+      setProfile({ ...profile, addresses: updatedList });
+      dispatch(showNotification({ message: 'Default address updated!', type: 'success' }));
+    } catch (e) {
+      dispatch(showNotification({ message: 'Failed to set default address', type: 'error' }));
+    }
   };
 
   return (
@@ -160,40 +195,43 @@ const ProfilePage = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Full Name"
-                  name="name"
-                  value={formik.values.name}
+                  label="First Name"
+                  name="firstName"
+                  value={formik.values.firstName}
                   onChange={formik.handleChange}
-                  error={formik.touched.name && Boolean(formik.errors.name)}
-                  helperText={formik.touched.name && formik.errors.name}
+                  error={formik.touched.firstName && Boolean(formik.errors.firstName)}
+                  helperText={formik.touched.firstName && formik.errors.firstName}
                   disabled={!isEditing}
                   size="small"
+                  InputLabelProps={{ shrink: true }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Email"
-                  name="email"
-                  value={formik.values.email}
+                  label="Last Name"
+                  name="lastName"
+                  value={formik.values.lastName}
                   onChange={formik.handleChange}
-                  error={formik.touched.email && Boolean(formik.errors.email)}
-                  helperText={formik.touched.email && formik.errors.email}
+                  error={formik.touched.lastName && Boolean(formik.errors.lastName)}
+                  helperText={formik.touched.lastName && formik.errors.lastName}
                   disabled={!isEditing}
                   size="small"
+                  InputLabelProps={{ shrink: true }}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="Phone Number"
-                  name="phone"
-                  value={formik.values.phone}
+                  name="phoneNumber"
+                  value={formik.values.phoneNumber}
                   onChange={formik.handleChange}
-                  error={formik.touched.phone && Boolean(formik.errors.phone)}
-                  helperText={formik.touched.phone && formik.errors.phone}
+                  error={formik.touched.phoneNumber && Boolean(formik.errors.phoneNumber)}
+                  helperText={formik.touched.phoneNumber && formik.errors.phoneNumber}
                   disabled={!isEditing}
                   size="small"
+                  InputLabelProps={{ shrink: true }}
                 />
               </Grid>
             </Grid>
@@ -243,7 +281,7 @@ const ProfilePage = () => {
               <Button
                 variant="contained"
                 startIcon={<Add />}
-                onClick={() => setIsAddingAddress(true)}
+                onClick={() => setEditAddress({ street: '', city: '', state: '', zipCode: '', type: 'Home' })}
                 size="small"
                 sx={{ 
                   backgroundColor: '#fc8019',
@@ -257,64 +295,17 @@ const ProfilePage = () => {
                 Add Address
               </Button>
             </Box>
-            {user?.addresses?.map((address) => (
+            {profile?.addresses?.map((address) => (
               <AddressItem
                 key={address.id}
                 address={address}
                 onSetDefault={() => handleSetDefaultAddress(address.id)}
                 onDelete={() => handleDeleteAddress(address.id)}
+                onEdit={() => setEditAddress(address)}
               />
             ))}
-            {isAddingAddress && (
-              <Box sx={{ mt: 1.5 }}>
-                <TextField
-                  fullWidth
-                  label="New Address"
-                  multiline
-                  rows={2}
-                  value={newAddress}
-                  onChange={(e) => setNewAddress(e.target.value)}
-                  sx={{ mb: 1.5 }}
-                  size="small"
-                />
-                <Box sx={{ display: 'flex', gap: 1.5 }}>
-                  <Button
-                    variant="contained"
-                    onClick={handleAddAddress}
-                    disabled={!newAddress.trim()}
-                    size="small"
-                    sx={{ 
-                      backgroundColor: '#fc8019',
-                      '&:hover': { backgroundColor: '#e6730a' },
-                      fontSize: '13px',
-                      px: 2,
-                      py: 1,
-                      borderRadius: '8px'
-                    }}
-                  >
-                    Add Address
-                  </Button>
-                  <Button
-                    variant="outlined"
-                    onClick={() => {
-                      setNewAddress('');
-                      setIsAddingAddress(false);
-                    }}
-                    size="small"
-                    sx={{ 
-                      fontSize: '13px',
-                      px: 2,
-                      py: 1,
-                      borderRadius: '8px'
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </Box>
-              </Box>
-            )}
-            {(!user?.addresses || user.addresses.length === 0) && !isAddingAddress && (
-              <EmptyAddresses onAdd={() => setIsAddingAddress(true)} />
+            {(!profile?.addresses || profile.addresses.length === 0) && (
+              <EmptyAddresses onAdd={() => setEditAddress({ street: '', city: '', state: '', zipCode: '', type: 'Home' })} />
             )}
           </Paper>
         </>
@@ -337,6 +328,21 @@ const ProfilePage = () => {
           )}
         </Box>
       )}
+      <AddressEditModal open={!!editAddress} onClose={() => setEditAddress(null)} address={editAddress} onSave={async (form) => {
+        if (editAddress && editAddress.id) {
+          await handleEditAddressSave(form);
+        } else {
+          try {
+            const res = await userAPI.addAddress(form);
+            const addr = res?.data || res;
+            setProfile({ ...profile, addresses: [...(profile?.addresses || []), addr] });
+            setEditAddress(null);
+            dispatch(showNotification({ message: 'Address added successfully!', type: 'success' }));
+          } catch (e) {
+            dispatch(showNotification({ message: 'Failed to add address', type: 'error' }));
+          }
+        }
+      }} />
     </Container>
   );
 };

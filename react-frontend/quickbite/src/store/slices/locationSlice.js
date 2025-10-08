@@ -71,33 +71,19 @@ export const detectCurrentLocation = createAsyncThunk(
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
-          
-          // Find closest mock area with improved distance calculation
-          let closestArea = mockAreas[0];
-          let minDistance = Infinity;
-          
-          mockAreas.forEach(area => {
-            // Haversine distance calculation for more accuracy
-            const R = 6371; // Earth's radius in kilometers
-            const dLat = (area.lat - latitude) * Math.PI / 180;
-            const dLng = (area.lng - longitude) * Math.PI / 180;
-            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                      Math.cos(latitude * Math.PI / 180) * Math.cos(area.lat * Math.PI / 180) *
-                      Math.sin(dLng/2) * Math.sin(dLng/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            const distance = R * c;
-            
-            if (distance < minDistance) {
-              minDistance = distance;
-              closestArea = area;
-            }
-          });
-          
-          resolve({
-            lat: latitude,
-            lng: longitude,
-            address: closestArea.address
-          });
+          try {
+            const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}&zoom=16&addressdetails=1`;
+            const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+            const data = await res.json();
+            const address = data?.display_name || [
+              data?.address?.suburb,
+              data?.address?.city || data?.address?.town || data?.address?.village,
+              data?.address?.state
+            ].filter(Boolean).join(', ');
+            resolve({ lat: latitude, lng: longitude, address: address || 'Current Location' });
+          } catch (e) {
+            resolve({ lat: latitude, lng: longitude, address: 'Current Location' });
+          }
         },
         (error) => {
           let errorMessage = 'Unable to retrieve your location.';
@@ -129,34 +115,16 @@ export const geocodeLocation = createAsyncThunk(
   'location/geocodeLocation',
   async ({ lat, lng }, { rejectWithValue }) => {
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Find closest mock area with Haversine distance
-      let closestArea = mockAreas[0];
-      let minDistance = Infinity;
-      
-      mockAreas.forEach(area => {
-        const R = 6371; // Earth's radius in kilometers
-        const dLat = (area.lat - lat) * Math.PI / 180;
-        const dLng = (area.lng - lng) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat * Math.PI / 180) * Math.cos(area.lat * Math.PI / 180) *
-                  Math.sin(dLng/2) * Math.sin(dLng/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        const distance = R * c;
-        
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestArea = area;
-        }
-      });
-      
-      return {
-        address: closestArea.address,
-        lat,
-        lng
-      };
+      const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&zoom=16&addressdetails=1`;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+      if (!res.ok) throw new Error('Reverse geocoding failed');
+      const data = await res.json();
+      const address = data?.display_name || [
+        data?.address?.suburb,
+        data?.address?.city || data?.address?.town || data?.address?.village,
+        data?.address?.state
+      ].filter(Boolean).join(', ');
+      return { address: address || 'Selected Location', lat, lng };
     } catch (error) {
       return rejectWithValue('Failed to get address for this location.');
     }
@@ -166,39 +134,18 @@ export const geocodeLocation = createAsyncThunk(
 // Async thunk for reverse geocoding (converting address to coordinates)
 export const reverseGeocodeLocation = createAsyncThunk(
   'location/reverseGeocodeLocation',
-  async (address, { rejectWithValue }) => {
+  async (query, { rejectWithValue }) => {
     try {
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Find matching area by address with improved search
-      const searchTerms = address.toLowerCase().split(' ');
-      const matchingArea = mockAreas.find(area => {
-        const areaName = area.area.toLowerCase();
-        const areaAddress = area.address.toLowerCase();
-        
-        // Check if any search term matches area name or address
-        return searchTerms.some(term => 
-          areaName.includes(term) || 
-          areaAddress.includes(term) ||
-          term.includes(areaName.split(' ')[0]) // Partial match for area names
-        );
-      });
-      
-      if (matchingArea) {
-        return {
-          lat: matchingArea.lat,
-          lng: matchingArea.lng,
-          address: matchingArea.address
-        };
-      }
-      
-      // If no exact match, return first area as fallback
-      return {
-        lat: mockAreas[0].lat,
-        lng: mockAreas[0].lng,
-        address: mockAreas[0].address
-      };
+      const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=jsonv2&limit=1&addressdetails=1`;
+      const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+      if (!res.ok) throw new Error('Geocoding failed');
+      const json = await res.json();
+      const result = json && json[0];
+      if (!result) throw new Error('No results');
+      const lat = parseFloat(result.lat);
+      const lng = parseFloat(result.lon);
+      const address = result.display_name || query;
+      return { lat, lng, address };
     } catch (error) {
       return rejectWithValue('Failed to get coordinates for this address.');
     }

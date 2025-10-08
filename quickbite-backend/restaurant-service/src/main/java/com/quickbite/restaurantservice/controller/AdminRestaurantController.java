@@ -97,6 +97,17 @@ public class AdminRestaurantController {
                 .build());
     }
 
+    @PostMapping("/initialize-ratings")
+    public ResponseEntity<ApiResponse<Void>> initializeAllRestaurantRatings(HttpServletRequest httpRequest) {
+        Long adminUserId = extractUserId(httpRequest);
+        restaurantService.initializeAllRestaurantRatings();
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Restaurant ratings initialized successfully")
+                .data(null)
+                .build());
+    }
+
     private Long extractUserId(HttpServletRequest request) {
         String auth = request.getHeader("Authorization");
         if (auth != null && auth.startsWith("Bearer ")) {

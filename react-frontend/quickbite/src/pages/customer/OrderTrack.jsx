@@ -129,11 +129,11 @@ const OrderTrack = () => {
         { lat: assignment.deliveryLatitude, lng: assignment.deliveryLongitude }
       ]
     : [
-        { lat: 17.4065, lng: 78.4772 },
-        { lat: 17.4100, lng: 78.4800 },
-        { lat: 17.4150, lng: 78.4850 },
-        { lat: 17.4200, lng: 78.4900 }
-      ];
+    { lat: 17.4065, lng: 78.4772 },
+    { lat: 17.4100, lng: 78.4800 },
+    { lat: 17.4150, lng: 78.4850 },
+    { lat: 17.4200, lng: 78.4900 }
+  ];
 
   const currentCenter = assignment && (assignment.currentLatitude != null && assignment.currentLongitude != null)
     ? { lat: assignment.currentLatitude, lng: assignment.currentLongitude }
@@ -166,25 +166,25 @@ const OrderTrack = () => {
         {assignment && (
           <>
             <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>{assignment.status === 'ASSIGNED' ? 'Partner assigned' : 'Delivery Partner Location'}</Typography>
-            <Box sx={{ height: 360, width: '100%', position: 'relative', overflow: 'hidden' }}>
-              <DeliveryMap
+        <Box sx={{ height: 360, width: '100%', position: 'relative', overflow: 'hidden' }}>
+          <DeliveryMap
                 key={`${orderObj.id}-${stepIndex}-${assignment?.status || 'na'}-${assignment?.currentLatitude || 'x'}-${assignment?.currentLongitude || 'y'}`}
-                path={path}
+            path={path}
                 initialCenter={currentCenter}
                 currentPosition={assignment && assignment.currentLatitude != null && assignment.currentLongitude != null ? { lat: assignment.currentLatitude, lng: assignment.currentLongitude } : null}
                 phase="to_customer"
                 restaurantPosition={assignment && assignment.pickupLatitude != null && assignment.pickupLongitude != null ? { lat: assignment.pickupLatitude, lng: assignment.pickupLongitude } : null}
                 customerPosition={assignment && assignment.deliveryLatitude != null && assignment.deliveryLongitude != null ? { lat: assignment.deliveryLatitude, lng: assignment.deliveryLongitude } : null}
                 onReachedEnd={() => {}}
-              />
-            </Box>
+          />
+        </Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Chip size="small" label={assignment.status} color={assignment.status === 'DELIVERED' ? 'success' : 'primary'} />
                 {isAssigning && <Chip size="small" variant="outlined" label="Refreshing…" />}
               </Box>
-              <Button variant="outlined" sx={{ textTransform: 'none' }} href={`tel:9999999999`}>Call Delivery Partner</Button>
-            </Box>
+          <Button variant="outlined" sx={{ textTransform: 'none' }} href={`tel:9999999999`}>Call Delivery Partner</Button>
+        </Box>
           </>
         )}
       </Paper>

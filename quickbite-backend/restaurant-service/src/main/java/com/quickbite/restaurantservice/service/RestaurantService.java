@@ -334,6 +334,10 @@ public class RestaurantService {
         RestaurantReview entity = new RestaurantReview();
         BeanUtils.copyProperties(dto, entity, "id", "createdAt");
         RestaurantReview saved = restaurantReviewRepository.save(entity);
+        
+        // Update restaurant rating and totalRatings
+        updateRestaurantRating(dto.getRestaurantId());
+        
         RestaurantReviewDto out = new RestaurantReviewDto();
         BeanUtils.copyProperties(saved, out);
         return out;
@@ -346,6 +350,106 @@ public class RestaurantService {
             BeanUtils.copyProperties(r, d);
             return d;
         }).collect(Collectors.toList());
+    }
+
+    @Transactional
+    public RestaurantReviewDto updateReview(Long reviewId, RestaurantReviewDto dto) {
+        RestaurantReview existing = restaurantReviewRepository.findById(reviewId)
+            .orElseThrow(() -> new RuntimeException("Review not found"));
+        
+        // Store restaurantId before updating
+        Long restaurantId = existing.getRestaurantId();
+        
+        BeanUtils.copyProperties(dto, existing, "id", "createdAt", "restaurantId", "userId");
+        RestaurantReview saved = restaurantReviewRepository.save(existing);
+        
+        // Update restaurant rating and totalRatings
+        updateRestaurantRating(restaurantId);
+        
+        RestaurantReviewDto out = new RestaurantReviewDto();
+        BeanUtils.copyProperties(saved, out);
+        return out;
+    }
+
+    @Transactional
+    public void deleteReview(Long reviewId) {
+        RestaurantReview review = restaurantReviewRepository.findById(reviewId)
+            .orElseThrow(() -> new RuntimeException("Review not found"));
+        
+        Long restaurantId = review.getRestaurantId();
+        restaurantReviewRepository.deleteById(reviewId);
+        
+        // Update restaurant rating and totalRatings
+        updateRestaurantRating(restaurantId);
+        
+        log.info("Deleted review {} for restaurant {}", reviewId, restaurantId);
+    }
+
+    // --- Rating Management ---
+
+    /**
+     * Updates restaurant rating and totalRatings based on current reviews
+     */
+    @Transactional
+    public void updateRestaurantRating(Long restaurantId) {
+        try {
+            // Calculate average rating and total count
+            Double avgRating = calculateAverageRating(restaurantId);
+            Long totalRatings = calculateTotalRatings(restaurantId);
+            
+            // Update restaurant entity
+            Restaurant restaurant = restaurantRepository.findById(restaurantId)
+                .orElseThrow(() -> new RuntimeException("Restaurant not found with id: " + restaurantId));
+            
+            restaurant.setRating(avgRating);
+            restaurant.setTotalRatings(totalRatings.intValue());
+            restaurantRepository.save(restaurant);
+            
+            log.info("Updated rating for restaurant {}: {} ({} reviews)", 
+                restaurantId, avgRating, totalRatings);
+                
+        } catch (Exception e) {
+            log.error("Failed to update rating for restaurant {}: {}", restaurantId, e.getMessage());
+            // Don't throw exception to avoid breaking the review creation process
+        }
+    }
+
+    /**
+     * Calculates average rating for a restaurant
+     */
+    private Double calculateAverageRating(Long restaurantId) {
+        List<RestaurantReview> reviews = restaurantReviewRepository.findByRestaurantId(restaurantId);
+        if (reviews.isEmpty()) {
+            return 0.0;
+        }
+        
+        double sum = reviews.stream()
+            .mapToInt(RestaurantReview::getRating)
+            .sum();
+        
+        return Math.round((sum / reviews.size()) * 10.0) / 10.0; // Round to 1 decimal place
+    }
+
+    /**
+     * Calculates total number of ratings for a restaurant
+     */
+    private Long calculateTotalRatings(Long restaurantId) {
+        return restaurantReviewRepository.countByRestaurantId(restaurantId);
+    }
+
+    /**
+     * Initializes ratings for all restaurants that don't have ratings set
+     * This is useful for restaurants created before the rating system was implemented
+     */
+    @Transactional
+    public void initializeAllRestaurantRatings() {
+        List<Restaurant> restaurantsWithoutRatings = restaurantRepository.findByRatingIsNull();
+        
+        for (Restaurant restaurant : restaurantsWithoutRatings) {
+            updateRestaurantRating(restaurant.getId());
+        }
+        
+        log.info("Initialized ratings for {} restaurants", restaurantsWithoutRatings.size());
     }
 
     @Transactional(readOnly = true)

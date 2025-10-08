@@ -91,6 +91,8 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         
         // Review endpoints
         mappings.put("POST:/api/restaurants/{restaurantId}/reviews", List.of("CUSTOMER"));
+        mappings.put("PUT:/api/restaurants/reviews/{reviewId}", List.of("CUSTOMER"));
+        mappings.put("DELETE:/api/restaurants/reviews/{reviewId}", List.of("CUSTOMER"));
         mappings.put("POST:/api/delivery/partners/{partnerUserId}/reviews", List.of("CUSTOMER"));
         
         // ===== DELIVERY PARTNER ENDPOINTS =====
@@ -157,6 +159,7 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         mappings.put("GET:/api/restaurants/admin/all", List.of("ADMIN"));
         mappings.put("PUT:/api/restaurants/admin/{restaurantId}/status", List.of("ADMIN"));
         mappings.put("PUT:/api/restaurants/{id}/status", List.of("ADMIN"));
+        mappings.put("POST:/api/restaurants/admin/initialize-ratings", List.of("ADMIN"));
         
         // Order admin
         mappings.put("GET:/api/orders", List.of("ADMIN"));
@@ -210,13 +213,6 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         mappings.put("GET:/api/restaurants/my", List.of("RESTAURANT_OWNER"));
         mappings.put("GET:/api/restaurants/orders", List.of("RESTAURANT_OWNER"));
         mappings.put("PUT:/api/restaurants/orders/{orderId}/status", List.of("RESTAURANT_OWNER"));
-        
-        // ===== RESTAURANT ADMIN IMPORT/EXPORT (Excel/PDF) =====
-        mappings.put("POST:/api/restaurants/import/excel", List.of("ADMIN")); 
-        mappings.put("GET:/api/restaurants/{id}/export/pdf", List.of("ADMIN"));
-        mappings.put("GET:/api/restaurants/export/excel", List.of("ADMIN"));
-        mappings.put("GET:/api/restaurants/export/admin/all/pdf", List.of("ADMIN"));
-        mappings.put("GET:/api/restaurants/export/pdf/{ownerId}", List.of("ADMIN"));
         
         // Additional Delivery Endpoints (fixing role access)
         mappings.put("GET:/api/delivery/assignments/order/{orderId}", List.of("CUSTOMER", "RESTAURANT_OWNER", "ADMIN", "DELIVERY_PARTNER"));

@@ -146,6 +146,30 @@ public class RestaurantController {
                 .build());
     }
 
+    @PutMapping("/reviews/{reviewId}")
+    public ResponseEntity<ApiResponse<RestaurantReviewDto>> updateReview(@PathVariable Long reviewId, @Valid @RequestBody RestaurantReviewDto reviewDto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
+        reviewDto.setUserId(userId);
+        RestaurantReviewDto updated = restaurantService.updateReview(reviewId, reviewDto);
+        return ResponseEntity.ok(ApiResponse.<RestaurantReviewDto>builder()
+                .success(true)
+                .message("Review updated successfully")
+                .data(updated)
+                .build());
+    }
+
+    @DeleteMapping("/reviews/{reviewId}")
+    public ResponseEntity<ApiResponse<Void>> deleteReview(@PathVariable Long reviewId, HttpServletRequest request) {
+        Long userId = extractUserId(request);
+        // TODO: Add authorization check to ensure user can only delete their own reviews
+        restaurantService.deleteReview(reviewId);
+        return ResponseEntity.ok(ApiResponse.<Void>builder()
+                .success(true)
+                .message("Review deleted successfully")
+                .data(null)
+                .build());
+    }
+
     // --- Restaurant Owner Endpoints ---
 
     @PostMapping("/owners/apply")

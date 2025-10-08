@@ -89,6 +89,15 @@ export const userAPI = {
     return response.data;
   },
 
+  // Update user current location (lat/lng)
+  updateLocation: async (latitude, longitude) => {
+    const response = await api.put('/api/users/location', {
+      currentLatitude: latitude,
+      currentLongitude: longitude
+    });
+    return response.data;
+  },
+
   // Create user profile
   createProfile: async (profileData) => {
     const response = await api.post('/api/users/profile', profileData);
@@ -159,6 +168,12 @@ export const restaurantAPI = {
   // Add restaurant review
   addReview: async (restaurantId, reviewData) => {
     const response = await api.post(`/api/restaurants/${restaurantId}/reviews`, reviewData);
+    return response.data;
+  },
+
+  // Restaurant owner application
+  applyAsRestaurantOwner: async (applicationData) => {
+    const response = await api.post('/api/restaurants/owners/apply', applicationData);
     return response.data;
   }
 };
@@ -242,6 +257,12 @@ export const orderAPI = {
     return response.data;
   },
 
+  // Get latest active order for current user
+  getActiveOrder: async () => {
+    const response = await api.get('/api/orders/user/active');
+    return response.data;
+  },
+
   // Get order by ID
   getOrderById: async (orderId) => {
     const response = await api.get(`/api/orders/user/${orderId}`);
@@ -314,6 +335,223 @@ export const deliveryAPI = {
   // Get assignment by order id
   getAssignmentByOrder: async (orderId) => {
     const response = await api.get(`/api/delivery/assignments/order/${orderId}`);
+    return response.data;
+  },
+
+  // Delivery partner self-registration
+  selfRegisterAsDeliveryPartner: async (registrationData) => {
+    const response = await api.post('/api/delivery/partners/self-register', registrationData);
+    return response.data;
+  }
+};
+
+// Admin API endpoints
+export const adminAPI = {
+  // User Management
+  getAllUsers: async (page = 0, size = 10) => {
+    const response = await api.get(`/admin/users?page=${page}&size=${size}`);
+    return response.data;
+  },
+
+  createUser: async (userData, role = 'CUSTOMER') => {
+    const response = await api.post(`/admin/users?role=${role}`, userData);
+    return response.data;
+  },
+
+  updateUser: async (id, userData) => {
+    const response = await api.put(`/admin/users/${id}`, userData);
+    return response.data;
+  },
+
+  activateUser: async (id) => {
+    const response = await api.put(`/admin/users/${id}/activate`);
+    return response.data;
+  },
+
+  deactivateUser: async (id) => {
+    const response = await api.put(`/admin/users/${id}/deactivate`);
+    return response.data;
+  },
+
+  importUsers: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/admin/users/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  exportUsersToPdf: async () => {
+    const response = await api.get('/admin/users/export/pdf', { responseType: 'blob' });
+    return response.data;
+  },
+
+  exportUsersByRole: async (role) => {
+    const response = await api.get(`/admin/users/export/pdf/${role}`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  // Restaurant Management
+  getPendingRestaurants: async (page = 0, size = 10) => {
+    const response = await api.get(`/api/restaurants/admin/pending?page=${page}&size=${size}`);
+    return response.data;
+  },
+
+  getAllRestaurants: async (page = 0, size = 10, status = null) => {
+    const params = new URLSearchParams({ page, size });
+    if (status) params.append('status', status);
+    const response = await api.get(`/api/restaurants/admin/all?${params}`);
+    return response.data;
+  },
+
+  approveRestaurant: async (restaurantId, approvalData) => {
+    const response = await api.put(`/api/restaurants/admin/${restaurantId}/approve`, approvalData);
+    return response.data;
+  },
+
+  rejectRestaurant: async (restaurantId, rejectionData) => {
+    const response = await api.put(`/api/restaurants/admin/${restaurantId}/reject`, rejectionData);
+    return response.data;
+  },
+
+  updateRestaurantStatus: async (restaurantId, status) => {
+    const response = await api.put(`/api/restaurants/admin/${restaurantId}/status?status=${status}`);
+    return response.data;
+  },
+
+  initializeRestaurantRatings: async () => {
+    const response = await api.post('/api/restaurants/admin/initialize-ratings');
+    return response.data;
+  },
+
+  // Order Management
+  getAllOrders: async (page = 0, size = 10) => {
+    const response = await api.get(`/api/orders?page=${page}&size=${size}`);
+    return response.data;
+  },
+
+  getAdminOrders: async (page = 0, size = 10) => {
+    const response = await api.get(`/api/orders/admin?page=${page}&size=${size}`);
+    return response.data;
+  },
+
+  updateOrderStatus: async (orderId, status) => {
+    const response = await api.put(`/api/orders/${orderId}/status?status=${status}`);
+    return response.data;
+  },
+
+  getRestaurantOrders: async (restaurantId) => {
+    const response = await api.get(`/api/orders/restaurant/${restaurantId}`);
+    return response.data;
+  },
+
+  // Delivery Partner Management
+  getPendingPartners: async () => {
+    const response = await api.get('/api/delivery/admin/pending');
+    return response.data;
+  },
+
+  approveDeliveryPartner: async (partnerUserId) => {
+    const response = await api.put(`/api/delivery/admin/${partnerUserId}/approve`);
+    return response.data;
+  },
+
+  rejectDeliveryPartner: async (partnerUserId) => {
+    const response = await api.put(`/api/delivery/admin/${partnerUserId}/reject`);
+    return response.data;
+  },
+
+  // Coupon Management
+  getAllCoupons: async (page = 0, size = 10) => {
+    const response = await api.get(`/api/payments/coupons?page=${page}&size=${size}`);
+    return response.data;
+  },
+
+  getCouponById: async (couponId) => {
+    const response = await api.get(`/api/payments/coupons/${couponId}`);
+    return response.data;
+  },
+
+  createCoupon: async (couponData) => {
+    const response = await api.post('/api/payments/coupons', couponData);
+    return response.data;
+  },
+
+  updateCoupon: async (couponId, couponData) => {
+    const response = await api.put(`/api/payments/coupons/${couponId}`, couponData);
+    return response.data;
+  },
+
+  deleteCoupon: async (couponId) => {
+    const response = await api.delete(`/api/payments/coupons/${couponId}`);
+    return response.data;
+  },
+
+  // Transaction Management
+  getAllTransactions: async () => {
+    const response = await api.get('/api/payments/transactions');
+    return response.data;
+  },
+
+  getTransactionById: async (id) => {
+    const response = await api.get(`/api/payments/transactions/${id}`);
+    return response.data;
+  },
+
+  getTransactionsByOrder: async (orderId) => {
+    const response = await api.get(`/api/payments/transactions/order/${orderId}`);
+    return response.data;
+  },
+
+  getTransactionsByStatus: async (status) => {
+    const response = await api.get(`/api/payments/transactions/status/${status}`);
+    return response.data;
+  },
+
+  getTransactionsByRestaurant: async (restaurantId) => {
+    const response = await api.get(`/api/payments/transactions/restaurant/${restaurantId}`);
+    return response.data;
+  },
+
+  // Analytics
+  getRestaurantAnalytics: async (restaurantId, period = 'week') => {
+    const response = await api.get(`/api/restaurants/${restaurantId}/analytics?period=${period}`);
+    return response.data;
+  },
+
+  getRestaurantAnalyticsSummary: async (period = 'week') => {
+    const response = await api.get(`/api/restaurants/analytics/summary?period=${period}`);
+    return response.data;
+  },
+
+  getOrderAnalytics: async (period = 'week') => {
+    const response = await api.get(`/api/orders/analytics?period=${period}`);
+    return response.data;
+  },
+
+  getOrderAnalyticsSummary: async (period = 'week') => {
+    const response = await api.get(`/api/orders/analytics/summary?period=${period}`);
+    return response.data;
+  },
+
+  getDeliveryAnalytics: async (period = 'week') => {
+    const response = await api.get(`/api/delivery/analytics?period=${period}`);
+    return response.data;
+  },
+
+  getDeliveryAnalyticsSummary: async (period = 'week') => {
+    const response = await api.get(`/api/delivery/analytics/summary?period=${period}`);
+    return response.data;
+  },
+
+  getPaymentAnalytics: async (period = 'week') => {
+    const response = await api.get(`/api/payments/analytics?period=${period}`);
+    return response.data;
+  },
+
+  getPaymentAnalyticsSummary: async (period = 'week') => {
+    const response = await api.get(`/api/payments/analytics/summary?period=${period}`);
     return response.data;
   }
 };

@@ -16,4 +16,5 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
     List<Restaurant> findByStatus(RestaurantStatus status);
     Page<Restaurant> findByStatus(RestaurantStatus status, Pageable pageable);
     Page<Restaurant> findByNameContainingIgnoreCaseOrCuisineTypeContainingIgnoreCase(String name, String cuisineType, Pageable pageable);
+    List<Restaurant> findByRatingIsNull();
 }
