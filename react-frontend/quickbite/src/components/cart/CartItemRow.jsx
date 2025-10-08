@@ -31,10 +31,10 @@ const CartItemRow = ({ item, index, itemsLength, formatPrice }) => {
     <Box>
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
         <Box sx={{ width: 80, height: 80, borderRadius: '8px', overflow: 'hidden', flexShrink: 0 }}>
-          <img src={item.image} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          <img src={item.image || '/images/placeholder.png'} alt={item.name || 'Item'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         </Box>
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-          <Typography variant="h6" sx={{ fontWeight: 600, color: '#333', mb: 0.5, fontSize: '16px' }}>{item.name}</Typography>
+          <Typography variant="h6" sx={{ fontWeight: 600, color: '#333', mb: 0.5, fontSize: '16px' }}>{item.name || 'Menu Item'}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontSize: '14px' }}>{formatPrice(item.price)} each</Typography>
           {item.customization && (
             <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontSize: '12px' }}>

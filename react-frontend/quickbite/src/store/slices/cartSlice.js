@@ -294,7 +294,7 @@ const cartSlice = createSlice({
       const cart = payload.cart || payload;
       state.items = (cart.items || []).map(it => ({
         id: it.menuItemId || it.id,
-        name: it.name,
+        name: it.name || it.menuItemName,
         price: it.price,
         image: it.imageUrl || it.image,
         // Preserve exact customization string/null from backend for matching

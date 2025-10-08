@@ -283,7 +283,7 @@ const CartPage = () => {
       <Container maxWidth="md" sx={{ py: 2, px: { xs: 1, sm: 2 }, flexGrow: 1 }}>
         <Grid container spacing={2}>
           {/* Left Column - Cart Items */}
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12} md={9} lg={9}>
             {/* Restaurant Info */}
             <Card sx={{ borderRadius: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', mb: 2 }}>
               <CardContent sx={{ p: 2 }}>
@@ -361,7 +361,7 @@ const CartPage = () => {
           </Grid>
 
           {/* Right Column - Order Summary */}
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={3} lg={3}>
             <Card sx={{ borderRadius: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', position: 'sticky', top: 20 }}>
               <CardContent sx={{ p: 2 }}>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#333', fontSize: '16px' }}>
