@@ -20,6 +20,8 @@ public class CartItemDto {
     // These fields are optional - will be fetched automatically from database
     private String menuItemName;
     private Double price;
+    // Image URL for displaying the menu item thumbnail in client
+    private String imageUrl;
 
     @NotNull(message = "Quantity is required")
     @Positive(message = "Quantity must be positive")

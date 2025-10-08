@@ -347,6 +347,14 @@ public class CartService {
     private CartItemDto convertToCartItemDto(CartItem item) {
         CartItemDto dto = new CartItemDto();
         BeanUtils.copyProperties(item, dto);
+        // Enrich with image URL from menu_items table
+        Map<String, Object> menuItemDetails = crossServiceRepository.getMenuItemDetails(item.getMenuItemId());
+        if (menuItemDetails != null) {
+            Object image = menuItemDetails.get("image_url");
+            if (image instanceof String) {
+                dto.setImageUrl((String) image);
+            }
+        }
         return dto;
     }
 }

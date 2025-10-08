@@ -397,6 +397,14 @@ export const adminAPI = {
     const response = await api.get(`/api/restaurants/admin/pending?page=${page}&size=${size}`);
     return response.data;
   },
+  createRestaurant: async (restaurantData) => {
+    const response = await api.post('/api/restaurants', restaurantData);
+    return response.data;
+  },
+  updateRestaurantProfile: async (restaurantId, restaurantData) => {
+    const response = await api.put(`/api/restaurants/${restaurantId}/profile`, restaurantData);
+    return response.data;
+  },
 
   getAllRestaurants: async (page = 0, size = 10, status = null) => {
     const params = new URLSearchParams({ page, size });

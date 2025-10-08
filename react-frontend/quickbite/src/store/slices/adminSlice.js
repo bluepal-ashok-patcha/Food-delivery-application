@@ -184,6 +184,34 @@ const updateRestaurantStatus = createAsyncThunk(
   }
 );
 
+const createRestaurant = createAsyncThunk(
+  'admin/createRestaurant',
+  async (restaurantData, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await adminAPI.createRestaurant(restaurantData);
+      dispatch(showNotification({ message: 'Restaurant created successfully', type: 'success' }));
+      return response;
+    } catch (error) {
+      dispatch(showNotification({ message: error.response?.data?.message || 'Failed to create restaurant', type: 'error' }));
+      return rejectWithValue(error.response?.data?.message || 'Failed to create restaurant');
+    }
+  }
+);
+
+const updateRestaurantProfile = createAsyncThunk(
+  'admin/updateRestaurantProfile',
+  async ({ id, data }, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await adminAPI.updateRestaurantProfile(id, data);
+      dispatch(showNotification({ message: 'Restaurant updated successfully', type: 'success' }));
+      return response;
+    } catch (error) {
+      dispatch(showNotification({ message: error.response?.data?.message || 'Failed to update restaurant', type: 'error' }));
+      return rejectWithValue(error.response?.data?.message || 'Failed to update restaurant');
+    }
+  }
+);
+
 const fetchOrders = createAsyncThunk(
   'admin/fetchOrders',
   async ({ page = 0, size = 10 } = {}, { rejectWithValue }) => {
@@ -590,8 +618,12 @@ const adminSlice = createSlice({
         state.loading.restaurants = false;
         state.error.restaurants = action.payload;
       })
-      .addCase(fetchPendingRestaurants.fulfilled, (state, action) => {
-        state.restaurants = action.payload.data || [];
+      .addCase(createRestaurant.fulfilled, (state, action) => {
+        if (action.payload?.data) state.restaurants.unshift(action.payload.data);
+      })
+      .addCase(updateRestaurantProfile.fulfilled, (state, action) => {
+        const idx = state.restaurants.findIndex(r => r.id === action.payload?.data?.id);
+        if (idx !== -1) state.restaurants[idx] = action.payload.data;
       })
       .addCase(approveRestaurant.fulfilled, (state, action) => {
         const index = state.restaurants.findIndex(r => r.id === action.payload.data.id);
@@ -740,6 +772,8 @@ export {
   approveRestaurant, 
   rejectRestaurant, 
   updateRestaurantStatus,
+  createRestaurant, 
+  updateRestaurantProfile,
   fetchOrders, 
   updateOrderStatus,
   fetchDeliveryPartners, 

@@ -11,6 +11,7 @@ import TabHeader from '../../components/admin/TabHeader';
 import { 
   fetchUsers, createUser, updateUser, toggleUserStatus,
   fetchRestaurants, fetchPendingRestaurants, approveRestaurant, rejectRestaurant, updateRestaurantStatus,
+  createRestaurant, updateRestaurantProfile,
   fetchOrders, updateOrderStatus,
   fetchDeliveryPartners, approveDeliveryPartner, rejectDeliveryPartner,
   fetchCoupons, createCoupon, updateCoupon, deleteCoupon,
@@ -626,7 +627,7 @@ const AdminDashboard = () => {
                           <TableCell>
                             <ActionButtons 
                               menuOnly 
-                              onEdit={() => { setFormValues(c); setOpenCouponsModal(true); }}
+                              onEdit={() => { setFormValues({ ...c, type: (c.type || '').toString() }); setOpenCouponsModal(true); }}
                               onDelete={() => dispatch(deleteCoupon(c.id))}
                             />
                           </TableCell>
@@ -1098,13 +1099,58 @@ const AdminDashboard = () => {
                 onClick={() => {
 
                   if (formValues?.id) {
-
-                    dispatch(updateRestaurant({ id: formValues.id, changes: { name: formValues.name, cuisine: formValues.cuisine, address: formValues.address, isActive: formValues.isActive, isOpen: formValues.isOpen, isApproved: formValues.isApproved, ownerId: formValues.ownerId } }));
-
+                    const data = {
+                      name: formValues.name,
+                      cuisineType: formValues.cuisineType || formValues.cuisine,
+                      address: formValues.address,
+                      contactNumber: formValues.contactNumber,
+                      description: formValues.description,
+                      image: formValues.image,
+                      coverImage: formValues.coverImage,
+                      deliveryTime: formValues.deliveryTime,
+                      deliveryFee: formValues.deliveryFee,
+                      minimumOrder: formValues.minimumOrder,
+                      openingHours: formValues.openingHours,
+                      openingTime: formValues.openingTime,
+                      closingTime: formValues.closingTime,
+                      deliveryRadiusKm: formValues.deliveryRadiusKm,
+                      latitude: formValues.latitude,
+                      longitude: formValues.longitude,
+                      tags: formValues.tags,
+                      isOpen: formValues.isOpen,
+                      isActive: formValues.isActive,
+                    };
+                    if (formValues.status) data.status = formValues.status;
+                    if (formValues.ownerId) data.ownerId = formValues.ownerId;
+                    dispatch(updateRestaurantProfile({ id: formValues.id, data }));
+                    if (formValues.status) {
+                      dispatch(updateRestaurantStatus({ restaurantId: formValues.id, status: formValues.status }));
+                    }
                   } else {
-
-                    dispatch(addRestaurant({ name: formValues.name, cuisine: formValues.cuisine, address: formValues.address, isActive: true, isOpen: true, ownerId: formValues.ownerId }));
-
+                    const data = {
+                      name: formValues.name,
+                      cuisineType: formValues.cuisineType || formValues.cuisine,
+                      address: formValues.address,
+                      contactNumber: formValues.contactNumber,
+                      description: formValues.description,
+                      image: formValues.image,
+                      coverImage: formValues.coverImage,
+                      deliveryTime: formValues.deliveryTime,
+                      deliveryFee: formValues.deliveryFee,
+                      minimumOrder: formValues.minimumOrder,
+                      openingHours: formValues.openingHours,
+                      openingTime: formValues.openingTime,
+                      closingTime: formValues.closingTime,
+                      deliveryRadiusKm: formValues.deliveryRadiusKm,
+                      latitude: formValues.latitude,
+                      longitude: formValues.longitude,
+                      tags: formValues.tags,
+                      isOpen: formValues.isOpen ?? true,
+                      isActive: formValues.isActive ?? true,
+                      ownerId: formValues.ownerId,
+                    };
+                    if (formValues.status) data.status = formValues.status;
+                    dispatch(createRestaurant(data));
                   }
 
                   setOpenRestaurantModal(false);
