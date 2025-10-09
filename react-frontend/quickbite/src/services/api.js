@@ -175,6 +175,65 @@ export const restaurantAPI = {
   applyAsRestaurantOwner: async (applicationData) => {
     const response = await api.post('/api/restaurants/owners/apply', applicationData);
     return response.data;
+  },
+
+  // Get my restaurants (for restaurant owners)
+  getMyRestaurants: async () => {
+    const response = await api.get('/api/restaurants/my');
+    return response.data;
+  },
+
+  // Update restaurant profile
+  updateRestaurantProfile: async (restaurantId, restaurantData) => {
+    const response = await api.put(`/api/restaurants/${restaurantId}/profile`, restaurantData);
+    return response.data;
+  },
+
+  // Toggle restaurant open/closed status
+  setRestaurantOpen: async (restaurantId, isOpen) => {
+    const response = await api.put(`/api/restaurants/${restaurantId}/open?isOpen=${isOpen}`);
+    return response.data;
+  },
+
+  // Menu management
+  getRestaurantCategories: async (restaurantId) => {
+    const response = await api.get(`/api/restaurants/${restaurantId}/categories`);
+    return response.data;
+  },
+
+  addMenuCategory: async (restaurantId, categoryData) => {
+    const response = await api.post(`/api/restaurants/${restaurantId}/categories`, categoryData);
+    return response.data;
+  },
+
+  updateMenuCategory: async (categoryId, categoryData) => {
+    const response = await api.put(`/api/restaurants/categories/${categoryId}`, categoryData);
+    return response.data;
+  },
+
+  deleteMenuCategory: async (categoryId) => {
+    const response = await api.delete(`/api/restaurants/categories/${categoryId}`);
+    return response.data;
+  },
+
+  addMenuItem: async (categoryId, itemData) => {
+    const response = await api.post(`/api/restaurants/categories/${categoryId}/items`, itemData);
+    return response.data;
+  },
+
+  updateMenuItem: async (itemId, itemData) => {
+    const response = await api.put(`/api/restaurants/items/${itemId}`, itemData);
+    return response.data;
+  },
+
+  deleteMenuItem: async (itemId) => {
+    const response = await api.delete(`/api/restaurants/items/${itemId}`);
+    return response.data;
+  },
+
+  getMenuItemById: async (itemId) => {
+    const response = await api.get(`/api/restaurants/items/${itemId}`);
+    return response.data;
   }
 };
 
@@ -271,7 +330,20 @@ export const orderAPI = {
 
   // Update order status
   updateOrderStatus: async (orderId, status) => {
-    const response = await api.put(`/api/orders/${orderId}/status`, { status });
+    const response = await api.put(`/api/orders/${orderId}/status?status=${status}`);
+    return response.data;
+  },
+
+  // Get orders for a specific restaurant
+  getRestaurantOrders: async (restaurantId, filters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.page !== undefined) params.append('page', filters.page);
+    if (filters.size !== undefined) params.append('size', filters.size);
+    if (filters.sortBy) params.append('sortBy', filters.sortBy);
+    if (filters.sortDir) params.append('sortDir', filters.sortDir);
+    if (filters.status) params.append('status', filters.status);
+    
+    const response = await api.get(`/api/orders/restaurant/${restaurantId}?${params.toString()}`);
     return response.data;
   }
 };

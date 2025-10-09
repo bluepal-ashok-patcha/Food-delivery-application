@@ -261,9 +261,9 @@ const MenuCard = ({ item, onEdit }) => {
           minHeight: '32px' // Fixed height for bottom section
         }}>
           <Chip 
-            label={item.isAvailable ? 'Available' : 'Out of Stock'} 
+            label={item.inStock ? 'Available' : 'Out of Stock'} 
             sx={{
-              background: item.isAvailable 
+              background: item.inStock 
                 ? 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)' 
                 : 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
               color: 'white',
@@ -271,7 +271,7 @@ const MenuCard = ({ item, onEdit }) => {
               fontSize: '11px',
               height: 28,
               borderRadius: '14px',
-              boxShadow: item.isAvailable 
+              boxShadow: item.inStock 
                 ? '0 2px 8px rgba(76, 175, 80, 0.3)'
                 : '0 2px 8px rgba(244, 67, 54, 0.3)'
             }}

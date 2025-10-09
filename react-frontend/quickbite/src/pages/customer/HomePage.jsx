@@ -188,7 +188,7 @@ const HomePage = () => {
           }}
         />
 
-        {loading ? (
+        {loading.restaurants ? (
           <LoadingSpinner fullScreen={false} message="Loading restaurants..." />
         ) : restaurants.length === 0 ? (
           <Paper sx={{ p: 3, textAlign: 'center', borderRadius: '3px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>

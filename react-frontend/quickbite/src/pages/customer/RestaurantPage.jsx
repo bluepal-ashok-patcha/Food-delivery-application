@@ -64,7 +64,7 @@ const RestaurantPage = () => {
     return quantities[itemId] || 0;
   };
 
-  if (loading) {
+  if (loading.restaurants) {
     return <LoadingSpinner fullScreen message="Loading restaurant..." />;
   }
 

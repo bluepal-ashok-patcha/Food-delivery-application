@@ -1,32 +1,20 @@
-import React, { useState } from 'react';
-import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, Avatar, Typography, Chip, Button, IconButton, Menu, MenuItem, ListItemText } from '@mui/material';
-import { CheckCircle, Cancel, MoreVert } from '@mui/icons-material';
+import React from 'react';
+import { TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Box, Avatar, Typography, Chip, Button } from '@mui/material';
+import { CheckCircle, Cancel } from '@mui/icons-material';
 
 const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
   const getStatusColor = (status) => {
     switch (status) {
-      case 'placed': return '#2196f3';
-      case 'preparing': return '#ff9800';
-      case 'ready_for_pickup': return '#9c27b0';
-      case 'delivered': return '#4caf50';
-      case 'cancelled': return '#f44336';
-      default: return '#666';
+      case 'PENDING': return '#6c757d';
+      case 'ACCEPTED': return '#28a745';
+      case 'PREPARING': return '#fd7e14';
+      case 'READY_FOR_PICKUP': return '#6f42c1';
+      case 'OUT_FOR_DELIVERY': return '#20c997';
+      case 'DELIVERED': return '#28a745';
+      case 'CANCELLED': return '#dc3545';
+      case 'REJECTED': return '#dc3545';
+      default: return '#6c757d';
     }
-  };
-
-  const [anchorEl, setAnchorEl] = useState(null);
-  const [menuOrderId, setMenuOrderId] = useState(null);
-
-  const handleMenuOpen = (e, orderId) => {
-    e.stopPropagation();
-    setAnchorEl(e.currentTarget);
-    setMenuOrderId(orderId);
-  };
-
-  const handleMenuClose = (e) => {
-    if (e) e.stopPropagation();
-    setAnchorEl(null);
-    setMenuOrderId(null);
   };
 
   return (
@@ -42,13 +30,14 @@ const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Customer</TableCell>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Items</TableCell>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Total</TableCell>
+            <TableCell sx={{ fontWeight: 700, color: '#333' }}>Payment</TableCell>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Status</TableCell>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Time</TableCell>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {orders.map((order) => (
+          {(orders || []).map((order) => (
             <TableRow 
               key={order.id}
               sx={{ 
@@ -61,138 +50,170 @@ const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
               <TableCell>
                 <Box>
                   <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#333' }}>
-                    #{order.id}
+                    Order {order.id}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#666' }}>
-                    {order.items.length} items
+                    {order.items?.length || 0} items
                   </Typography>
                 </Box>
               </TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Avatar sx={{ width: 32, height: 32, fontSize: '14px', background: '#fc8019' }}>
-                    C{order.customerId}
+                  <Avatar sx={{ width: 32, height: 32, fontSize: '14px', background: '#6c757d' }}>
+                    C{order.userId}
                   </Avatar>
                   <Typography variant="body2" sx={{ color: '#333' }}>
-                    Customer {order.customerId}
+                    Customer {order.userId}
                   </Typography>
                 </Box>
               </TableCell>
               <TableCell>
                 <Box>
-                  {order.items.slice(0, 2).map((item, index) => (
+                  {(order.items || []).slice(0, 2).map((item, index) => (
                     <Typography key={index} variant="body2" sx={{ color: '#666', fontSize: '12px' }}>
                       {item.quantity}x {item.name}
                     </Typography>
                   ))}
-                  {order.items.length > 2 && (
+                  {(order.items || []).length > 2 && (
                     <Typography variant="body2" sx={{ color: '#999', fontSize: '12px' }}>
-                      +{order.items.length - 2} more
+                      +{(order.items || []).length - 2} more
                     </Typography>
                   )}
                 </Box>
               </TableCell>
               <TableCell>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#333' }}>
-                  ${order.total.toFixed(2)}
+                  ${(order.totalAmount || 0).toFixed(2)}
                 </Typography>
               </TableCell>
               <TableCell>
                 <Chip 
-                  label={order.status.replace('_', ' ').toUpperCase()} 
+                  label={(order.paymentStatus || 'PENDING').replace('_', ' ').toUpperCase()} 
+                  variant="outlined"
                   sx={{
-                    background: getStatusColor(order.status),
-                    color: 'white',
-                    fontWeight: 600,
-                    fontSize: '12px'
+                    borderColor: order.paymentStatus === 'PAID' || order.paymentStatus === 'COMPLETED' ? '#28a745' : 
+                               order.paymentStatus === 'FAILED' ? '#dc3545' : '#6c757d',
+                    color: order.paymentStatus === 'PAID' || order.paymentStatus === 'COMPLETED' ? '#28a745' : 
+                           order.paymentStatus === 'FAILED' ? '#dc3545' : '#6c757d',
+                    fontWeight: 500,
+                    fontSize: '11px'
+                  }}
+                  size="small"
+                />
+              </TableCell>
+              <TableCell>
+                <Chip 
+                  label={(order.orderStatus || 'UNKNOWN').replace('_', ' ').toUpperCase()} 
+                  variant="outlined"
+                  sx={{
+                    borderColor: getStatusColor(order.orderStatus),
+                    color: getStatusColor(order.orderStatus),
+                    fontWeight: 500,
+                    fontSize: '11px'
                   }}
                   size="small"
                 />
               </TableCell>
               <TableCell>
                 <Typography variant="body2" sx={{ color: '#666' }}>
-                  {new Date(order.orderDate).toLocaleTimeString()}
+                  {order.createdAt ? new Date(order.createdAt).toLocaleTimeString() : 'N/A'}
                 </Typography>
               </TableCell>
               <TableCell>
-                {order.status === 'placed' && (
-                  <Box sx={{ display: 'flex', gap: 1 }}>
-                    <Button
-                      size="small"
-                      variant="contained"
-                      startIcon={<CheckCircle />}
-                      onClick={(e) => { e.stopPropagation(); onOrderAction(order.id, 'accept'); }}
-                      sx={{
-                        background: '#4caf50',
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        borderRadius: '4px',
-                        '&:hover': {
-                          background: '#388e3c'
-                        }
-                      }}
-                    >
-                      Accept
-                    </Button>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<Cancel />}
-                      onClick={(e) => { e.stopPropagation(); onOrderAction(order.id, 'reject'); }}
-                      sx={{
-                        borderColor: '#f44336',
-                        color: '#f44336',
-                        textTransform: 'none',
-                        fontWeight: 600,
-                        borderRadius: '4px',
-                        '&:hover': {
-                          borderColor: '#d32f2f',
-                          backgroundColor: '#ffebee'
-                        }
-                      }}
-                    >
-                      Reject
-                    </Button>
-                  </Box>
+                {/* Only show action buttons for paid orders */}
+                {order.paymentStatus === 'PAID' || order.paymentStatus === 'COMPLETED' ? (
+                  <>
+                    {order.orderStatus === 'PENDING' && (
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={<CheckCircle />}
+                          onClick={(e) => { e.stopPropagation(); onOrderAction(order.id, 'accept'); }}
+                          sx={{
+                            background: '#28a745',
+                            textTransform: 'none',
+                            fontWeight: 500,
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            '&:hover': {
+                              background: '#218838'
+                            }
+                          }}
+                        >
+                          Accept
+                        </Button>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          startIcon={<Cancel />}
+                          onClick={(e) => { e.stopPropagation(); onOrderAction(order.id, 'reject'); }}
+                          sx={{
+                            borderColor: '#dc3545',
+                            color: '#dc3545',
+                            textTransform: 'none',
+                            fontWeight: 500,
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            '&:hover': {
+                              borderColor: '#c82333',
+                              backgroundColor: '#f8d7da'
+                            }
+                          }}
+                        >
+                          Reject
+                        </Button>
+                      </Box>
+                    )}
+                    {order.orderStatus === 'ACCEPTED' && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={(e) => { e.stopPropagation(); onOrderAction(order.id, 'preparing'); }}
+                        sx={{
+                          background: '#fd7e14',
+                          textTransform: 'none',
+                          fontWeight: 500,
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          '&:hover': {
+                            background: '#e8690b'
+                          }
+                        }}
+                      >
+                        Start Preparing
+                      </Button>
+                    )}
+                    {order.orderStatus === 'PREPARING' && (
+                      <Button
+                        size="small"
+                        variant="contained"
+                        onClick={(e) => { e.stopPropagation(); onOrderAction(order.id, 'ready'); }}
+                        sx={{
+                          background: '#6f42c1',
+                          textTransform: 'none',
+                          fontWeight: 500,
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          '&:hover': {
+                            background: '#5a32a3'
+                          }
+                        }}
+                      >
+                        Mark Ready
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <Typography variant="body2" sx={{ color: '#666', fontStyle: 'italic' }}>
+                    Awaiting Payment
+                  </Typography>
                 )}
-                {order.status === 'preparing' && (
-                  <Button
-                    size="small"
-                    variant="contained"
-                    onClick={(e) => { e.stopPropagation(); onOrderAction(order.id, 'ready'); }}
-                    sx={{
-                      background: '#fc8019',
-                      textTransform: 'none',
-                      fontWeight: 600,
-                      borderRadius: '6px',
-                      '&:hover': {
-                        background: '#e6730a'
-                      }
-                    }}
-                  >
-                    Mark Ready
-                  </Button>
-                )}
-                {/* Always show kebab menu for additional status actions */}
-                <IconButton size="small" onClick={(e) => handleMenuOpen(e, order.id)} sx={{ ml: 1 }}>
-                  <MoreVert />
-                </IconButton>
               </TableCell>
             </TableRow>
           ))}
         </TableBody>
       </Table>
-      <Menu anchorEl={anchorEl} open={Boolean(anchorEl)} onClose={handleMenuClose} onClick={(e) => e.stopPropagation()}>
-        <MenuItem onClick={(e) => { handleMenuClose(e); if (menuOrderId) onOrderAction(menuOrderId, 'accept'); }}>
-          <ListItemText primary="Set to Preparing" />
-        </MenuItem>
-        <MenuItem onClick={(e) => { handleMenuClose(e); if (menuOrderId) onOrderAction(menuOrderId, 'ready'); }}>
-          <ListItemText primary="Set to Ready for Pickup" />
-        </MenuItem>
-        <MenuItem onClick={(e) => { handleMenuClose(e); if (menuOrderId) onOrderAction(menuOrderId, 'reject'); }}>
-          <ListItemText primary="Cancel Order" />
-        </MenuItem>
-      </Menu>
     </TableContainer>
   );
 };
