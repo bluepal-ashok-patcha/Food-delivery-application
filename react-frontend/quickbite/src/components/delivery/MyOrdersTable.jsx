@@ -96,28 +96,28 @@ const MyOrdersTable = ({ orders = [], onCompleteOrder, onRowClick, onAcceptOrder
                   <Avatar sx={{ width: 32, height: 32, background: '#FC8019', fontSize: '14px' }}>
                     <Person sx={{ fontSize: '16px' }} />
                   </Avatar>
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 500, color: '#1a1a1a', fontSize: '13px' }}>
-                      Customer #{order.customerId}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: '#666', fontSize: '11px' }}>
-                      Delivery Address
-                    </Typography>
-                  </Box>
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 500, color: '#1a1a1a', fontSize: '13px' }}>
+                    {order.customerName || `Customer #${order.customerId}`}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#666', fontSize: '11px' }}>
+                    {order.deliveryAddress || 'Delivery address not available'}
+                  </Typography>
+                </Box>
                 </Box>
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   <Avatar sx={{ width: 32, height: 32, background: '#FC8019', fontSize: '14px' }}>
                     <Restaurant sx={{ fontSize: '16px' }} />
                   </Avatar>
-                  <Box>
-                    <Typography variant="body2" sx={{ fontWeight: 500, color: '#1a1a1a', fontSize: '13px' }}>
-                      Restaurant #{order.restaurantId}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: '#666', fontSize: '11px' }}>
-                      Pickup Location
-                    </Typography>
-                  </Box>
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 500, color: '#1a1a1a', fontSize: '13px' }}>
+                    {order.restaurantName || `Restaurant #${order.restaurantId}`}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: '#666', fontSize: '11px' }}>
+                    {order.restaurantAddress || 'Pickup address not available'}
+                  </Typography>
+                </Box>
                 </Box>
               </Stack>
 

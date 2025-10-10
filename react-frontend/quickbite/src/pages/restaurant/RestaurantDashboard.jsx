@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Box, Container, Paper, Grid, Tabs, Tab, Typography, Stack, Chip, Divider, Button, CircularProgress, Alert, Select, MenuItem, FormControl, InputLabel, Fab } from '@mui/material';
 import { Restaurant, AttachMoney, AccessTime, Star, Add, Store } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
+import { openMapModal } from '../../store/slices/locationSlice';
 import { 
   fetchMyRestaurants, 
   updateRestaurantProfile, 
@@ -31,6 +32,8 @@ import TextField from '../../components/common/TextField';
 
 const RestaurantDashboard = () => {
   const dispatch = useDispatch();
+  const { currentLocation, isGeocoding, selectedCoordinates } = useSelector((state) => state.location);
+  const [pendingApplyMapLocation, setPendingApplyMapLocation] = useState(false);
   const { myRestaurants, categories, orders, analytics, loading, error } = useSelector((state) => state.restaurants);
   const { user } = useSelector((state) => state.auth);
   
@@ -353,11 +356,24 @@ const RestaurantDashboard = () => {
   };
 
   const saveProfile = () => {
+    if (!profileDraft.name || !profileDraft.address || !profileDraft.contactNumber || !profileDraft.cuisineType) {
+      dispatch(showNotification({ message: 'Please fill name, address, contact number, and cuisine type', type: 'error' }));
+      return;
+    }
     if (currentRestaurant?.id) {
       dispatch(updateRestaurantProfile({ restaurantId: currentRestaurant.id, restaurantData: profileDraft }));
       setShowProfileModal(false);
     }
   };
+
+  React.useEffect(() => {
+    if (pendingApplyMapLocation && !isGeocoding && ((selectedCoordinates?.lat && selectedCoordinates?.lng) || (currentLocation?.lat && currentLocation?.lng))) {
+      const lat = selectedCoordinates?.lat ?? currentLocation.lat;
+      const lng = selectedCoordinates?.lng ?? currentLocation.lng;
+      setProfileDraft(d => ({ ...d, latitude: lat, longitude: lng, address: d.address || currentLocation.address }));
+      setPendingApplyMapLocation(false);
+    }
+  }, [pendingApplyMapLocation, isGeocoding, currentLocation, selectedCoordinates]);
 
   const manageCategories = (action, payload) => {
     if (!currentRestaurant?.id) return;
@@ -1135,7 +1151,7 @@ const RestaurantDashboard = () => {
           fullWidth
           actions={<Button variant="contained" onClick={saveProfile} sx={{ background: '#fc8019' }}>Save Changes</Button>}
         >
-          <Box sx={{ maxHeight: '70vh', overflowY: 'auto', p: 1 }}>
+          <Box sx={{ maxHeight: '80vh', overflowY: 'auto', p: 1 }}>
             <Stack spacing={3}>
               {/* Basic Information */}
               <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
@@ -1235,7 +1251,7 @@ const RestaurantDashboard = () => {
                 </Stack>
               </Paper>
 
-              {/* Delivery Settings */}
+              {/* Delivery Settings (New Restaurant) */}
               <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
                 <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#333' }}>Delivery Settings</Typography>
                 <Stack spacing={2}>
@@ -1277,6 +1293,27 @@ const RestaurantDashboard = () => {
                         value={profileDraft.deliveryTime} 
                         onChange={(e) => setProfileDraft({ ...profileDraft, deliveryTime: e.target.value })} 
                       />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Grid container spacing={1} alignItems="center">
+                        <Grid item xs={12} md={4}>
+                          <TextField label="Latitude" type="number" value={profileDraft.latitude || ''} onChange={(e) => setProfileDraft({ ...profileDraft, latitude: e.target.value })} fullWidth />
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <TextField label="Longitude" type="number" value={profileDraft.longitude || ''} onChange={(e) => setProfileDraft({ ...profileDraft, longitude: e.target.value })} fullWidth />
+                        </Grid>
+                        <Grid item xs={6} md={2}>
+                          <Button fullWidth variant="outlined" size="medium" onClick={() => dispatch(openMapModal())}>Select on Map</Button>
+                        </Grid>
+                        <Grid item xs={6} md={2}>
+                          <Button fullWidth variant="contained" size="medium" disabled={isGeocoding} onClick={() => {
+                            if (isGeocoding) { setPendingApplyMapLocation(true); return; }
+                            const lat = selectedCoordinates?.lat ?? currentLocation.lat;
+                            const lng = selectedCoordinates?.lng ?? currentLocation.lng;
+                            setProfileDraft({ ...profileDraft, latitude: lat, longitude: lng, address: profileDraft.address || currentLocation.address });
+                          }} sx={{ background: '#fc8019' }}>{isGeocoding ? 'Loading…' : 'Use Selected'}</Button>
+                        </Grid>
+                      </Grid>
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <Stack direction="row" spacing={2} sx={{ alignItems: 'center', height: '100%' }}>
@@ -1488,6 +1525,27 @@ const RestaurantDashboard = () => {
                         value={newRestaurantData.deliveryTime} 
                         onChange={(e) => setNewRestaurantData({ ...newRestaurantData, deliveryTime: e.target.value })} 
                       />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <Grid container spacing={1} alignItems="center">
+                        <Grid item xs={12} md={4}>
+                          <TextField label="Latitude" type="number" value={newRestaurantData.latitude || ''} onChange={(e) => setNewRestaurantData({ ...newRestaurantData, latitude: e.target.value })} fullWidth />
+                        </Grid>
+                        <Grid item xs={12} md={4}>
+                          <TextField label="Longitude" type="number" value={newRestaurantData.longitude || ''} onChange={(e) => setNewRestaurantData({ ...newRestaurantData, longitude: e.target.value })} fullWidth />
+                        </Grid>
+                        <Grid item xs={6} md={2}>
+                          <Button fullWidth variant="outlined" size="medium" onClick={() => dispatch(openMapModal())}>Select on Map</Button>
+                        </Grid>
+                        <Grid item xs={6} md={2}>
+                          <Button fullWidth variant="contained" size="medium" disabled={isGeocoding} onClick={() => {
+                            if (isGeocoding) { return; }
+                            const lat = selectedCoordinates?.lat ?? currentLocation.lat;
+                            const lng = selectedCoordinates?.lng ?? currentLocation.lng;
+                            setNewRestaurantData({ ...newRestaurantData, latitude: lat, longitude: lng, address: newRestaurantData.address || currentLocation.address });
+                          }} sx={{ background: '#fc8019' }}>{isGeocoding ? 'Loading…' : 'Use Selected'}</Button>
+                        </Grid>
+                      </Grid>
                     </Grid>
                     <Grid item xs={12} md={6}>
                       <Stack direction="row" spacing={2} sx={{ alignItems: 'center', height: '100%' }}>

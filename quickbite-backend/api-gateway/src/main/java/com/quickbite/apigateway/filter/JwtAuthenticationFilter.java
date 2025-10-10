@@ -99,6 +99,7 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         // Delivery partner management
         mappings.put("POST:/api/delivery/partners", List.of("DELIVERY_PARTNER"));
         mappings.put("GET:/api/delivery/partners/profile", List.of("DELIVERY_PARTNER"));
+        mappings.put("PUT:/api/delivery/partners/profile", List.of("DELIVERY_PARTNER"));
         mappings.put("PUT:/api/delivery/partners/status", List.of("DELIVERY_PARTNER"));
         mappings.put("PUT:/api/delivery/partners/location", List.of("DELIVERY_PARTNER"));
         
@@ -115,7 +116,7 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         // Restaurant management
         mappings.put("POST:/api/restaurants", List.of("RESTAURANT_OWNER", "ADMIN"));
         // Onboarding endpoints
-        mappings.put("POST:/api/restaurants/owners/apply", List.of("CUSTOMER", "ADMIN"));
+        mappings.put("POST:/api/restaurants/owners/apply", List.of("CUSTOMER", "ADMIN","RESTAURANT_OWNER"));
         mappings.put("POST:/api/delivery/partners/self-register", List.of("CUSTOMER", "ADMIN"));
         mappings.put("GET:/api/delivery/admin/pending", List.of("ADMIN"));
         mappings.put("PUT:/api/restaurants/{id}/profile", List.of("RESTAURANT_OWNER","ADMIN"));

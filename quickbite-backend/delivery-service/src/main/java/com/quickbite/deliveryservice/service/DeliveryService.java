@@ -67,6 +67,33 @@ public class DeliveryService {
         log.trace("Updated location for delivery partner with userId: {}", userId); // Trace for frequent updates
     }
 
+    @Transactional
+    public DeliveryPartnerDto updateDeliveryPartnerProfile(Long userId, DeliveryPartnerDto partnerDto) {
+        DeliveryPartner partner = deliveryPartnerRepository.findByUserId(userId)
+                .orElseGet(() -> {
+                    DeliveryPartner p = new DeliveryPartner();
+                    p.setUserId(userId);
+                    // Safe default so partner is not auto-available until they explicitly set it
+                    p.setStatus(DeliveryPartnerStatus.OFFLINE);
+                    return p;
+                });
+        
+        // Update only the profile fields, preserve existing status and location
+        if (partnerDto.getName() != null && !partnerDto.getName().trim().isEmpty()) {
+            partner.setName(partnerDto.getName().trim());
+        }
+        if (partnerDto.getPhoneNumber() != null && !partnerDto.getPhoneNumber().trim().isEmpty()) {
+            partner.setPhoneNumber(partnerDto.getPhoneNumber().trim());
+        }
+        if (partnerDto.getVehicleDetails() != null && !partnerDto.getVehicleDetails().trim().isEmpty()) {
+            partner.setVehicleDetails(partnerDto.getVehicleDetails().trim());
+        }
+        
+        DeliveryPartner updatedPartner = deliveryPartnerRepository.save(partner);
+        log.info("Upserted profile for delivery partner with userId: {}", userId);
+        return convertToDto(updatedPartner);
+    }
+
     @Transactional(readOnly = true)
     public List<DeliveryPartnerDto> findAvailablePartners() {
         return deliveryPartnerRepository.findByStatus(DeliveryPartnerStatus.AVAILABLE).stream()

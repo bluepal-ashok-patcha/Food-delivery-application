@@ -112,13 +112,22 @@ export const userAPI = {
 
   // Add user address
   addAddress: async (addressData) => {
-    const response = await api.post('/api/users/addresses', addressData);
+    const payload = {
+      isDefault: false,
+      ...addressData
+    };
+    const response = await api.post('/api/users/addresses', payload);
     return response.data;
   },
 
   // Update user address
   updateAddress: async (addressId, addressData) => {
-    const response = await api.put(`/api/users/addresses/${addressId}`, addressData);
+    const payload = {
+      // Backend requires non-null isDefault
+      isDefault: addressData?.isDefault ?? false,
+      ...addressData
+    };
+    const response = await api.put(`/api/users/addresses/${addressId}`, payload);
     return response.data;
   },
 
@@ -502,7 +511,7 @@ export const deliveryAPI = {
 
   // Update delivery partner profile
   updateProfile: async (profileData) => {
-    const response = await api.post('/api/delivery/partners/self-register', profileData);
+    const response = await api.put('/api/delivery/partners/profile', profileData);
     return response.data;
   }
 };

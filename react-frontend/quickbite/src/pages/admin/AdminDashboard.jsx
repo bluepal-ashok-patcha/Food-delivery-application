@@ -2,6 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import { Box, Container, Paper, Grid, Tabs, Tab, TextField, Stack, Button, CircularProgress, Alert, Chip, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Divider } from '@mui/material';
 import { People, Restaurant, AttachMoney, LocalShipping, Analytics, Receipt, TrendingUp } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
+import { openMapModal } from '../../store/slices/locationSlice';
 import AdminHeader from '../../components/admin/AdminHeader';
 import { restaurantAPI } from '../../services/api';
 
@@ -52,7 +53,17 @@ const AdminDashboard = () => {
 
   const [openTransactionModal, setOpenTransactionModal] = useState(false);
   const [formValues, setFormValues] = useState({});
+  const { currentLocation, isGeocoding, selectedCoordinates } = useSelector((state) => state.location);
+  const [pendingApplyMapLocation, setPendingApplyMapLocation] = useState(false);
   const [restaurantData, setRestaurantData] = useState({ name: 'Restaurant', image: null });
+  useEffect(() => {
+    if (pendingApplyMapLocation && !isGeocoding && (selectedCoordinates?.lat && selectedCoordinates?.lng || (currentLocation?.lat && currentLocation?.lng))) {
+      const lat = selectedCoordinates?.lat ?? currentLocation.lat;
+      const lng = selectedCoordinates?.lng ?? currentLocation.lng;
+      setFormValues(v => ({ ...v, latitude: lat, longitude: lng, address: v.address || currentLocation.address }));
+      setPendingApplyMapLocation(false);
+    }
+  }, [pendingApplyMapLocation, isGeocoding, currentLocation, selectedCoordinates]);
 
   const [userSearch, setUserSearch] = useState('');
 
@@ -1570,8 +1581,37 @@ const AdminDashboard = () => {
             <TextField label="Opening Time" type="time" value={formValues.openingTime || ''} onChange={(e) => setFormValues(v => ({ ...v, openingTime: e.target.value }))} fullWidth InputLabelProps={{ shrink: true }} />
             <TextField label="Closing Time" type="time" value={formValues.closingTime || ''} onChange={(e) => setFormValues(v => ({ ...v, closingTime: e.target.value }))} fullWidth InputLabelProps={{ shrink: true }} />
             <TextField label="Delivery Radius (km)" type="number" value={formValues.deliveryRadiusKm || ''} onChange={(e) => setFormValues(v => ({ ...v, deliveryRadiusKm: e.target.value }))} fullWidth />
-            <TextField label="Latitude" type="number" value={formValues.latitude || ''} onChange={(e) => setFormValues(v => ({ ...v, latitude: e.target.value }))} fullWidth />
-            <TextField label="Longitude" type="number" value={formValues.longitude || ''} onChange={(e) => setFormValues(v => ({ ...v, longitude: e.target.value }))} fullWidth />
+            <Grid container spacing={1} alignItems="center">
+              <Grid item xs={12} md={4}>
+                <TextField label="Latitude" type="number" value={formValues.latitude || ''} onChange={(e) => setFormValues(v => ({ ...v, latitude: e.target.value }))} fullWidth />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField label="Longitude" type="number" value={formValues.longitude || ''} onChange={(e) => setFormValues(v => ({ ...v, longitude: e.target.value }))} fullWidth />
+              </Grid>
+              <Grid item xs={6} md={2}>
+                <Button fullWidth variant="outlined" size="medium" onClick={() => dispatch(openMapModal())}>Select on Map</Button>
+              </Grid>
+              <Grid item xs={6} md={2}>
+                <Button 
+                  fullWidth 
+                  variant="contained" 
+                  size="medium"
+                  disabled={isGeocoding}
+                  onClick={() => {
+                    if (isGeocoding) {
+                      setPendingApplyMapLocation(true);
+                      return;
+                    }
+                    const lat = selectedCoordinates?.lat ?? currentLocation.lat;
+                    const lng = selectedCoordinates?.lng ?? currentLocation.lng;
+                    setFormValues(v => ({ ...v, latitude: lat, longitude: lng, address: v.address || currentLocation.address }));
+                  }} 
+                  sx={{ background: '#fc8019' }}
+                >
+                  {isGeocoding ? 'Loading…' : 'Use Selected'}
+                </Button>
+              </Grid>
+            </Grid>
             <TextField label="Tags (comma-separated)" value={formValues.tags || ''} onChange={(e) => setFormValues(v => ({ ...v, tags: e.target.value }))} fullWidth />
 
             <TextField 

@@ -47,7 +47,7 @@ public class RestaurantDto {
     private Double longitude;
     private String tags;
 
-    @NotNull(message = "Owner ID cannot be null")
+    // ownerId will be injected from JWT for RESTAURANT_OWNER in controller
     private Long ownerId;
 
     private RestaurantStatus status;

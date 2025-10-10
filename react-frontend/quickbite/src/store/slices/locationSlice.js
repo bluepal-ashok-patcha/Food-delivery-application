@@ -158,6 +158,8 @@ const initialState = {
     lng: 78.4772,
     address: 'Banjara Hills, Hyderabad, Telangana'
   },
+  // Latest coordinates picked in map modal (raw), independent of reverse geocoded currentLocation
+  selectedCoordinates: null,
   savedAddresses: mockSavedAddresses,
   isDetectingLocation: false,
   isGeocoding: false,
@@ -175,6 +177,9 @@ const locationSlice = createSlice({
     setCurrentLocation: (state, action) => {
       state.currentLocation = action.payload;
       state.locationError = null;
+    },
+    setSelectedCoordinates: (state, action) => {
+      state.selectedCoordinates = action.payload; // { lat, lng }
     },
     addSavedAddress: (state, action) => {
       const newAddress = {
@@ -283,6 +288,7 @@ const locationSlice = createSlice({
 
 export const {
   setCurrentLocation,
+  setSelectedCoordinates,
   addSavedAddress,
   updateSavedAddress,
   deleteSavedAddress,

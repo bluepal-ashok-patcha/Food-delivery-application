@@ -19,7 +19,7 @@ const AddressItem = ({ address, onSetDefault, onDelete, onEdit }) => (
         </Box>
       </Box>
       <Box sx={{ display: 'flex', gap: 0.5 }}>
-        {onSetDefault && (
+        {onSetDefault && !address.isDefault && (
           <Button size="small" onClick={onSetDefault} sx={{ fontSize: '11px', px: 1, py: 0.5 }}>Set Default</Button>
         )}
         <IconButton onClick={onEdit} size="small" sx={{ width: '28px', height: '28px' }}>

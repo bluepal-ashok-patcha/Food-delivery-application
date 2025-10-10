@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Container, Paper, Typography, Box, Chip, Button, Stepper, Step, StepLabel } from '@mui/material';
+import { Container, Paper, Typography, Box, Chip, Button, Stepper, Step, StepLabel, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { updateOrderStatus } from '../../store/slices/orderSlice';
 import { deliveryAPI, orderAPI } from '../../services/api';
 import DeliveryMap from '../../components/maps/DeliveryMap';
@@ -17,6 +18,7 @@ const mockPath = [
 
 const OrderTrack = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
   const { orders } = useSelector((state) => state.orders);
   const order = orders.find(o => String(o.id) === String(id));
@@ -25,6 +27,8 @@ const OrderTrack = () => {
   const [stepIndex, setStepIndex] = useState(0);
   const [assignment, setAssignment] = useState(null);
   const [isAssigning, setIsAssigning] = useState(false);
+  const [deliveredOpen, setDeliveredOpen] = useState(false);
+  const deliveredShownRef = useRef(false);
 
   useEffect(() => {
     if (!orderObj) return;
@@ -48,6 +52,15 @@ const OrderTrack = () => {
     }
     setStepIndex(idx);
   }, [orderObj, assignment]);
+
+  // Open success modal exactly once when delivered
+  useEffect(() => {
+    const delivered = stepIndex === 3 || (assignment && assignment.status === 'DELIVERED') || ((orderObj?.status || orderObj?.orderStatus) === 'DELIVERED');
+    if (delivered && !deliveredShownRef.current) {
+      deliveredShownRef.current = true;
+      setDeliveredOpen(true);
+    }
+  }, [stepIndex, assignment, orderObj]);
 
   // Fetch order by ID if not in store
   useEffect(() => {
@@ -188,6 +201,42 @@ const OrderTrack = () => {
           </>
         )}
       </Paper>
+
+      {/* Delivered success modal */}
+      <Dialog open={deliveredOpen} onClose={() => setDeliveredOpen(false)} maxWidth="xs" fullWidth>
+        <DialogContent sx={{ p: 3 }}>
+          <Box sx={{ textAlign: 'center' }}>
+            <Box sx={{
+              width: 72,
+              height: 72,
+              borderRadius: '50%',
+              backgroundColor: '#E8F5E9',
+              color: '#2E7D32',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 40,
+              margin: '0 auto',
+              boxShadow: '0 8px 20px rgba(46,125,50,0.18)'
+            }}>
+              <CheckCircleIcon fontSize="inherit" />
+            </Box>
+            <Typography variant="h6" sx={{ fontWeight: 800, mt: 2, mb: 0.5, letterSpacing: 0.2 }}>Delivered Successfully</Typography>
+            <Typography variant="body2" color="text.secondary">Order #{id} has been delivered. Hope you enjoyed your meal!</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', gap: 1, mt: 3 }}>
+            <Button fullWidth variant="outlined" onClick={() => setDeliveredOpen(false)} sx={{ textTransform: 'none' }}>Close</Button>
+            <Button 
+              fullWidth
+              variant="contained" 
+              onClick={() => navigate('/')} 
+              sx={{ textTransform: 'none', backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' } }}
+            >
+              Go to Home
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
     </Container>
   );
 };

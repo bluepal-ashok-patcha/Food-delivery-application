@@ -72,6 +72,18 @@ public class DeliveryController {
                 .build());
     }
 
+    @PutMapping("/partners/profile")
+    public ResponseEntity<ApiResponse<DeliveryPartnerDto>> updateProfile(@RequestBody DeliveryPartnerDto partnerDto, HttpServletRequest request) {
+        Long userId = extractUserId(request);
+        partnerDto.setUserId(userId);
+        DeliveryPartnerDto updatedPartner = deliveryService.updateDeliveryPartnerProfile(userId, partnerDto);
+        return ResponseEntity.ok(ApiResponse.<DeliveryPartnerDto>builder()
+                .success(true)
+                .message("Profile updated successfully")
+                .data(updatedPartner)
+                .build());
+    }
+
     @GetMapping("/partners/available")
     public ResponseEntity<ApiResponse<List<DeliveryPartnerDto>>> getAvailablePartners() {
         List<DeliveryPartnerDto> partners = deliveryService.findAvailablePartners();

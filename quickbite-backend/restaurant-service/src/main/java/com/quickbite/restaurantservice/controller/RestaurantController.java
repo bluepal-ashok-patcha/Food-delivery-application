@@ -250,8 +250,13 @@ public class RestaurantController {
     }
 
     @PutMapping("/{id}/profile")
-    public ResponseEntity<ApiResponse<RestaurantDto>> updateRestaurantProfile(@PathVariable Long id, @Valid @RequestBody RestaurantDto restaurantDto) {
-        // Authorization logic (e.g., check if authenticated user owns this restaurant) would be handled in the service layer
+    public ResponseEntity<ApiResponse<RestaurantDto>> updateRestaurantProfile(@PathVariable Long id, @RequestBody RestaurantDto restaurantDto, HttpServletRequest request) {
+        // Resolve ownerId: if RESTAURANT_OWNER, take from JWT; if ADMIN, accept from DTO
+        String role = extractUserRole(request);
+        if (role != null && role.equalsIgnoreCase("RESTAURANT_OWNER")) {
+            Long ownerIdFromJwt = extractUserId(request);
+            restaurantDto.setOwnerId(ownerIdFromJwt);
+        }
         RestaurantDto updatedRestaurant = restaurantService.updateRestaurantProfile(id, restaurantDto);
         ApiResponse<RestaurantDto> body = ApiResponse.<RestaurantDto>builder()
                 .success(true)

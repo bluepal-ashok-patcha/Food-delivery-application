@@ -25,7 +25,8 @@ import {
   setCurrentLocation,
   closeMapModal,
   geocodeLocation,
-  reverseGeocodeLocation
+  reverseGeocodeLocation,
+  setSelectedCoordinates
 } from '../../store/slices/locationSlice';
 
 // Fix for default markers in react-leaflet
@@ -158,6 +159,9 @@ const AccurateMapSelector = () => {
 
   const handleLocationSelect = (coordinates) => {
     setSelectedLocation(coordinates);
+    if (coordinates?.lat && coordinates?.lng) {
+      dispatch(setSelectedCoordinates({ lat: coordinates.lat, lng: coordinates.lng }));
+    }
   };
 
   const handleDetectCurrentLocation = () => {
@@ -223,6 +227,7 @@ const AccurateMapSelector = () => {
 
   const handleConfirmLocation = () => {
     if (selectedLocation) {
+      dispatch(setSelectedCoordinates({ lat: selectedLocation.lat, lng: selectedLocation.lng }));
       dispatch(geocodeLocation(selectedLocation));
       dispatch(closeMapModal());
     }
