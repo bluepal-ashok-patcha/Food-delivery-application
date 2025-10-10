@@ -153,6 +153,12 @@ export const restaurantAPI = {
     return response.data;
   },
 
+  // Get analytics for a restaurant
+  getRestaurantAnalytics: async (restaurantId, period = 'week') => {
+    const response = await api.get(`/api/restaurants/${restaurantId}/analytics?period=${period}`);
+    return response.data;
+  },
+
   // Get restaurant menu items
   getRestaurantItems: async (restaurantId) => {
     const response = await api.get(`/api/restaurants/${restaurantId}/items`);
@@ -404,15 +410,99 @@ export const deliveryAPI = {
     return response.data;
   },
 
+  // Claim order (create+accept assignment in one call)
+  claimOrder: async (orderId) => {
+    const response = await api.post(`/api/delivery/assignments/claim/${orderId}`);
+    return response.data;
+  },
+
   // Get assignment by order id
   getAssignmentByOrder: async (orderId) => {
     const response = await api.get(`/api/delivery/assignments/order/${orderId}`);
     return response.data;
   },
 
+  // List available orders to claim
+  getAvailableOrders: async () => {
+    const response = await api.get('/api/delivery/assignments/available');
+    return response.data;
+  },
+
+  // Accept an assignment (partner action)
+  acceptAssignment: async (assignmentId) => {
+    const response = await api.put(`/api/delivery/assignments/${assignmentId}/accept`);
+    return response.data;
+  },
+
+  // Update delivery status (enum string e.g., PICKED_UP)
+  updateDeliveryStatus: async (assignmentId, status) => {
+    const response = await api.put(`/api/delivery/assignments/${assignmentId}/status?status=${status}`);
+    return response.data;
+  },
+
+  // Get assignments for current partner
+  getMyAssignments: async () => {
+    const response = await api.get('/api/delivery/assignments/my');
+    return response.data;
+  },
+
+  // Get active assignments for current partner
+  getActiveAssignments: async () => {
+    const response = await api.get('/api/delivery/assignments/active');
+    return response.data;
+  },
+
+  // Update current partner GPS location
+  updateLocation: async (latitude, longitude) => {
+    const response = await api.put('/api/delivery/assignments/location', {
+      latitude,
+      longitude
+    });
+    return response.data;
+  },
+
   // Delivery partner self-registration
   selfRegisterAsDeliveryPartner: async (registrationData) => {
     const response = await api.post('/api/delivery/partners/self-register', registrationData);
+    return response.data;
+  },
+
+  // Get delivery partner profile
+  getProfile: async () => {
+    const response = await api.get('/api/delivery/partners/profile');
+    return response.data;
+  },
+
+  // Update delivery partner status
+  updateStatus: async (status) => {
+    const response = await api.put(`/api/delivery/partners/status?status=${status}`);
+    return response.data;
+  },
+
+  // Update delivery partner location
+  updatePartnerLocation: async (latitude, longitude) => {
+    const response = await api.put('/api/delivery/partners/location', {
+      latitude,
+      longitude
+    });
+    return response.data;
+  },
+
+  // Get delivery analytics
+  getAnalytics: async (period = 'week') => {
+    const response = await api.get(`/api/delivery/analytics?period=${period}`);
+    return response.data;
+  },
+
+  // Get analytics summary
+  getAnalyticsSummary: async (period = 'week') => {
+    const response = await api.get(`/api/delivery/analytics/summary?period=${period}`);
+    return response.data;
+  },
+
+  // Update delivery partner profile
+  updateProfile: async (profileData) => {
+    const response = await api.post('/api/delivery/partners/self-register', profileData);
     return response.data;
   }
 };

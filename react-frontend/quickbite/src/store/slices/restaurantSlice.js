@@ -251,19 +251,33 @@ export const updateOrderStatus = createAsyncThunk(
   }
 );
 
+export const fetchRestaurantAnalytics = createAsyncThunk(
+  'restaurants/fetchRestaurantAnalytics',
+  async ({ restaurantId, period = 'week' }, { rejectWithValue }) => {
+    try {
+      const response = await restaurantAPI.getRestaurantAnalytics(restaurantId, period);
+      return response.data || response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || 'Failed to fetch analytics');
+    }
+  }
+);
+
 const initialState = {
   restaurants: [],
   currentRestaurant: null,
   myRestaurants: [],
   categories: [],
   orders: [],
+  analytics: null,
   loading: {
     restaurants: false,
     myRestaurants: false,
     categories: false,
     profile: false,
     menu: false,
-    orders: false
+    orders: false,
+    analytics: false
   },
   error: {
     restaurants: null,
@@ -271,7 +285,8 @@ const initialState = {
     categories: null,
     profile: null,
     menu: null,
-    orders: null
+    orders: null,
+    analytics: null
   },
   filters: {
     cuisine: '',
@@ -448,6 +463,19 @@ const restaurantSlice = createSlice({
       .addCase(fetchRestaurantOrders.rejected, (state, action) => {
         state.loading.orders = false;
         state.error.orders = action.payload;
+      })
+      // Analytics
+      .addCase(fetchRestaurantAnalytics.pending, (state) => {
+        state.loading.analytics = true;
+        state.error.analytics = null;
+      })
+      .addCase(fetchRestaurantAnalytics.fulfilled, (state, action) => {
+        state.loading.analytics = false;
+        state.analytics = action.payload;
+      })
+      .addCase(fetchRestaurantAnalytics.rejected, (state, action) => {
+        state.loading.analytics = false;
+        state.error.analytics = action.payload;
       })
       // Update order status
       .addCase(updateOrderStatus.fulfilled, (state, action) => {

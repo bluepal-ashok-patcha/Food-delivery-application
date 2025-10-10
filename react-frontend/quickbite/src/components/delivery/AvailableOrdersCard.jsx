@@ -38,8 +38,8 @@ const AvailableOrdersCard = ({ order, onAcceptOrder }) => {
               <LocationOn sx={{ fontSize: 18, color: '#666' }} />
             </ListItemIcon>
             <ListItemText 
-              primary="Pickup Location"
-              secondary="Restaurant Name"
+              primary={order.restaurantName || 'Pickup Location'}
+              secondary={order.restaurantAddress || 'Restaurant'}
               primaryTypographyProps={{ fontSize: '14px', fontWeight: 600, color: '#333' }}
               secondaryTypographyProps={{ fontSize: '13px', color: '#666' }}
             />

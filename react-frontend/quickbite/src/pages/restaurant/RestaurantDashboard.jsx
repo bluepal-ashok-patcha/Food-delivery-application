@@ -17,6 +17,7 @@ import {
   createRestaurant,
   clearCategories,
   fetchRestaurantOrders,
+  fetchRestaurantAnalytics,
   updateOrderStatus
 } from '../../store/slices/restaurantSlice';
 import RestaurantHeader from '../../components/restaurant/RestaurantHeader';
@@ -30,7 +31,7 @@ import TextField from '../../components/common/TextField';
 
 const RestaurantDashboard = () => {
   const dispatch = useDispatch();
-  const { myRestaurants, categories, orders, loading, error } = useSelector((state) => state.restaurants);
+  const { myRestaurants, categories, orders, analytics, loading, error } = useSelector((state) => state.restaurants);
   const { user } = useSelector((state) => state.auth);
   
   const [tabValue, setTabValue] = useState(0);
@@ -66,6 +67,7 @@ const RestaurantDashboard = () => {
   });
   const [showCategoriesModal, setShowCategoriesModal] = useState(false);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
+  const [analyticsPeriod, setAnalyticsPeriod] = useState('week');
   const [showNewRestaurantModal, setShowNewRestaurantModal] = useState(false);
   const [newRestaurantData, setNewRestaurantData] = useState({
     name: '',
@@ -119,6 +121,13 @@ const RestaurantDashboard = () => {
     }
   }, [dispatch, currentRestaurant?.id]);
 
+  // Fetch analytics when restaurant or period changes
+  useEffect(() => {
+    if (currentRestaurant?.id) {
+      dispatch(fetchRestaurantAnalytics({ restaurantId: currentRestaurant.id, period: analyticsPeriod }));
+    }
+  }, [dispatch, currentRestaurant?.id, analyticsPeriod]);
+
   // Update profile draft when restaurant data changes
   useEffect(() => {
     if (currentRestaurant) {
@@ -160,11 +169,13 @@ const RestaurantDashboard = () => {
 
   // Process orders data
   const restaurantOrders = orders || [];
-  const todayOrders = restaurantOrders.filter(order => {
-    const orderDate = new Date(order.createdAt);
-    const today = new Date();
-    return orderDate.toDateString() === today.toDateString();
-  });
+  const todayOrders = typeof analytics?.todayOrders === 'number'
+    ? Array.from({ length: analytics.todayOrders })
+    : restaurantOrders.filter(order => {
+        const orderDate = new Date(order.createdAt);
+        const today = new Date();
+        return orderDate.toDateString() === today.toDateString();
+      });
   const upcomingOrders = restaurantOrders.filter(order => 
     ['PLACED', 'PREPARING'].includes(order.orderStatus)
   );
@@ -182,46 +193,46 @@ const RestaurantDashboard = () => {
     return idx;
   }, [categories]);
 
-  // Calculate total revenue from orders
-  const totalRevenue = restaurantOrders.reduce((sum, order) => {
-    return sum + (parseFloat(order.totalAmount) || 0);
-  }, 0);
+  // Calculate total revenue
+  const totalRevenue = typeof analytics?.totalRevenue === 'number'
+    ? analytics.totalRevenue
+    : restaurantOrders.reduce((sum, order) => sum + (parseFloat(order.totalAmount) || 0), 0);
 
   const stats = [
     { 
-      title: 'Today\'s Orders', 
-      value: todayOrders.length, 
+      title: 'Total Orders', 
+      value: analytics?.totalOrders ?? restaurantOrders.length, 
       icon: <Restaurant />, 
-      color: '#fc8019',
-      change: '+15%',
-      trend: 'up',
-      subtitle: 'Orders received'
+      color: '#6c757d',
+      change: '',
+      trend: 'neutral',
+      subtitle: `Today: ${analytics?.todayOrders ?? (Array.isArray(todayOrders) ? todayOrders.length : 0)}`
     },
     { 
       title: 'Total Revenue', 
-      value: `$${totalRevenue.toFixed(2)}`, 
+      value: `$${Number(totalRevenue || 0).toFixed(2)}`, 
       icon: <AttachMoney />, 
-      color: '#fc8019',
-      change: '+0%',
-      trend: 'up',
-      subtitle: 'All time'
+      color: '#6c757d',
+      change: '',
+      trend: 'neutral',
+      subtitle: `Avg: $${Number(analytics?.averageOrderValue ?? 0).toFixed(2)}`
     },
     { 
-      title: 'Avg. Rating', 
-      value: currentRestaurant?.rating || '0.0', 
-      icon: <Star />, 
-      color: '#fc8019',
-      change: '+0.0',
-      trend: 'up',
-      subtitle: 'Customer rating'
+      title: 'Completion Rate', 
+      value: `${Math.round((analytics?.completionRate ?? 0) * 100)}%`, 
+      icon: <AccessTime />, 
+      color: '#6c757d',
+      change: '',
+      trend: 'neutral',
+      subtitle: 'Delivered / Total'
     },
     { 
       title: 'Menu Items', 
       value: categories.reduce((total, cat) => total + (cat.menuItems?.length || 0), 0), 
-      icon: <AccessTime />, 
-      color: '#fc8019',
-      change: '+0',
-      trend: 'up',
+      icon: <Star />, 
+      color: '#6c757d',
+      change: '',
+      trend: 'neutral',
       subtitle: 'Total items'
     },
   ];
@@ -689,27 +700,44 @@ const RestaurantDashboard = () => {
                 subtitle="Track your restaurant performance and insights"
                 showAddButton={false}
               />
+              <Stack direction="row" spacing={2} sx={{ mb: 2, alignItems: 'center' }}>
+                <Typography variant="body2" sx={{ color: '#666' }}>Period</Typography>
+                <Select size="small" value={analyticsPeriod} onChange={(e) => setAnalyticsPeriod(e.target.value)} sx={{ width: 160 }}>
+                  <MenuItem value="today">Today</MenuItem>
+                  <MenuItem value="week">This Week</MenuItem>
+                  <MenuItem value="month">This Month</MenuItem>
+                  <MenuItem value="year">This Year</MenuItem>
+                </Select>
+                {loading.analytics && <CircularProgress size={20} />}
+              </Stack>
+
+              <Grid container spacing={3} sx={{ mb: 2 }}>
+                <Grid item xs={12} md={3}>
+                  <EnhancedStatCard stat={{ title: 'Total Orders', value: analytics?.totalOrders ?? 0, icon: <Restaurant />, color: '#6c757d', subtitle: `Today: ${analytics?.todayOrders ?? 0}` }} />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <EnhancedStatCard stat={{ title: 'Total Revenue', value: `$${(analytics?.totalRevenue ?? 0).toLocaleString()}`, icon: <AttachMoney />, color: '#6c757d', subtitle: `Today: $${(analytics?.todayRevenue ?? 0).toLocaleString()}` }} />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <EnhancedStatCard stat={{ title: 'Completion Rate', value: `${Math.round((analytics?.completionRate ?? 0) * 100)}%`, icon: <AccessTime />, color: '#6c757d', subtitle: 'Delivered / Total' }} />
+                </Grid>
+                <Grid item xs={12} md={3}>
+                  <EnhancedStatCard stat={{ title: 'Avg Order Value', value: `$${Number(analytics?.averageOrderValue ?? 0).toFixed(2)}`, icon: <AttachMoney />, color: '#6c757d', subtitle: 'Across period' }} />
+                </Grid>
+              </Grid>
               
               <Grid container spacing={3}>
                 <Grid item xs={12} md={6}>
                   <AnalyticsCard 
                     title="Popular Items"
-                    data={[
-                      { label: 'Chicken Tikka', value: '45 orders' },
-                      { label: 'Butter Chicken', value: '38 orders' },
-                      { label: 'Biryani', value: '32 orders' }
-                    ]}
+                    data={(analytics?.popularItems || []).slice(0,5).map(pi => ({ label: pi.name || pi.label, value: `${pi.count || pi.value || 0} orders` }))}
                   />
                 </Grid>
                 
                 <Grid item xs={12} md={6}>
                   <AnalyticsCard 
                     title="Order Status Distribution"
-                    data={[
-                      { label: 'Delivered', value: '85%' },
-                      { label: 'Preparing', value: '10%' },
-                      { label: 'Cancelled', value: '5%' }
-                    ]}
+                    data={(analytics?.orderStatusDistribution || analytics?.statusDistribution || []).map(s => ({ label: (s.status || s.label || '').toString().replace('_',' '), value: s.count || s.value }))}
                   />
                 </Grid>
               </Grid>
@@ -732,8 +760,8 @@ const RestaurantDashboard = () => {
                     <>
                       <Button variant="contained" onClick={() => { handleOrderAction(selectedOrder.id, 'accept'); setShowOrderModal(false); }} sx={{ background: '#28a745', fontWeight: 500 }}>Accept</Button>
                       <Button variant="outlined" onClick={() => { handleOrderAction(selectedOrder.id, 'reject'); setShowOrderModal(false); }} sx={{ borderColor: '#dc3545', color: '#dc3545', fontWeight: 500 }}>Reject</Button>
-                    </>
-                  )}
+                </>
+              )}
                   {selectedOrder?.orderStatus === 'ACCEPTED' && (
                     <Button variant="contained" onClick={() => { handleOrderAction(selectedOrder.id, 'preparing'); setShowOrderModal(false); }} sx={{ background: '#fd7e14', fontWeight: 500 }}>Start Preparing</Button>
                   )}

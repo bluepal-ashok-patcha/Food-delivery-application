@@ -161,11 +161,15 @@ public class DeliveryAssignmentService {
     }
 
     @Transactional
-    public DeliveryAssignmentDto acceptAssignment(Long assignmentId, Long partnerId) {
+    public DeliveryAssignmentDto acceptAssignment(Long assignmentId, Long partnerUserId) {
         DeliveryAssignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
 
-        if (!assignment.getDeliveryPartnerId().equals(partnerId)) {
+        // Resolve partner by user id from JWT
+        DeliveryPartner partner = partnerRepository.findByUserId(partnerUserId)
+                .orElseThrow(() -> new RuntimeException("Delivery partner not found"));
+
+        if (!assignment.getDeliveryPartnerId().equals(partner.getId())) {
             throw new RuntimeException("Assignment not assigned to this partner");
         }
 
@@ -177,17 +181,21 @@ public class DeliveryAssignmentService {
         assignment.setAcceptedAt(LocalDateTime.now());
         DeliveryAssignment savedAssignment = assignmentRepository.save(assignment);
 
-        log.info("Assignment {} accepted by partner {}", assignmentId, partnerId);
+        log.info("Assignment {} accepted by partner {}", assignmentId, partner.getId());
 
         return convertToDto(savedAssignment);
     }
 
     @Transactional
-    public DeliveryAssignmentDto updateDeliveryStatus(Long assignmentId, DeliveryStatus newStatus, Long partnerId) {
+    public DeliveryAssignmentDto updateDeliveryStatus(Long assignmentId, DeliveryStatus newStatus, Long partnerUserId) {
         DeliveryAssignment assignment = assignmentRepository.findById(assignmentId)
                 .orElseThrow(() -> new RuntimeException("Assignment not found"));
 
-        if (!assignment.getDeliveryPartnerId().equals(partnerId)) {
+        // Resolve delivery partner id from JWT user id
+        DeliveryPartner requestingPartner = partnerRepository.findByUserId(partnerUserId)
+                .orElseThrow(() -> new RuntimeException("Delivery partner not found"));
+
+        if (!assignment.getDeliveryPartnerId().equals(requestingPartner.getId())) {
             throw new RuntimeException("Assignment not assigned to this partner");
         }
 
@@ -208,26 +216,20 @@ public class DeliveryAssignmentService {
             case DELIVERED:
                 assignment.setDeliveredAt(LocalDateTime.now());
                 // Update partner status back to available
-                DeliveryPartner partner = partnerRepository.findById(partnerId).orElse(null);
-                if (partner != null) {
-                    partner.setStatus(DeliveryPartnerStatus.AVAILABLE);
-                    partnerRepository.save(partner);
-                }
+                requestingPartner.setStatus(DeliveryPartnerStatus.AVAILABLE);
+                partnerRepository.save(requestingPartner);
                 break;
             case CANCELLED:
                 assignment.setCancelledAt(LocalDateTime.now());
                 // Update partner status back to available
-                DeliveryPartner cancelPartner = partnerRepository.findById(partnerId).orElse(null);
-                if (cancelPartner != null) {
-                    cancelPartner.setStatus(DeliveryPartnerStatus.AVAILABLE);
-                    partnerRepository.save(cancelPartner);
-                }
+                requestingPartner.setStatus(DeliveryPartnerStatus.AVAILABLE);
+                partnerRepository.save(requestingPartner);
                 break;
         }
 
         DeliveryAssignment savedAssignment = assignmentRepository.save(assignment);
 
-        log.info("Assignment {} status updated to {} by partner {}", assignmentId, newStatus, partnerId);
+        log.info("Assignment {} status updated to {} by partner {}", assignmentId, newStatus, requestingPartner.getId());
 
         return convertToDto(savedAssignment);
     }
@@ -292,6 +294,86 @@ public class DeliveryAssignmentService {
         return activeAssignments.stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.quickbite.deliveryservice.dto.AvailableOrderDto> listAvailableOrders(Long partnerUserId) {
+        // Orders that are READY_FOR_PICKUP, payment COMPLETED, and no delivery_assignment
+        String sql = "SELECT o.id AS order_id, o.user_id AS customer_id, o.restaurant_id AS restaurant_id, o.delivery_address, o.delivery_latitude, o.delivery_longitude, o.total_amount, r.name AS restaurant_name, r.address AS restaurant_address, r.latitude AS pickup_latitude, r.longitude AS pickup_longitude " +
+                "FROM orders o " +
+                "JOIN restaurants r ON r.id = o.restaurant_id " +
+                "LEFT JOIN delivery_assignments da ON da.order_id = o.id " +
+                "WHERE o.payment_status = 'COMPLETED' AND o.order_status = 'READY_FOR_PICKUP' AND da.id IS NULL " +
+                "ORDER BY o.created_at DESC LIMIT 50";
+
+        return jdbcTemplate.query(sql, (rs, rowNum) -> com.quickbite.deliveryservice.dto.AvailableOrderDto.builder()
+                .orderId(rs.getLong("order_id"))
+                .customerId(rs.getLong("customer_id"))
+                .restaurantId(rs.getLong("restaurant_id"))
+                .restaurantName(rs.getString("restaurant_name"))
+                .restaurantAddress(rs.getString("restaurant_address"))
+                .deliveryAddress(rs.getString("delivery_address"))
+                .pickupLatitude(getDoubleOrNull(rs, "pickup_latitude"))
+                .pickupLongitude(getDoubleOrNull(rs, "pickup_longitude"))
+                .deliveryLatitude(getDoubleOrNull(rs, "delivery_latitude"))
+                .deliveryLongitude(getDoubleOrNull(rs, "delivery_longitude"))
+                .totalAmount(getDoubleOrNull(rs, "total_amount"))
+                .deliveryFee(null)
+                .build());
+    }
+
+    private Double getDoubleOrNull(java.sql.ResultSet rs, String col) throws java.sql.SQLException {
+        double val = rs.getDouble(col);
+        return rs.wasNull() ? null : val;
+    }
+
+    @Transactional
+    public DeliveryAssignmentDto claimOrder(Long orderId, Long partnerUserId) {
+        // Prevent duplicate assignment
+        if (assignmentRepository.findByOrderId(orderId).isPresent()) {
+            throw new IllegalArgumentException("Order is already assigned to a delivery partner");
+        }
+
+        // Enrich order and restaurant data
+        DeliveryAssignmentRequest req = DeliveryAssignmentRequest.builder().orderId(orderId).build();
+        EnrichedData enriched = enrichFromBackend(req);
+
+        // Resolve calling delivery partner by userId
+        DeliveryPartner partner = partnerRepository.findByUserId(partnerUserId)
+                .orElseThrow(() -> new RuntimeException("Delivery partner not found"));
+
+        // Create assignment bound to the requesting partner, immediately accepted
+        BigDecimal estimatedDistance = calculateDistance(
+            enriched.pickupLatitude, enriched.pickupLongitude,
+            enriched.deliveryLatitude, enriched.deliveryLongitude
+        );
+        Integer estimatedDuration = calculateDuration(estimatedDistance);
+
+        DeliveryAssignment assignment = DeliveryAssignment.builder()
+                .orderId(orderId)
+                .deliveryPartnerId(partner.getId())
+                .restaurantId(enriched.restaurantId)
+                .customerId(enriched.customerId)
+                .status(DeliveryStatus.ACCEPTED)
+                .pickupAddress(enriched.pickupAddress)
+                .deliveryAddress(enriched.deliveryAddress)
+                .pickupLatitude(enriched.pickupLatitude)
+                .pickupLongitude(enriched.pickupLongitude)
+                .deliveryLatitude(enriched.deliveryLatitude)
+                .deliveryLongitude(enriched.deliveryLongitude)
+                .estimatedDistance(estimatedDistance)
+                .estimatedDuration(estimatedDuration)
+                .deliveryFee(enriched.deliveryFee)
+                .acceptedAt(java.time.LocalDateTime.now())
+                .build();
+
+        DeliveryAssignment saved = assignmentRepository.save(assignment);
+
+        // Update partner status
+        partner.setStatus(DeliveryPartnerStatus.ON_DELIVERY);
+        partnerRepository.save(partner);
+
+        return convertToDto(saved);
     }
 
     private DeliveryPartner findBestAvailablePartner(Double pickupLat, Double pickupLng) {

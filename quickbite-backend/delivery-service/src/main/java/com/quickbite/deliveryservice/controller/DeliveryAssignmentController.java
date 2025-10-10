@@ -109,6 +109,30 @@ public class DeliveryAssignmentController {
         return ResponseEntity.ok(body);
     }
 
+    @GetMapping("/available")
+    public ResponseEntity<ApiResponse<List<AvailableOrderDto>>> getAvailableOrders(HttpServletRequest request) {
+        Long userId = extractUserId(request);
+        List<AvailableOrderDto> list = assignmentService.listAvailableOrders(userId);
+        ApiResponse<List<AvailableOrderDto>> body = ApiResponse.<List<AvailableOrderDto>>builder()
+                .success(true)
+                .message("Available orders fetched successfully")
+                .data(list)
+                .build();
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/claim/{orderId}")
+    public ResponseEntity<ApiResponse<DeliveryAssignmentDto>> claimOrder(@PathVariable Long orderId, HttpServletRequest request) {
+        Long userId = extractUserId(request);
+        DeliveryAssignmentDto dto = assignmentService.claimOrder(orderId, userId);
+        ApiResponse<DeliveryAssignmentDto> body = ApiResponse.<DeliveryAssignmentDto>builder()
+                .success(true)
+                .message("Order claimed successfully")
+                .data(dto)
+                .build();
+        return new ResponseEntity<>(body, HttpStatus.CREATED);
+    }
+
     @PutMapping("/location")
     public ResponseEntity<ApiResponse<String>> updateLocation(@Valid @RequestBody LocationUpdateRequest request, HttpServletRequest httpRequest) {
         Long userId = extractUserId(httpRequest);
