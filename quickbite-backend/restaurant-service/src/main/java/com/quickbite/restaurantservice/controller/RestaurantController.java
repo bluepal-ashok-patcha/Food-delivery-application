@@ -4,6 +4,7 @@ package com.quickbite.restaurantservice.controller;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -27,6 +28,7 @@ import com.quickbite.restaurantservice.dto.MenuItemDto;
 import com.quickbite.restaurantservice.dto.ParsedRestaurant;
 import com.quickbite.restaurantservice.dto.RestaurantDto;
 import com.quickbite.restaurantservice.dto.RestaurantReviewDto;
+import com.quickbite.restaurantservice.entity.Restaurant;
 import com.quickbite.restaurantservice.entity.RestaurantStatus;
 import com.quickbite.restaurantservice.service.ExcelRestaurantImporter;
 import com.quickbite.restaurantservice.service.RestaurantService;
@@ -51,38 +53,74 @@ public class RestaurantController {
 
     // --- Public Endpoints ---
 
+//    @GetMapping
+//    public ResponseEntity<ApiResponse<List<RestaurantDto>>> getAllRestaurants(
+//            @RequestParam(defaultValue = "0") int page,
+//            @RequestParam(defaultValue = "10") int size,
+//            @RequestParam(defaultValue = "id") String sortBy,
+//            @RequestParam(defaultValue = "asc") String sortDir,
+//            @RequestParam(required = false) String search
+//    ) {
+//        Page<com.quickbite.restaurantservice.entity.Restaurant> pageData = restaurantService.getAllRestaurantsPage(page, size, sortBy, sortDir, search)
+//                .map(r -> r); // keep as is
+//        List<RestaurantDto> data = pageData.getContent().stream()
+//                .filter(r -> r.getStatus() == com.quickbite.restaurantservice.entity.RestaurantStatus.ACTIVE
+//                        || r.getStatus() == com.quickbite.restaurantservice.entity.RestaurantStatus.APPROVED)
+//                .map(r -> {
+//            RestaurantDto dto = new RestaurantDto();
+//            org.springframework.beans.BeanUtils.copyProperties(r, dto);
+//            if (r.getMenuCategories() != null) {
+//                dto.setMenuCategories(r.getMenuCategories().stream().map(mc -> {
+//                    com.quickbite.restaurantservice.dto.MenuCategoryDto mcd = new com.quickbite.restaurantservice.dto.MenuCategoryDto();
+//                    org.springframework.beans.BeanUtils.copyProperties(mc, mcd);
+//                    if (mc.getMenuItems() != null) {
+//                        mcd.setMenuItems(mc.getMenuItems().stream().map(mi -> {
+//                            com.quickbite.restaurantservice.dto.MenuItemDto mid = new com.quickbite.restaurantservice.dto.MenuItemDto();
+//                            org.springframework.beans.BeanUtils.copyProperties(mi, mid);
+//                            return mid;
+//                        }).collect(java.util.stream.Collectors.toList()));
+//                    }
+//                    return mcd;
+//                }).collect(java.util.stream.Collectors.toList()));
+//            }
+//            return dto;
+//        }).collect(java.util.stream.Collectors.toList());
+//        ApiResponse<List<RestaurantDto>> body = ApiResponse.<List<RestaurantDto>>builder()
+//                .success(true)
+//                .message("Restaurants fetched successfully")
+//                .data(data)
+//                .page(ApiResponse.PageMeta.builder()
+//                        .currentPage(pageData.getNumber())
+//                        .size(pageData.getSize())
+//                        .totalElements(pageData.getTotalElements())
+//                        .totalPages(pageData.getTotalPages())
+//                        .hasNext(pageData.hasNext())
+//                        .hasPrevious(pageData.hasPrevious())
+//                        .build())
+//                .build();
+//        return ResponseEntity.ok(body);
+//    }
+    
     @GetMapping
     public ResponseEntity<ApiResponse<List<RestaurantDto>>> getAllRestaurants(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir,
-            @RequestParam(required = false) String search
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean isPureVeg // <-- boolean param
     ) {
-        Page<com.quickbite.restaurantservice.entity.Restaurant> pageData = restaurantService.getAllRestaurantsPage(page, size, sortBy, sortDir, search)
-                .map(r -> r); // keep as is
+        Page<Restaurant> pageData = restaurantService.getAllRestaurantsPage(page, size, sortBy, sortDir, search, isPureVeg);
+
         List<RestaurantDto> data = pageData.getContent().stream()
-                .filter(r -> r.getStatus() == com.quickbite.restaurantservice.entity.RestaurantStatus.ACTIVE
-                        || r.getStatus() == com.quickbite.restaurantservice.entity.RestaurantStatus.APPROVED)
+                .filter(r -> r.getStatus() == RestaurantStatus.ACTIVE || r.getStatus() == RestaurantStatus.APPROVED)
                 .map(r -> {
-            RestaurantDto dto = new RestaurantDto();
-            org.springframework.beans.BeanUtils.copyProperties(r, dto);
-            if (r.getMenuCategories() != null) {
-                dto.setMenuCategories(r.getMenuCategories().stream().map(mc -> {
-                    com.quickbite.restaurantservice.dto.MenuCategoryDto mcd = new com.quickbite.restaurantservice.dto.MenuCategoryDto();
-                    org.springframework.beans.BeanUtils.copyProperties(mc, mcd);
-                    if (mc.getMenuItems() != null) {
-                        mcd.setMenuItems(mc.getMenuItems().stream().map(mi -> {
-                            com.quickbite.restaurantservice.dto.MenuItemDto mid = new com.quickbite.restaurantservice.dto.MenuItemDto();
-                            org.springframework.beans.BeanUtils.copyProperties(mi, mid);
-                            return mid;
-                        }).collect(java.util.stream.Collectors.toList()));
-                    }
-                    return mcd;
-                }).collect(java.util.stream.Collectors.toList()));
-            }
-            return dto;
-        }).collect(java.util.stream.Collectors.toList());
+                    RestaurantDto dto = new RestaurantDto();
+                    org.springframework.beans.BeanUtils.copyProperties(r, dto);
+                    // convert menu categories/items to DTOs if needed...
+                    return dto;
+                }).collect(Collectors.toList());
+
         ApiResponse<List<RestaurantDto>> body = ApiResponse.<List<RestaurantDto>>builder()
                 .success(true)
                 .message("Restaurants fetched successfully")

@@ -142,19 +142,27 @@ public class RestaurantService {
                 .collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
-    public Page<Restaurant> getAllRestaurantsPage(int page, int size, String sortBy, String sortDir, String search) {
-        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
-        Pageable pageable = PageRequest.of(page, size, sort);
-        Page<Restaurant> resultPage;
-        if (search != null && !search.isBlank()) {
-            resultPage = restaurantRepository.findByNameContainingIgnoreCaseOrCuisineTypeContainingIgnoreCase(search, search, pageable);
-        } else {
-            resultPage = restaurantRepository.findAll(pageable);
-        }
-        return resultPage;
-    }
+//    @Transactional(readOnly = true)
+//    public Page<Restaurant> getAllRestaurantsPage(int page, int size, String sortBy, String sortDir, String search) {
+//        Sort sort = Sort.by(Sort.Direction.fromString(sortDir), sortBy);
+//        Pageable pageable = PageRequest.of(page, size, sort);
+//        Page<Restaurant> resultPage;
+//        if (search != null && !search.isBlank()) {
+//            resultPage = restaurantRepository.findByNameContainingIgnoreCaseOrCuisineTypeContainingIgnoreCase(search, search, pageable);
+//        } else {
+//            resultPage = restaurantRepository.findAll(pageable);
+//        }
+//        return resultPage;
+//    }
 
+    public Page<Restaurant> getAllRestaurantsPage(int page, int size, String sortBy, String sortDir, String search, Boolean isPureVeg) {
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // repository handles null/empty search and null isPureVeg
+        return restaurantRepository.searchByNameCuisineOrMenuItems(search, isPureVeg, pageable);
+    }
+    
     @Transactional
     public RestaurantDto updateRestaurantStatus(Long id, RestaurantStatus status) {
         Restaurant restaurant = restaurantRepository.findById(id)
