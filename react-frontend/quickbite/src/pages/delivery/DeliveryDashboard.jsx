@@ -520,6 +520,11 @@ const DeliveryDashboard = () => {
       // ignore errors, still reflect on UI optimistically
     }
     setActiveOrders(prev => prev.map(o => (o.id === orderId || o.orderId === orderId) ? { ...o, status } : o));
+    
+    // Also update selectedOrder if it matches the order being updated
+    if (selectedOrder && (selectedOrder.id === orderId || selectedOrder.orderId === orderId)) {
+      setSelectedOrder(prev => ({ ...prev, status }));
+    }
   };
 
 
@@ -962,7 +967,13 @@ const DeliveryDashboard = () => {
                   delivered: '#4caf50'
                 };
                 return (
-                  <Button variant="contained" onClick={() => { updateDeliveryStatus(selectedOrder.id, next); setShowOrderModal(false); }} sx={{ background: colors[next] }}>{labels[next]}</Button>
+                  <Button variant="contained" onClick={() => { 
+                    updateDeliveryStatus(selectedOrder.id, next); 
+                    // Only close modal when status is updated to delivered
+                    if (next === 'delivered') {
+                      setShowOrderModal(false);
+                    }
+                  }} sx={{ background: colors[next] }}>{labels[next]}</Button>
                 );
               })()}
               <Button variant="outlined" onClick={() => setShowFullMap(true)}>Full Map</Button>
@@ -1258,19 +1269,19 @@ const DeliveryDashboard = () => {
                 {/* Status update buttons */}
                 {selectedOrder.status === 'accepted' && (
 
-                  <Button variant="contained" onClick={() => { updateDeliveryStatus(selectedOrder.id, 'picked_up'); setShowFullMap(false); }} sx={{ background: '#FC8019' }}>Picked Up</Button>
+                  <Button variant="contained" onClick={() => { updateDeliveryStatus(selectedOrder.id, 'picked_up'); }} sx={{ background: '#FC8019' }}>Picked Up</Button>
 
                 )}
 
                 {selectedOrder.status === 'picked_up' && (
 
-                  <Button variant="contained" onClick={() => { updateDeliveryStatus(selectedOrder.id, 'heading_to_delivery'); setShowFullMap(false); }} sx={{ background: '#FC8019' }}>On the Way</Button>
+                  <Button variant="contained" onClick={() => { updateDeliveryStatus(selectedOrder.id, 'heading_to_delivery'); }} sx={{ background: '#FC8019' }}>On the Way</Button>
 
                 )}
 
                 {selectedOrder.status === 'heading_to_delivery' && (
 
-                  <Button variant="contained" onClick={() => { updateDeliveryStatus(selectedOrder.id, 'arrived_at_delivery'); setShowFullMap(false); }} sx={{ background: '#FC8019' }}>Arrived at Delivery</Button>
+                  <Button variant="contained" onClick={() => { updateDeliveryStatus(selectedOrder.id, 'arrived_at_delivery'); }} sx={{ background: '#FC8019' }}>Arrived at Delivery</Button>
 
                 )}
 

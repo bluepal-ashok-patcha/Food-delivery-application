@@ -4,10 +4,12 @@ import com.quickbite.orderservice.dto.ApiResponse;
 import com.quickbite.orderservice.dto.OrderRequestDto;
 import com.quickbite.orderservice.dto.OrderResponseDto;
 import com.quickbite.orderservice.dto.PageMeta;
+import com.quickbite.orderservice.entity.Order;
 import com.quickbite.orderservice.entity.OrderStatus;
 import com.quickbite.orderservice.service.OrderService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import jakarta.servlet.http.HttpServletRequest;
@@ -15,6 +17,7 @@ import com.quickbite.orderservice.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -64,8 +67,11 @@ public class OrderController {
             @RequestParam(required = false) String status
     ) {
         Long userId = extractUserId(request);
-        // Return fully-hydrated DTOs including items
-        List<OrderResponseDto> orders = orderService.getOrdersByUserId(userId);
+        // Use paginated method with sorting to get latest orders first
+        Page<Order> pageData = orderService.getOrdersByUserIdPage(userId, page, size, sortBy, sortDir, status);
+        List<OrderResponseDto> orders = pageData.getContent().stream()
+                .map(orderService::convertToDto)
+                .collect(java.util.stream.Collectors.toList());
         ApiResponse<List<OrderResponseDto>> body = ApiResponse.<List<OrderResponseDto>>builder()
                 .success(true)
                 .message("Orders fetched successfully")
@@ -97,6 +103,21 @@ public class OrderController {
                 .success(true)
                 .message(order != null ? "Active order fetched successfully" : "No active order")
                 .data(order)
+                .build();
+        return ResponseEntity.ok(body);
+    }
+
+    @GetMapping("/user/{orderId}/review-status")
+    public ResponseEntity<ApiResponse<Map<String, Boolean>>> getOrderReviewStatus(
+            @PathVariable Long orderId,
+            HttpServletRequest request
+    ) {
+        Long userId = extractUserId(request);
+        Map<String, Boolean> reviewStatus = orderService.getOrderReviewStatus(orderId, userId);
+        ApiResponse<Map<String, Boolean>> body = ApiResponse.<Map<String, Boolean>>builder()
+                .success(true)
+                .message("Review status fetched successfully")
+                .data(reviewStatus)
                 .build();
         return ResponseEntity.ok(body);
     }

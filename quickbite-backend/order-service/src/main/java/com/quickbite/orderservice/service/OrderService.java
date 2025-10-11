@@ -17,6 +17,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -163,8 +164,8 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public OrderResponseDto getLatestActiveOrderForUser(Long userId) {
-        // Use JDBC to fetch the most recent non-terminal order for user (more flexible if repo lacks method)
-        String sql = "SELECT id FROM orders WHERE user_id = ? AND order_status NOT IN ('DELIVERED','CANCELLED','REJECTED') ORDER BY created_at DESC LIMIT 1";
+        // Use JDBC to fetch the most recent non-terminal order for user with completed payment
+        String sql = "SELECT id FROM orders WHERE user_id = ? AND order_status NOT IN ('DELIVERED','CANCELLED','REJECTED') AND payment_status IN ('COMPLETED','PAID','SUCCESS') ORDER BY created_at DESC LIMIT 1";
         List<Long> ids = jdbcTemplate.query(sql, ps -> ps.setLong(1, userId), (rs, rowNum) -> rs.getLong(1));
         if (ids.isEmpty()) return null;
         Optional<Order> opt = orderRepository.findById(ids.get(0));
@@ -261,7 +262,7 @@ public class OrderService {
         return jdbcTemplate.queryForMap(sql, menuItemId);
     }
 
-    private OrderResponseDto convertToDto(Order order) {
+    public OrderResponseDto convertToDto(Order order) {
         OrderResponseDto dto = new OrderResponseDto();
         BeanUtils.copyProperties(order, dto);
         if (order.getItems() != null) {
@@ -270,6 +271,53 @@ public class OrderService {
                     .collect(Collectors.toList()));
         }
         return dto;
+    }
+
+    @Transactional(readOnly = true)
+    public Map<String, Boolean> getOrderReviewStatus(Long orderId, Long userId) {
+        // Check if order exists and belongs to user
+        Optional<Order> orderOpt = orderRepository.findById(orderId);
+        if (orderOpt.isEmpty() || !orderOpt.get().getUserId().equals(userId)) {
+            throw new RuntimeException("Order not found or access denied");
+        }
+
+        Order order = orderOpt.get();
+        Map<String, Boolean> status = new HashMap<>();
+        
+        try {
+            // Check restaurant review status - look for recent reviews by this user for this restaurant
+            // Since we don't have order_id yet, we'll check if user reviewed this restaurant recently
+            String restaurantReviewSql = "SELECT COUNT(*) FROM restaurant_reviews WHERE restaurant_id = ? AND user_id = ? AND created_at >= ?";
+            // Check for reviews in the last 7 days (to avoid false positives from old reviews)
+            String sevenDaysAgo = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS).toString();
+            Long restaurantReviewCount = jdbcTemplate.queryForObject(restaurantReviewSql, Long.class, order.getRestaurantId(), userId, sevenDaysAgo);
+            status.put("restaurantReviewed", restaurantReviewCount > 0);
+        } catch (Exception e) {
+            // If table doesn't exist or column doesn't exist, default to false
+            status.put("restaurantReviewed", false);
+        }
+        
+        try {
+            // Check delivery partner review status - look for recent reviews by this user
+            // We need to get the delivery partner ID from the assignment
+            String deliveryPartnerSql = "SELECT delivery_partner_id FROM delivery_assignments WHERE order_id = ?";
+            List<Long> partnerIds = jdbcTemplate.queryForList(deliveryPartnerSql, Long.class, orderId);
+            
+            if (!partnerIds.isEmpty()) {
+                Long partnerId = partnerIds.get(0);
+                String deliveryReviewSql = "SELECT COUNT(*) FROM delivery_partner_reviews WHERE partner_user_id = ? AND user_id = ? AND created_at >= ?";
+                String sevenDaysAgo = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS).toString();
+                Long deliveryReviewCount = jdbcTemplate.queryForObject(deliveryReviewSql, Long.class, partnerId, userId, sevenDaysAgo);
+                status.put("deliveryReviewed", deliveryReviewCount > 0);
+            } else {
+                status.put("deliveryReviewed", false);
+            }
+        } catch (Exception e) {
+            // If table doesn't exist or column doesn't exist, default to false
+            status.put("deliveryReviewed", false);
+        }
+        
+        return status;
     }
 
     private OrderItemResponseDto convertOrderItemToDto(OrderItem orderItem) {

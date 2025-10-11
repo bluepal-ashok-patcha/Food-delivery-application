@@ -13,7 +13,11 @@ const OrdersPage = () => {
 
   useEffect(() => {
     if (user) {
-      dispatch(fetchOrders({ userId: user.id }));
+      dispatch(fetchOrders({ 
+        userId: user.id,
+        sortBy: 'createdAt',
+        sortDir: 'desc' // Latest orders first
+      }));
     }
   }, [dispatch, user]);
 

@@ -1,19 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Container, Typography, Paper, Button, IconButton, Divider, TextField, Chip, Grid, Card, CardContent, Avatar, Badge, Stepper, Step, StepLabel, Alert } from '@mui/material';
-import { Add, Remove, Delete, LocalShipping, ArrowBack, LocationOn, Star } from '@mui/icons-material';
+import { Add, Remove, Delete, LocalShipping, ArrowBack, LocationOn, Star, Edit } from '@mui/icons-material';
 import { updateCartItemAsync, removeCartItemAsync, removeCouponAsync, clearCartAsync, applyCouponAsync, fetchCartPricing, checkoutAndPlaceOrder } from '../../store/slices/cartSlice';
 import { createOrder } from '../../store/slices/orderSlice';
 import { showNotification } from '../../store/slices/uiSlice';
 import { mockRestaurants } from '../../constants/mockData';
 import { useNavigate } from 'react-router-dom';
-import { paymentAPI, deliveryAPI } from '../../services/api';
+import { paymentAPI, deliveryAPI, userAPI } from '../../services/api';
 import CartHeader from '../../components/cart/CartHeader';
 import CartItemRow from '../../components/cart/CartItemRow';
 import { fetchCart } from '../../store/slices/cartSlice';
 import CouponAccordion from '../../components/cart/CouponAccordion';
 import PaymentMethodAccordion from '../../components/cart/PaymentMethodAccordion';
 import OrderSummaryCard from '../../components/cart/OrderSummaryCard';
+import AddressSelectionModal from '../../components/modals/AddressSelectionModal';
 
 const CartPage = () => {
   const dispatch = useDispatch();
@@ -26,14 +27,52 @@ const CartPage = () => {
   const [paymentMethod, setPaymentMethod] = useState('razorpay');
   const [isProcessing, setIsProcessing] = useState(false);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
+  const [selectedAddress, setSelectedAddress] = useState(null);
+  const [showAddressModal, setShowAddressModal] = useState(false);
 
-  const steps = ['Cart', 'Delivery', 'Payment', 'Confirm'];
+  const steps = ['Review Cart', 'Delivery Address', 'Payment', 'Order Confirmation'];
+
+  // Update active step based on checkout progress
+  useEffect(() => {
+    if (items.length === 0) {
+      setActiveStep(0); // Review Cart
+    } else if (!selectedAddress) {
+      setActiveStep(1); // Delivery Address
+    } else if (paymentMethod === 'razorpay' && !isProcessing) {
+      setActiveStep(2); // Payment
+    } else if (isProcessing) {
+      setActiveStep(3); // Order Confirmation
+    }
+  }, [items.length, selectedAddress, paymentMethod, isProcessing]);
 
   useEffect(() => {
     if (isAuthenticated) {
       dispatch(fetchCart());
     }
   }, [dispatch, isAuthenticated]);
+
+  // Set default address when user loads
+  useEffect(() => {
+    const loadDefaultAddress = async () => {
+      if (isAuthenticated && !selectedAddress) {
+        try {
+          const response = await userAPI.getProfile();
+          const profile = response?.data || response;
+          const addresses = profile?.addresses || [];
+          
+          if (addresses.length > 0) {
+            // Find address with is_default = true, fallback to first address
+            const defaultAddress = addresses.find(addr => addr.isDefault === true) || addresses[0];
+            setSelectedAddress(defaultAddress);
+          }
+        } catch (error) {
+          console.error('Error loading default address:', error);
+        }
+      }
+    };
+    
+    loadDefaultAddress();
+  }, [isAuthenticated, selectedAddress]);
 
   const handleQuantityChange = async (itemId, customization, newQuantity) => {
     if (newQuantity <= 0) {
@@ -130,10 +169,18 @@ const CartPage = () => {
 
       try {
         // 1. First create order from cart to get orderId
-        const addressId = user?.addresses?.[0]?.id || 1;
+        if (!selectedAddress) {
+          dispatch(showNotification({ 
+            message: 'Please select a delivery address', 
+            type: 'error' 
+          }));
+          setIsProcessing(false);
+          return;
+        }
+        
         const orderResult = await dispatch(checkoutAndPlaceOrder({ 
           paymentMethod: 'razorpay', 
-          addressId, 
+          addressId: selectedAddress.id, 
           specialInstructions: deliveryInstructions 
         })).unwrap();
         
@@ -283,7 +330,7 @@ const CartPage = () => {
       <Container maxWidth="md" sx={{ py: 2, px: { xs: 1, sm: 2 }, flexGrow: 1 }}>
         <Grid container spacing={2}>
           {/* Left Column - Cart Items */}
-          <Grid item xs={12} md={9} lg={9}>
+          <Grid item xs={12} md={8}>
             {/* Restaurant Info */}
             <Card sx={{ borderRadius: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', mb: 2 }}>
               <CardContent sx={{ p: 2 }}>
@@ -328,12 +375,97 @@ const CartPage = () => {
                 </Box>
                 
                 <Box sx={{ mb: 2 }}>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: '12px', mb: 0.5 }}>
-                    Delivery Address
-                  </Typography>
-                  <Typography variant="body1" sx={{ fontWeight: 500, fontSize: '14px' }}>
-                    {user?.addresses?.[0]?.address || 'No address provided'}
-                  </Typography>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '12px' }}>
+                      Delivery Address
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<Edit />}
+                      onClick={() => setShowAddressModal(true)}
+                      sx={{
+                        borderColor: '#fc8019',
+                        color: '#fc8019',
+                        fontSize: '11px',
+                        px: 1,
+                        py: 0.5,
+                        minWidth: 'auto',
+                        '&:hover': {
+                          borderColor: '#e6730a',
+                          backgroundColor: 'rgba(252,128,25,0.04)'
+                        }
+                      }}
+                    >
+                      Change
+                    </Button>
+                  </Box>
+                  <Box sx={{ 
+                    p: 1.5, 
+                    border: '1px solid #e0e0e0', 
+                    borderRadius: '6px',
+                    backgroundColor: '#f9f9f9',
+                    minHeight: '60px',
+                    display: 'flex',
+                    alignItems: 'center'
+                  }}>
+                    {selectedAddress ? (
+                      <Box>
+                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '14px', mb: 0.5 }}>
+                          {selectedAddress.street}, {selectedAddress.city}, {selectedAddress.state} {selectedAddress.zipCode}
+                        </Typography>
+                        {selectedAddress.type && (
+                          <Chip 
+                            label={selectedAddress.type} 
+                            size="small" 
+                            sx={{ 
+                              backgroundColor: selectedAddress.type.toLowerCase() === 'home' ? '#fc8019' : '#2196f3',
+                              color: 'white',
+                              fontSize: '10px',
+                              height: '20px'
+                            }} 
+                          />
+                        )}
+                        {selectedAddress.isDefault && (
+                          <Chip 
+                            label="Default" 
+                            size="small" 
+                            sx={{ 
+                              ml: 1,
+                              backgroundColor: '#4caf50',
+                              color: 'white',
+                              fontSize: '10px',
+                              height: '20px'
+                            }} 
+                          />
+                        )}
+                      </Box>
+                    ) : (
+                      <Box sx={{ textAlign: 'center', py: 1 }}>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '13px', mb: 1 }}>
+                          No address selected
+                        </Typography>
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => setShowAddressModal(true)}
+                          sx={{
+                            borderColor: '#fc8019',
+                            color: '#fc8019',
+                            fontSize: '11px',
+                            px: 2,
+                            py: 0.5,
+                            '&:hover': {
+                              borderColor: '#e6730a',
+                              backgroundColor: 'rgba(252,128,25,0.04)'
+                            }
+                          }}
+                        >
+                          Select Address
+                        </Button>
+                      </Box>
+                    )}
+                  </Box>
                 </Box>
                 
                 <Box>
@@ -361,7 +493,7 @@ const CartPage = () => {
           </Grid>
 
           {/* Right Column - Order Summary */}
-          <Grid item xs={12} md={3} lg={3}>
+          <Grid item xs={12} md={4}>
             <Card sx={{ borderRadius: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', position: 'sticky', top: 20 }}>
               <CardContent sx={{ p: 2 }}>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#333', fontSize: '16px' }}>
@@ -414,6 +546,14 @@ const CartPage = () => {
           </Grid>
         </Grid>
       </Container>
+
+      {/* Address Selection Modal */}
+      <AddressSelectionModal
+        open={showAddressModal}
+        onClose={() => setShowAddressModal(false)}
+        onSelectAddress={setSelectedAddress}
+        selectedAddressId={selectedAddress?.id}
+      />
     </Box>
   );
 };

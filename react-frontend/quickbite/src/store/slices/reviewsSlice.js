@@ -20,9 +20,9 @@ const initialReviews = {
 
 export const submitRestaurantReview = createAsyncThunk(
   'reviews/submitRestaurantReview',
-  async ({ restaurantId, rating, comment, userName }, { rejectWithValue }) => {
+  async ({ restaurantId, orderId, rating, comment, userName }, { rejectWithValue }) => {
     try {
-      await new Promise(res => setTimeout(res, 500));
+      const response = await restaurantAPI.addReview(restaurantId, { orderId, rating, comment });
       return { restaurantId, review: { rating, comment, userName, date: new Date().toISOString().slice(0,10) } };
     } catch (e) {
       return rejectWithValue('Failed to submit review');
@@ -32,9 +32,9 @@ export const submitRestaurantReview = createAsyncThunk(
 
 export const submitPartnerReview = createAsyncThunk(
   'reviews/submitPartnerReview',
-  async ({ partnerId, rating, comment, userName }, { rejectWithValue }) => {
+  async ({ partnerId, orderId, rating, comment, userName }, { rejectWithValue }) => {
     try {
-      await new Promise(res => setTimeout(res, 500));
+      const response = await restaurantAPI.addDeliveryPartnerReview(partnerId, { orderId, rating, comment });
       return { partnerId, review: { rating, comment, userName, date: new Date().toISOString().slice(0,10) } };
     } catch (e) {
       return rejectWithValue('Failed to submit review');

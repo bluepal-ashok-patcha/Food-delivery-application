@@ -4,8 +4,9 @@ import { Restaurant, LocalShipping, Receipt, Star } from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
 import { submitRestaurantReview, submitPartnerReview } from '../../store/slices/reviewsSlice';
 import { showNotification } from '../../store/slices/uiSlice';
-import { restaurantAPI } from '../../services/api';
+import { restaurantAPI, orderAPI } from '../../services/api';
 import { useNavigate } from 'react-router-dom';
+import RatingModal from '../modals/RatingModal';
 
 const statusColor = (status) => {
   switch (status) {
@@ -32,8 +33,8 @@ const statusText = (status) => {
 const OrderCard = ({ order }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const [restRating, setRestRating] = useState(5);
-  const [partnerRating, setPartnerRating] = useState(5);
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [reviewStatus, setReviewStatus] = useState({ restaurantReviewed: false, deliveryReviewed: false });
   const [restaurantName, setRestaurantName] = useState('Restaurant');
   const [restaurantImage, setRestaurantImage] = useState(null);
 
@@ -68,18 +69,21 @@ const OrderCard = ({ order }) => {
     return () => { cancel = true; };
   }, [order.restaurantId]);
 
+  // Check review status for delivered orders
+  useEffect(() => {
+    if (order?.orderStatus === 'DELIVERED' && order?.id) {
+      orderAPI.getOrderReviewStatus(order.id)
+        .then(response => {
+          setReviewStatus(response.data);
+        })
+        .catch(error => {
+          console.error('Error fetching review status:', error);
+        });
+    }
+  }, [order?.orderStatus, order?.id]);
+
   const inr = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(Number(n || 0));
 
-  const submitRest = async () => {
-    await dispatch(submitRestaurantReview({ restaurantId: order.restaurantId || 1, rating: restRating, userName: 'You' }));
-    dispatch(showNotification({ message: 'Thanks for rating the restaurant!', type: 'success' }));
-  };
-
-  const submitPartner = async () => {
-    const partnerId = order.deliveryPartnerId || 4;
-    await dispatch(submitPartnerReview({ partnerId, rating: partnerRating, userName: 'You' }));
-    dispatch(showNotification({ message: 'Thanks for rating the delivery partner!', type: 'success' }));
-  };
 
   return (
   <Paper sx={{ p: 2, borderRadius: '10px', boxShadow: '0 6px 16px rgba(0,0,0,0.08)' }}>
@@ -125,38 +129,73 @@ const OrderCard = ({ order }) => {
         </Typography>
       </Grid>
     </Grid>
-    {isActive && (
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
-        <Button variant="contained" onClick={() => navigate(`/orders/${id}`)} sx={{ textTransform: 'none', backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' } }}>
-          Track Order
+    {isActive && (() => {
+      const paymentStatus = (order.paymentStatus || order.payment_state || '').toUpperCase();
+      const canTrack = paymentStatus === 'COMPLETED' || paymentStatus === 'PAID' || paymentStatus === 'SUCCESS';
+      
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
+          {canTrack ? (
+            <Button variant="contained" onClick={() => navigate(`/orders/${id}`)} sx={{ textTransform: 'none', backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' } }}>
+              Track Order
+            </Button>
+          ) : (
+            <Button variant="outlined" disabled sx={{ textTransform: 'none', color: '#666', borderColor: '#ccc' }}>
+              Payment Pending
+            </Button>
+          )}
+        </Box>
+      );
+    })()}
+    {status === 'delivered' && !reviewStatus.restaurantReviewed && !reviewStatus.deliveryReviewed && (
+      <Box sx={{ mt: 1.5, p: 1.5, backgroundColor: '#f8f9fa', borderRadius: '6px', textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: '12px' }}>
+          How was your experience?
+        </Typography>
+        <Button 
+          variant="contained" 
+          size="small" 
+          onClick={() => setRatingModalOpen(true)}
+          startIcon={<Star />}
+          sx={{ 
+            textTransform: 'none', 
+            backgroundColor: '#fc8019', 
+            '&:hover': { backgroundColor: '#e6730a' },
+            borderRadius: '20px',
+            px: 2
+          }}
+        >
+          Rate Order
         </Button>
       </Box>
     )}
-    {status === 'delivered' && (
-      <Box sx={{ mt: 1.5, p: 1.5, backgroundColor: '#f8f9fa', borderRadius: '6px' }}>
-        <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: '12px' }}>Rate your experience</Typography>
-        <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
-            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Restaurant</Typography>
-            <Box sx={{ display: 'flex', gap: 0.5, mb: 1 }}>
-              {[1,2,3,4,5].map(s => (
-                <Star key={s} onClick={() => setRestRating(s)} sx={{ fontSize: 18, color: s <= restRating ? '#ffc107' : '#e0e0e0', cursor: 'pointer' }} />
-              ))}
-            </Box>
-            <Button variant="contained" size="small" onClick={submitRest} sx={{ textTransform: 'none', backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' } }}>Submit</Button>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>Delivery Partner</Typography>
-            <Box sx={{ display: 'flex', gap: 0.5, mb: 1 }}>
-              {[1,2,3,4,5].map(s => (
-                <Star key={s} onClick={() => setPartnerRating(s)} sx={{ fontSize: 18, color: s <= partnerRating ? '#ffc107' : '#e0e0e0', cursor: 'pointer' }} />
-              ))}
-            </Box>
-            <Button variant="contained" size="small" onClick={submitPartner} sx={{ textTransform: 'none', backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' } }}>Submit</Button>
-          </Grid>
-        </Grid>
+    {status === 'delivered' && (reviewStatus.restaurantReviewed || reviewStatus.deliveryReviewed) && (
+      <Box sx={{ mt: 1.5, p: 1.5, backgroundColor: '#e8f5e8', borderRadius: '6px', textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '12px', color: '#4caf50' }}>
+          ✓ Thank you for your feedback!
+        </Typography>
       </Box>
     )}
+
+    {/* Rating Modal */}
+    <RatingModal
+      open={ratingModalOpen}
+      onClose={() => setRatingModalOpen(false)}
+      order={order}
+      assignment={null} // OrderCard doesn't have assignment data
+      onReviewSubmitted={() => {
+        // Refresh review status after submission
+        if (order?.id) {
+          orderAPI.getOrderReviewStatus(order.id)
+            .then(response => {
+              setReviewStatus(response.data);
+            })
+            .catch(error => {
+              console.error('Error fetching review status:', error);
+            });
+        }
+      }}
+    />
   </Paper>
   );
 };

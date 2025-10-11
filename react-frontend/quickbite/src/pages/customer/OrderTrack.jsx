@@ -7,6 +7,7 @@ import { updateOrderStatus } from '../../store/slices/orderSlice';
 import { deliveryAPI, orderAPI } from '../../services/api';
 import DeliveryMap from '../../components/maps/DeliveryMap';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
+import RatingModal from '../../components/modals/RatingModal';
 
 // Simple mock delivery partner location updates
 const mockPath = [
@@ -28,6 +29,8 @@ const OrderTrack = () => {
   const [assignment, setAssignment] = useState(null);
   const [isAssigning, setIsAssigning] = useState(false);
   const [deliveredOpen, setDeliveredOpen] = useState(false);
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [reviewStatus, setReviewStatus] = useState({ restaurantReviewed: false, deliveryReviewed: false });
   const deliveredShownRef = useRef(false);
 
   useEffect(() => {
@@ -59,6 +62,20 @@ const OrderTrack = () => {
     if (delivered && !deliveredShownRef.current) {
       deliveredShownRef.current = true;
       setDeliveredOpen(true);
+    }
+  }, [stepIndex, assignment, orderObj]);
+
+  // Check review status when order is delivered
+  useEffect(() => {
+    const delivered = stepIndex === 3 || (assignment && assignment.status === 'DELIVERED') || ((orderObj?.status || orderObj?.orderStatus) === 'DELIVERED');
+    if (delivered && orderObj?.id) {
+      orderAPI.getOrderReviewStatus(orderObj.id)
+        .then(response => {
+          setReviewStatus(response.data);
+        })
+        .catch(error => {
+          console.error('Error fetching review status:', error);
+        });
     }
   }, [stepIndex, assignment, orderObj]);
 
@@ -106,12 +123,17 @@ const OrderTrack = () => {
     return () => intervalId && clearInterval(intervalId);
   }, [id, assignment]);
 
-  // Retry creating assignment every 15s if none exists yet
+  // Retry creating assignment every 15s ONLY if payment is cleared or order is confirmed
   useEffect(() => {
     if (!id) return;
     let retryId;
     const tryCreate = async () => {
       if (assignment && assignment.id) return; // already created
+      const statusStr = (orderObj?.orderStatus || orderObj?.status || '').toUpperCase();
+      const paymentStr = (orderObj?.paymentStatus || orderObj?.payment_state || '').toUpperCase();
+      const isPaymentCleared = paymentStr === 'SUCCESS' || paymentStr === 'PAID';
+      const isOrderConfirmed = ['ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP'].includes(statusStr);
+      if (!isPaymentCleared && !isOrderConfirmed) return; // do not assign if payment failed/pending
       try {
         setIsAssigning(true);
         await deliveryAPI.createAssignment(id);
@@ -124,12 +146,45 @@ const OrderTrack = () => {
     if (!assignment) tryCreate();
     retryId = setInterval(tryCreate, 15000);
     return () => retryId && clearInterval(retryId);
-  }, [id, assignment]);
+  }, [id, assignment, orderObj]);
 
   if (!orderObj) {
     return (
       <Container maxWidth="sm" sx={{ py: 4 }}>
         <Paper sx={{ p: 3 }}>Loading order…</Paper>
+      </Container>
+    );
+  }
+
+  // Check payment status - show message if payment is not completed
+  const paymentStatus = (orderObj.paymentStatus || orderObj.payment_state || '').toUpperCase();
+  const isPaymentCompleted = paymentStatus === 'COMPLETED' || paymentStatus === 'PAID' || paymentStatus === 'SUCCESS';
+  
+  if (!isPaymentCompleted) {
+    return (
+      <Container maxWidth="sm" sx={{ py: 4 }}>
+        <Paper sx={{ p: 4, textAlign: 'center' }}>
+          <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, color: '#fc8019' }}>
+            Payment Pending
+          </Typography>
+          <Typography variant="body1" sx={{ mb: 3, color: '#666' }}>
+            Order tracking is only available after payment is completed.
+          </Typography>
+          <Typography variant="body2" sx={{ mb: 3, color: '#999' }}>
+            Current payment status: {paymentStatus || 'PENDING'}
+          </Typography>
+          <Button 
+            variant="contained" 
+            onClick={() => window.history.back()} 
+            sx={{ 
+              textTransform: 'none', 
+              backgroundColor: '#fc8019', 
+              '&:hover': { backgroundColor: '#e6730a' } 
+            }}
+          >
+            Go Back
+          </Button>
+        </Paper>
       </Container>
     );
   }
@@ -225,18 +280,66 @@ const OrderTrack = () => {
             <Typography variant="body2" color="text.secondary">Order #{id} has been delivered. Hope you enjoyed your meal!</Typography>
           </Box>
           <Box sx={{ display: 'flex', gap: 1, mt: 3 }}>
-            <Button fullWidth variant="outlined" onClick={() => setDeliveredOpen(false)} sx={{ textTransform: 'none' }}>Close</Button>
+            <Button 
+              fullWidth 
+              variant="outlined" 
+              onClick={() => setDeliveredOpen(false)} 
+              sx={{ textTransform: 'none' }}
+            >
+              Close
+            </Button>
+            {!reviewStatus.restaurantReviewed && !reviewStatus.deliveryReviewed && (
+              <Button 
+                fullWidth
+                variant="contained" 
+                onClick={() => {
+                  setDeliveredOpen(false);
+                  setRatingModalOpen(true);
+                }} 
+                sx={{ 
+                  textTransform: 'none', 
+                  backgroundColor: '#fc8019', 
+                  '&:hover': { backgroundColor: '#e6730a' } 
+                }}
+              >
+                Rate Order
+              </Button>
+            )}
             <Button 
               fullWidth
               variant="contained" 
               onClick={() => navigate('/')} 
-              sx={{ textTransform: 'none', backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' } }}
+              sx={{ 
+                textTransform: 'none', 
+                backgroundColor: '#4caf50', 
+                '&:hover': { backgroundColor: '#45a049' } 
+              }}
             >
               Go to Home
             </Button>
           </Box>
         </DialogContent>
       </Dialog>
+
+      {/* Rating Modal */}
+      <RatingModal
+        open={ratingModalOpen}
+        onClose={() => setRatingModalOpen(false)}
+        order={orderObj}
+        assignment={assignment}
+        onReviewSubmitted={() => {
+          // Refresh review status after submission
+          if (orderObj?.id) {
+            orderAPI.getOrderReviewStatus(orderObj.id)
+              .then(response => {
+                setReviewStatus(response.data);
+              })
+              .catch(error => {
+                console.error('Error fetching review status:', error);
+              });
+          }
+        }}
+      />
     </Container>
   );
 };

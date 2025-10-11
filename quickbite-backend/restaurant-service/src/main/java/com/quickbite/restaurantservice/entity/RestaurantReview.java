@@ -25,6 +25,9 @@ public class RestaurantReview {
     @Column(nullable = false)
     private Long userId;
 
+    @Column(nullable = true)
+    private Long orderId; // Track which order this review is for (optional for now)
+
     @Column(nullable = false)
     private int rating; // 1-5
 

@@ -12,6 +12,7 @@ public class RestaurantReviewDto {
     private Long id;
     private Long restaurantId; // Set by controller from path variable
     private Long userId; // from token
+    private Long orderId; // Track which order this review is for (optional for now)
     @Min(1)
     @Max(5)
     private int rating;

@@ -186,6 +186,18 @@ export const restaurantAPI = {
     return response.data;
   },
 
+  // Add delivery partner review
+  addDeliveryPartnerReview: async (partnerUserId, reviewData) => {
+    const response = await api.post(`/api/delivery/partners/${partnerUserId}/reviews`, reviewData);
+    return response.data;
+  },
+
+  // Get delivery partner reviews
+  getDeliveryPartnerReviews: async (partnerUserId) => {
+    const response = await api.get(`/api/delivery/partners/${partnerUserId}/reviews`);
+    return response.data;
+  },
+
   // Restaurant owner application
   applyAsRestaurantOwner: async (applicationData) => {
     const response = await api.post('/api/restaurants/owners/apply', applicationData);
@@ -326,8 +338,8 @@ export const orderAPI = {
   },
 
   // Get user's orders
-  getUserOrders: async () => {
-    const response = await api.get('/api/orders/user');
+  getUserOrders: async (sortBy = 'createdAt', sortDir = 'desc') => {
+    const response = await api.get(`/api/orders/user?sortBy=${sortBy}&sortDir=${sortDir}`);
     return response.data;
   },
 
@@ -340,6 +352,12 @@ export const orderAPI = {
   // Get order by ID
   getOrderById: async (orderId) => {
     const response = await api.get(`/api/orders/user/${orderId}`);
+    return response.data;
+  },
+
+  // Get order review status
+  getOrderReviewStatus: async (orderId) => {
+    const response = await api.get(`/api/orders/user/${orderId}/review-status`);
     return response.data;
   },
 

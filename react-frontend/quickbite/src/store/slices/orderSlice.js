@@ -16,9 +16,10 @@ export const createOrder = createAsyncThunk(
 
 export const fetchOrders = createAsyncThunk(
   'orders/fetchOrders',
-  async (_filters = {}, { rejectWithValue }) => {
+  async (filters = {}, { rejectWithValue }) => {
     try {
-      const response = await orderAPI.getUserOrders();
+      const { sortBy = 'createdAt', sortDir = 'desc' } = filters;
+      const response = await orderAPI.getUserOrders(sortBy, sortDir);
       return response.data || response;
     } catch (error) {
       return rejectWithValue(error.message);

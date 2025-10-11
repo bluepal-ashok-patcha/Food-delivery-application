@@ -55,7 +55,11 @@ const OrderConfirmation = () => {
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5, mt: 3 }}>
           <Button variant="outlined" sx={{ textTransform: 'none' }} onClick={() => navigate('/orders')}>View Orders</Button>
-          <Button variant="contained" sx={{ textTransform: 'none', backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' } }} onClick={() => navigate(`/orders/${order.id}`)}>Track Order</Button>
+          {paymentStatus === 'PAID' || paymentStatus === 'COMPLETED' || paymentStatus === 'SUCCESS' ? (
+            <Button variant="contained" sx={{ textTransform: 'none', backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' } }} onClick={() => navigate(`/orders/${order.id}`)}>Track Order</Button>
+          ) : (
+            <Button variant="outlined" disabled sx={{ textTransform: 'none', color: '#666', borderColor: '#ccc' }}>Payment Pending</Button>
+          )}
         </Box>
       </Paper>
     </Container>

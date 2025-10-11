@@ -61,7 +61,9 @@ const HomePage = () => {
   }, [isAuthenticated]);
 
   const goToTrack = () => {
-    if (activeOrder) window.location.href = `/orders/${activeOrder.id}`;
+    if (activeOrder) {
+      window.location.href = `/orders/${activeOrder.id}`;
+    }
   };
 
   const computeProgress = () => {

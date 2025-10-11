@@ -48,7 +48,11 @@ const ProfilePage = () => {
 
   useEffect(() => {
     if (user && tab === 1) {
-      dispatch(fetchOrders({ userId: user.id }));
+      dispatch(fetchOrders({ 
+        userId: user.id,
+        sortBy: 'createdAt',
+        sortDir: 'desc' // Latest orders first
+      }));
     }
   }, [dispatch, user, tab]);
 
