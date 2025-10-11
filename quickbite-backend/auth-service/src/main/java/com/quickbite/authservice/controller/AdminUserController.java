@@ -99,6 +99,9 @@ package com.quickbite.authservice.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -110,7 +113,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-
+import org.springframework.http.HttpStatus;
 import com.quickbite.authservice.dto.AdminUserUpdateRequest;
 import com.quickbite.authservice.dto.ApiResponse;
 import com.quickbite.authservice.dto.UserRegistrationRequestDto;
@@ -169,6 +172,7 @@ public class AdminUserController {
     @PostMapping("/import")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<String>> importUsers(@RequestParam("file") MultipartFile file) {
+    	System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
         return authService.importUsers(file);
     }
 
@@ -190,6 +194,7 @@ public class AdminUserController {
     @GetMapping("/export/excel")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportUsersToExcel() {
+    	
         return authService.exportAllUsersToExcel();
     }
 
@@ -197,8 +202,23 @@ public class AdminUserController {
     @GetMapping("/export/excel/{role}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<byte[]> exportUsersByRoleToExcel(@PathVariable String role) {
+    	System.out.println("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
         return authService.exportUsersByRoleToExcel(role);
     }
+    
+    
+ // ✅ Download empty Excel template
+    @GetMapping("/template")
+    public ResponseEntity<byte[]> downloadUserImportTemplate() {
+        byte[] file = authService.generateUserImportTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDisposition(ContentDisposition.attachment().filename("user_import_template.xlsx").build());
+
+        return new ResponseEntity<>(file, headers, HttpStatus.OK);
+    }
+    
     
     
 }
