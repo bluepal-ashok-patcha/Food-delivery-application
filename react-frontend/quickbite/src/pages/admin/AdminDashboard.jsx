@@ -1,10 +1,10 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { Box, Container, Paper, Grid, Tabs, Tab, TextField, Stack, Button, CircularProgress, Alert, Chip, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Divider } from '@mui/material';
-import { People, Restaurant, AttachMoney, LocalShipping, Analytics, Receipt, TrendingUp } from '@mui/icons-material';
+import React, { useMemo, useState, useEffect,useRef } from 'react';
+import { Box, Container, Paper, Grid, Tabs, Tab, TextField, Stack, Button, CircularProgress, Alert, Chip, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Divider,RadioGroup, FormControlLabel, Radio  } from '@mui/material';
+import { People, Restaurant, AttachMoney, LocalShipping, Analytics, Receipt, TrendingUp,UploadFile, FileDownload } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { openMapModal } from '../../store/slices/locationSlice';
 import AdminHeader from '../../components/admin/AdminHeader';
-import { restaurantAPI } from '../../services/api';
+import { restaurantAPI,adminAPI } from '../../services/api';
 
 import EnhancedStatCard from '../../components/admin/EnhancedStatCard';
 
@@ -40,6 +40,13 @@ const AdminDashboard = () => {
   const [tabValue, setTabValue] = useState(0);
 
   const dispatch = useDispatch();
+
+   // NEW: refs & state for import/export
+  const fileInputRef = useRef(null);
+  const [openImportModal, setOpenImportModal] = useState(false);
+  const [openExportModal, setOpenExportModal] = useState(false);
+  const [exportType, setExportType] = useState('pdf'); // 'pdf' or 'excel'
+  const [exportRole, setExportRole] = useState(''); // '' = all
 
   const [openUserModal, setOpenUserModal] = useState(false);
 
@@ -324,7 +331,7 @@ const AdminDashboard = () => {
 
         }}>
 
-          {tabValue === 0 && (
+          {/* {tabValue === 0 && (
 
             <Box sx={{ p: 4 }}>
 
@@ -433,7 +440,294 @@ const AdminDashboard = () => {
               )}
             </Box>
 
+          )} */}
+
+           {tabValue === 0 && (
+
+            <Box sx={{ p: 4 }}>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                {/* Keep TabHeader but hide its built-in add button so we render custom actions */}
+                <Box sx={{ flex: 1 }}>
+                  <TabHeader
+                    title="User Management"
+                    subtitle="Manage platform users and their roles"
+                    showAddButton={false}
+                  />
+                </Box>
+
+                <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 2 }}>
+                  <Button
+                    variant="contained"
+                    startIcon={<UploadFile />}
+                    onClick={() => setOpenImportModal(true)}
+                    sx={{ background: '#fc8019', '&:hover': { background: '#e6730a' }, textTransform: 'none' }}
+                  >
+                    Import
+                  </Button>
+
+                  <Button
+                    variant="contained"
+                    startIcon={<FileDownload />}
+                    onClick={() => setOpenExportModal(true)}
+                    sx={{ background: '#fc8019', '&:hover': { background: '#e6730a' }, textTransform: 'none' }}
+                  >
+                    Export
+                  </Button>
+
+                  <Button
+                    variant="contained"
+                    onClick={() => { setFormValues({ name: '', email: '', phone: '', role: 'CUSTOMER' }); setOpenUserModal(true); }}
+                    sx={{ background: '#fc8019', '&:hover': { background: '#e6730a' }, textTransform: 'none' }}
+                  >
+                   Add User 
+                  </Button>
+                </Stack>
+              </Box>
+
+              {/* Hidden file input for import */}
+              <input ref={fileInputRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                const formData = new FormData();
+                formData.append('file', file);
+                try {
+                  // Prefer adminAPI.importUsers if present, otherwise POST directly
+                  if (adminAPI?.importUsers) {
+                    await adminAPI.importUsers(file);
+                  } else {
+                    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'}/admin/users/import`, {
+                      method: 'POST',
+                      body: formData,
+                      credentials: 'include'
+                    }); 
+                    if (!res.ok) throw new Error('Import failed');
+                  }
+                  alert('Import successful');
+                  dispatch(fetchUsers({ page: 0, size: 10 }));
+                } catch (err) {
+                  alert('Import failed: ' + (err?.message || err));
+                } finally {
+                  if (fileInputRef.current) fileInputRef.current.value = '';
+                  setOpenImportModal(false);
+                }
+              }} />
+
+              {/* IMPORT Modal */}
+              <Modal
+                open={openImportModal}
+                onClose={() => setOpenImportModal(false)}
+                title="Import Users"
+                actions={
+                  <Stack direction="row" spacing={2}>
+                    <Button
+                      variant="outlined"
+                      onClick={async () => {
+                        try {
+                          const blob = await adminAPI.downloadUserTemplate();
+                          const url = window.URL.createObjectURL(new Blob([blob]));
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.setAttribute('download', 'user_import_template.xlsx');
+                          document.body.appendChild(link);
+                          link.click();
+                          link.remove();
+                          window.URL.revokeObjectURL(url);
+                        } catch (err) {
+                          // fallback to local public template if backend not available
+                          window.open('/templates/users-template.xlsx', '_blank');
+                        }
+                      }}
+                      sx={{ textTransform: 'none' }}
+                    >
+                      Download Template
+                    </Button>
+
+                    <Button variant="contained" onClick={() => fileInputRef.current?.click()} sx={{ background: '#fc8019', '&:hover': { background: '#e6730a' }, textTransform: 'none' }}>
+                      Import File
+                    </Button>
+                  </Stack>
+                }
+              >
+                <Stack spacing={2}>
+                  <Typography variant="body2" color="text.secondary">Use the template to prepare your file. Headers expected: name,email,phone,role,isActive</Typography>
+                  <Typography variant="caption" color="text.secondary">Supported formats: .xlsx, .xls, .csv</Typography>
+                </Stack>
+              </Modal>
+
+              {/* EXPORT Modal */}
+              <Modal
+                open={openExportModal}
+                onClose={() => setOpenExportModal(false)}
+                title="Export Users"
+                actions={
+                  <Stack direction="row" spacing={2}>
+                    <Button variant="outlined" onClick={() => setOpenExportModal(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+                    <Button variant="contained" onClick={async () => {
+                      try {
+                        let blob = null;
+                        if (exportType === 'pdf') {
+                          if (exportRole) {
+                            blob = await adminAPI.exportUsersByRole(exportRole);
+                          } else {
+                            blob = await adminAPI.exportUsersToPdf();
+                          }
+                          const filename = exportRole ? `users_${exportRole}_export.pdf` : 'users_export.pdf';
+                          const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }));
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = filename;
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                          window.URL.revokeObjectURL(url);
+                        } else {
+                          // excel export
+                          if (exportRole) {
+                            blob = await adminAPI.exportUsersByRoleToExcel(exportRole);
+                          } else {
+                            blob = await adminAPI.exportUsersToExcel();
+                          }
+                          const filename = exportRole ? `users_${exportRole}_export.xlsx` : 'users_export.xlsx';
+                          const url = window.URL.createObjectURL(new Blob([blob], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = filename;
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                          window.URL.revokeObjectURL(url);
+                        }
+                        setOpenExportModal(false);
+                      } catch (err) {
+                        alert('Export failed: ' + (err?.message || err));
+                      }
+                    }} sx={{ background: '#fc8019', '&:hover': { background: '#e6730a' }, textTransform: 'none' }}>
+                      Export
+                    </Button>
+                  </Stack>
+                }
+              >
+                <Stack spacing={2}>
+                  <Box>
+                    <Typography variant="subtitle2">Export Type</Typography>
+                    <RadioGroup row value={exportType} onChange={(e) => setExportType(e.target.value)}>
+                      <FormControlLabel value="pdf" control={<Radio />} label="PDF" />
+                      <FormControlLabel value="excel" control={<Radio />} label="Excel" />
+                    </RadioGroup>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="subtitle2">Role</Typography>
+                    <RadioGroup row value={exportRole} onChange={(e) => setExportRole(e.target.value)}>
+                      <FormControlLabel value="" control={<Radio />} label="All" />
+                      <FormControlLabel value="CUSTOMER" control={<Radio />} label="Customer" />
+                      <FormControlLabel value="ADMIN" control={<Radio />} label="Admin" />
+                      <FormControlLabel value="RESTAURANT_OWNER" control={<Radio />} label="Restaurant Owner" />
+                      <FormControlLabel value="DELIVERY_PARTNER" control={<Radio />} label="Delivery Partner" />
+                    </RadioGroup>
+                  </Box>
+                </Stack>
+              </Modal>
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+
+                <TextField 
+
+                  label="Search users"
+
+                  value={userSearch}
+
+                  onChange={(e) => setUserSearch(e.target.value)
+
+                  }
+
+                  fullWidth
+
+                  InputLabelProps={{ shrink: true }}
+
+                />
+
+                <TextField 
+
+                  select 
+
+                  label="Role"
+
+                  value={userRoleFilter}
+
+                  onChange={(e) => setUserRoleFilter(e.target.value)}
+
+                  sx={{ minWidth: 200 }}
+
+                  SelectProps={{ native: true }}
+
+                  InputLabelProps={{ shrink: true }}
+
+                >
+
+                  <option value="">All roles</option>
+
+                  <option value="CUSTOMER">Customer</option>
+
+                  <option value="ADMIN">Admin</option>
+
+                  <option value="RESTAURANT_OWNER">Restaurant Owner</option>
+
+                  <option value="DELIVERY_PARTNER">Delivery Partner</option>
+
+                </TextField>
+
+              </ Stack>
+
+              
+              {loading.users && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+                  <CircularProgress />
+                </Box>
+              )}
+              
+              {error.users && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error.users}
+                </Alert>
+              )}
+              
+              {!loading.users && (
+              <UsersTable 
+
+                users={users.filter(u => {
+
+                  const matchesSearch = userSearch ? (
+
+                    (u.name || '').toLowerCase().includes(userSearch.toLowerCase()) ||
+
+                    (u.email || '').toLowerCase().includes(userSearch.toLowerCase()) ||
+
+                    (u.phone || '').toLowerCase().includes(userSearch.toLowerCase())
+
+                  ) : true;
+
+                  const matchesRole = userRoleFilter ? u.role === userRoleFilter : true;
+
+                  return matchesSearch && matchesRole;
+
+                })}
+
+                onViewUser={() => {}}
+
+                onEditUser={(user) => { setFormValues(user); setOpenUserModal(true); }}
+
+                onDeleteUser={(user) => dispatch(deleteUser(user.id))}
+
+                  onToggleActive={(user) => dispatch(toggleUserStatus({ id: user.id, isActive: !user.isActive }))}
+              />
+
+              )}
+            </Box>
+
           )}
+
 
 
 

@@ -581,6 +581,23 @@ export const adminAPI = {
     return response.data;
   },
 
+   // Export all users to Excel (grouped by role)
+  exportUsersToExcel: async () => {
+    const response = await api.get('/admin/users/export/excel', { responseType: 'blob' });
+    return response.data;
+  },
+
+  // Export users by specific role to Excel
+  exportUsersByRoleToExcel: async (role) => {
+    const response = await api.get(`/admin/users/export/excel/${role}`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  downloadUserTemplate: async () => {
+  const response = await api.get('/admin/users/template', { responseType: 'blob' });
+  return response.data;
+},
+
   // Restaurant Management
   getPendingRestaurants: async (page = 0, size = 10) => {
     const response = await api.get(`/api/restaurants/admin/pending?page=${page}&size=${size}`);
