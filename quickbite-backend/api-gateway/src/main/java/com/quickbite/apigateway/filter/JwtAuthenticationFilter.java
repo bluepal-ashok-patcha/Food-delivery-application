@@ -202,6 +202,8 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         mappings.put("GET:/admin/users/export/excel/{role}", List.of("ADMIN"));
 
         
+        
+        
         // ===== MISSING ENDPOINTS FROM README =====
         
         // Admin User Management (from auth-service)
