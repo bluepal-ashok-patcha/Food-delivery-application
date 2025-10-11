@@ -9,6 +9,7 @@ import com.quickbite.deliveryservice.entity.DeliveryPartnerStatus;
 import com.quickbite.deliveryservice.entity.DeliveryStatus;
 import com.quickbite.deliveryservice.repository.DeliveryAssignmentRepository;
 import com.quickbite.deliveryservice.repository.DeliveryPartnerRepository;
+import com.quickbite.deliveryservice.repository.CrossServiceJdbcRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +38,9 @@ public class DeliveryAssignmentService {
 
     @Autowired
     private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private CrossServiceJdbcRepository crossServiceRepository;
 
     @org.springframework.beans.factory.annotation.Value("${delivery.assignment.maxRadiusKm:15}")
     private double maxAssignmentRadiusKm;
@@ -236,6 +241,19 @@ public class DeliveryAssignmentService {
 
     @Transactional
     public void updatePartnerLocation(Long partnerId, LocationUpdateRequest request) {
+        // Validate coordinates
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            log.warn("Invalid location update request from partner {}: null coordinates", partnerId);
+            throw new RuntimeException("Latitude and longitude are required");
+        }
+        
+        if (request.getLatitude() < -90 || request.getLatitude() > 90 || 
+            request.getLongitude() < -180 || request.getLongitude() > 180) {
+            log.warn("Invalid location coordinates from partner {}: ({}, {})", 
+                    partnerId, request.getLatitude(), request.getLongitude());
+            throw new RuntimeException("Invalid coordinate values");
+        }
+        
         // Update partner's current location
         DeliveryPartner partner = partnerRepository.findByUserId(partnerId)
                 .orElseThrow(() -> new RuntimeException("Delivery partner not found"));
@@ -258,7 +276,8 @@ public class DeliveryAssignmentService {
             assignmentRepository.save(assignment);
         }
 
-        log.debug("Updated location for partner {} to ({}, {})", partnerId, request.getLatitude(), request.getLongitude());
+        log.info("Updated location for partner {} to ({}, {}) - {} active assignments updated", 
+                partnerId, request.getLatitude(), request.getLongitude(), activeAssignments.size());
     }
 
     @Transactional(readOnly = true)
@@ -468,6 +487,27 @@ public class DeliveryAssignmentService {
     private DeliveryAssignmentDto convertToDto(DeliveryAssignment assignment) {
         DeliveryAssignmentDto dto = new DeliveryAssignmentDto();
         BeanUtils.copyProperties(assignment, dto);
+        
+        // Fetch customer name
+        try {
+            Map<String, Object> userDetails = crossServiceRepository.getUserDetails(assignment.getCustomerId());
+            if (userDetails != null && userDetails.get("name") != null) {
+                dto.setCustomerName((String) userDetails.get("name"));
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch customer name for user {}: {}", assignment.getCustomerId(), e.getMessage());
+        }
+        
+        // Fetch restaurant name
+        try {
+            Map<String, Object> restaurantDetails = crossServiceRepository.getRestaurantDetails(assignment.getRestaurantId());
+            if (restaurantDetails != null && restaurantDetails.get("name") != null) {
+                dto.setRestaurantName((String) restaurantDetails.get("name"));
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch restaurant name for restaurant {}: {}", assignment.getRestaurantId(), e.getMessage());
+        }
+        
         return dto;
     }
 }

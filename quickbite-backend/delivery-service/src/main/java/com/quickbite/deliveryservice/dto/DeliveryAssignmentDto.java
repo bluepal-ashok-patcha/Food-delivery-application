@@ -19,7 +19,9 @@ public class DeliveryAssignmentDto {
     private Long orderId;
     private Long deliveryPartnerId;
     private Long restaurantId;
+    private String restaurantName; // Added restaurant name
     private Long customerId;
+    private String customerName; // Added customer name
     private DeliveryStatus status;
     private String pickupAddress;
     private String deliveryAddress;

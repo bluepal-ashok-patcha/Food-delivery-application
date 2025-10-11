@@ -53,17 +53,17 @@ const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
                     Order {order.id}
                   </Typography>
                   <Typography variant="body2" sx={{ color: '#666' }}>
-                    {order.items?.length || 0} items
+                    {order.itemCount || order.items?.length || 0} items
                   </Typography>
                 </Box>
               </TableCell>
               <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                   <Avatar sx={{ width: 32, height: 32, fontSize: '14px', background: '#6c757d' }}>
-                    C{order.userId}
+                    {order.customerName ? order.customerName.charAt(0).toUpperCase() : `C${order.userId}`}
                   </Avatar>
                   <Typography variant="body2" sx={{ color: '#333' }}>
-                    Customer {order.userId}
+                    {order.customerName || `Customer ${order.userId}`}
                   </Typography>
                 </Box>
               </TableCell>

@@ -704,7 +704,9 @@ export const adminAPI = {
   },
 
   createCoupon: async (couponData) => {
+    console.log('Creating coupon with data:', couponData);
     const response = await api.post('/api/payments/coupons', couponData);
+    console.log('Coupon creation response:', response.data);
     return response.data;
   },
 

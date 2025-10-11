@@ -59,12 +59,26 @@ public class DeliveryService {
 
     @Transactional
     public void updateDeliveryPartnerLocation(Long userId, LocationUpdateDto locationDto) {
+        // Validate coordinates
+        if (locationDto.getLatitude() == null || locationDto.getLongitude() == null) {
+            log.warn("Invalid location update request from partner {}: null coordinates", userId);
+            throw new RuntimeException("Latitude and longitude are required");
+        }
+        
+        if (locationDto.getLatitude() < -90 || locationDto.getLatitude() > 90 || 
+            locationDto.getLongitude() < -180 || locationDto.getLongitude() > 180) {
+            log.warn("Invalid location coordinates from partner {}: ({}, {})", 
+                    userId, locationDto.getLatitude(), locationDto.getLongitude());
+            throw new RuntimeException("Invalid coordinate values");
+        }
+        
         DeliveryPartner partner = deliveryPartnerRepository.findByUserId(userId)
                 .orElseThrow(() -> new RuntimeException("Delivery partner not found"));
         partner.setLatitude(locationDto.getLatitude());
         partner.setLongitude(locationDto.getLongitude());
         deliveryPartnerRepository.save(partner);
-        log.trace("Updated location for delivery partner with userId: {}", userId); // Trace for frequent updates
+        log.info("Updated location for delivery partner {} to ({}, {})", 
+                userId, locationDto.getLatitude(), locationDto.getLongitude());
     }
 
     @Transactional

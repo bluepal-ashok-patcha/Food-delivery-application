@@ -909,7 +909,23 @@ const AdminDashboard = () => {
                 title="Coupon Management" 
                 subtitle="Manage discount coupons and promotions"
                 addButtonText="Add Coupon"
-                onAddClick={() => { setFormValues({ code: '', description: '', discountType: 'PERCENTAGE', discountValue: 10, isActive: true }); setOpenCouponsModal(true); }}
+                onAddClick={() => { 
+                  setFormValues({ 
+                    code: '', 
+                    description: '', 
+                    type: 'PERCENTAGE', 
+                    discountValue: 10, 
+                    minimumOrderAmount: 100,
+                    maximumDiscountAmount: 50,
+                    totalUsageLimit: 1000,
+                    usagePerUserLimit: 1,
+                    validFrom: new Date().toISOString().slice(0, 16),
+                    validUntil: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16),
+                    isActive: true,
+                    terms: ''
+                  }); 
+                  setOpenCouponsModal(true); 
+                }}
               />
               
               {loading.coupons && (
@@ -1201,7 +1217,7 @@ const AdminDashboard = () => {
                   <Box>
                     <Typography variant="body2" sx={{ opacity: 0.8, fontSize: '10px', fontWeight: 500 }}>FROM</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '14px' }}>
-                      {restaurantData.name}
+                      {formValues.restaurantName || restaurantData.name || `Restaurant #${formValues.restaurantId || 'N/A'}`}
                     </Typography>
                   </Box>
                 </Box>
@@ -1223,7 +1239,7 @@ const AdminDashboard = () => {
                   <Box>
                     <Typography variant="body2" sx={{ opacity: 0.8, fontSize: '10px', fontWeight: 500 }}>TO</Typography>
                     <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '14px' }}>
-                      Customer #{formValues.userId || formValues.customerId || 'N/A'}
+                      {formValues.customerName || `Customer #${formValues.userId || formValues.customerId || 'N/A'}`}
                     </Typography>
                   </Box>
                 </Box>
@@ -1503,7 +1519,7 @@ const AdminDashboard = () => {
                       Partner Assigned
                     </Typography>
                     <Typography variant="body2" sx={{ opacity: 0.9, fontSize: '12px' }}>
-                      Partner ID: {formValues.deliveryAssignment.deliveryPartnerId}
+                      {formValues.deliveryPartnerName || `Partner ID: ${formValues.deliveryAssignment.deliveryPartnerId}`}
                     </Typography>
                   </Box>
                 </Box>
@@ -1596,10 +1612,39 @@ const AdminDashboard = () => {
                 variant="contained" 
                 sx={{ background: '#fc8019' }}
                 onClick={() => {
+                  // Validate required fields
+                  if (!formValues.code || !formValues.description || !formValues.type || !formValues.discountValue) {
+                    dispatch(showNotification({ 
+                      message: 'Please fill in all required fields (Code, Description, Type, Discount Value)', 
+                      type: 'error' 
+                    }));
+                    return;
+                  }
+
+                  // Transform form data to match backend requirements
+                  const transformedData = {
+                    code: formValues.code.trim().toUpperCase(),
+                    description: formValues.description.trim(),
+                    type: formValues.type,
+                    discountValue: parseFloat(formValues.discountValue),
+                    minimumOrderAmount: formValues.minimumOrderAmount ? parseFloat(formValues.minimumOrderAmount) : null,
+                    maximumDiscountAmount: formValues.maximumDiscountAmount ? parseFloat(formValues.maximumDiscountAmount) : null,
+                    validFrom: formValues.validFrom ? new Date(formValues.validFrom).toISOString() : new Date().toISOString(),
+                    validUntil: formValues.validUntil ? new Date(formValues.validUntil).toISOString() : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year from now
+                    totalUsageLimit: parseInt(formValues.totalUsageLimit) || 1000,
+                    usagePerUserLimit: parseInt(formValues.usagePerUserLimit) || 1,
+                    restaurantId: formValues.restaurantId ? parseInt(formValues.restaurantId) : null,
+                    userId: formValues.userId ? parseInt(formValues.userId) : null,
+                    terms: formValues.terms || '',
+                    isActive: formValues.isActive !== false
+                  };
+
+                  console.log('Sending coupon data:', transformedData);
+
                   if (formValues?.id) {
-                    dispatch(updateCoupon({ couponId: formValues.id, couponData: formValues }));
+                    dispatch(updateCoupon({ couponId: formValues.id, couponData: transformedData }));
                   } else {
-                    dispatch(createCoupon(formValues));
+                    dispatch(createCoupon(transformedData));
                   }
                   setOpenCouponsModal(false);
                 }}

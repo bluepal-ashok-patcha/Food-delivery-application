@@ -132,11 +132,9 @@ public class OrderController {
             @RequestParam(required = false) String status
     ) {
         org.springframework.data.domain.Page<com.quickbite.orderservice.entity.Order> pageData = orderService.getOrdersByRestaurantIdPage(restaurantId, page, size, sortBy, sortDir, status);
-        List<OrderResponseDto> orders = pageData.getContent().stream().map(o -> {
-            OrderResponseDto dto = new OrderResponseDto();
-            org.springframework.beans.BeanUtils.copyProperties(o, dto);
-            return dto;
-        }).collect(java.util.stream.Collectors.toList());
+        List<OrderResponseDto> orders = pageData.getContent().stream()
+                .map(orderService::convertToDto)
+                .collect(java.util.stream.Collectors.toList());
         ApiResponse<List<OrderResponseDto>> body = ApiResponse.<List<OrderResponseDto>>builder()
                 .success(true)
                 .message("Orders fetched successfully")
@@ -176,11 +174,9 @@ public class OrderController {
             @RequestParam(required = false) Long userId
     ) {
         org.springframework.data.domain.Page<com.quickbite.orderservice.entity.Order> pageData = orderService.getAllOrdersPage(page, size, sortBy, sortDir, status, restaurantId, userId);
-        List<OrderResponseDto> orders = pageData.getContent().stream().map(o -> {
-            OrderResponseDto dto = new OrderResponseDto();
-            org.springframework.beans.BeanUtils.copyProperties(o, dto);
-            return dto;
-        }).collect(java.util.stream.Collectors.toList());
+        List<OrderResponseDto> orders = pageData.getContent().stream()
+                .map(orderService::convertToDto)
+                .collect(java.util.stream.Collectors.toList());
         ApiResponse<List<OrderResponseDto>> body = ApiResponse.<List<OrderResponseDto>>builder()
                 .success(true)
                 .message("Orders fetched successfully")

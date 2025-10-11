@@ -63,6 +63,19 @@ public class CrossServiceJdbcRepository {
         }
     }
 
+    public Map<String, Object> getDeliveryPartnerDetails(Long partnerId) {
+        try {
+            return jdbcTemplate.queryForMap(
+                "SELECT dp.id, dp.name, dp.phone_number, dp.vehicle_details, dp.status " +
+                "FROM delivery_partners dp " +
+                "WHERE dp.id = ?",
+                partnerId
+            );
+        } catch (EmptyResultDataAccessException ex) {
+            return null;
+        }
+    }
+
     public Map<String, Object> validateCoupon(String couponCode, Long userId, Long restaurantId, Double orderAmount) {
         try {
             // First, get the coupon details

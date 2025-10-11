@@ -134,10 +134,13 @@ const DeliveryDashboard = () => {
           orderId: a.orderId || a.id,
           assignmentId: a.id, // This is the assignment ID needed for acceptAssignment
           customerId: a.customerId,
+          customerName: a.customerName || a.customerFullName || a.userName || `Customer #${a.customerId}`,
           restaurantId: a.restaurantId,
+          restaurantName: a.restaurantName || a.restaurantTitle || `Restaurant #${a.restaurantId}`,
           deliveryPartnerId: a.deliveryPartnerId,
           status: toUiStatus(a.status),
-          deliveryAddress: a.deliveryAddress,
+          deliveryAddress: a.deliveryAddress || a.customerAddress || a.dropAddress || 'Delivery address not available',
+          restaurantAddress: a.pickupAddress || a.restaurantAddress || 'Pickup address not available',
           pickupLatitude: a.pickupLatitude,
           pickupLongitude: a.pickupLongitude,
           deliveryLatitude: a.deliveryLatitude,
@@ -155,10 +158,11 @@ const DeliveryDashboard = () => {
           id: o.orderId,
           orderId: o.orderId,
           customerId: o.customerId,
+          customerName: o.customerName || o.customerFullName || o.userName || `Customer #${o.customerId}`,
           restaurantId: o.restaurantId,
-          restaurantName: o.restaurantName,
-          restaurantAddress: o.restaurantAddress,
-          deliveryAddress: o.deliveryAddress,
+          restaurantName: o.restaurantName || o.restaurantTitle || `Restaurant #${o.restaurantId}`,
+          restaurantAddress: o.pickupAddress || o.restaurantAddress || 'Pickup address not available',
+          deliveryAddress: o.deliveryAddress || o.customerAddress || o.dropAddress || 'Delivery address not available',
           pickupLatitude: o.pickupLatitude,
           pickupLongitude: o.pickupLongitude,
           deliveryLatitude: o.deliveryLatitude,
@@ -180,23 +184,133 @@ const DeliveryDashboard = () => {
 
   // Periodically send partner geolocation to backend
   const [partnerPosition, setPartnerPosition] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [lastLocationUpdate, setLastLocationUpdate] = useState(null);
+  const [locationAccuracy, setLocationAccuracy] = useState(null);
 
   useEffect(() => {
     let watchId;
-    if (navigator.geolocation) {
-      watchId = navigator.geolocation.watchPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords || {};
+    let retryTimeout;
+    let fallbackTimeout;
+    
+    const updateLocationWithRetry = async (latitude, longitude, accuracy, isFallback = false) => {
+      try {
+        // More lenient accuracy validation - accept up to 500m for fallback, 100m for GPS
+        const maxAccuracy = isFallback ? 500 : 100;
+        if (accuracy && accuracy > maxAccuracy) {
+          console.warn(`Location accuracy too low: ${accuracy}m (max: ${maxAccuracy}m), skipping update`);
+          if (!isFallback) {
+            // Try fallback location if GPS accuracy is poor
+            tryFallbackLocation();
+          }
+          return;
+        }
+        
+        // Validate coordinates are reasonable
+        if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+          console.warn(`Invalid coordinates: ${latitude}, ${longitude}`);
+          return;
+        }
+        
+        await deliveryAPI.updateLocation(latitude, longitude);
+        setPartnerPosition({ lat: latitude, lng: longitude });
+        setLocationAccuracy(accuracy);
+        setLastLocationUpdate(new Date());
+        setLocationError(null);
+        console.log(`Location updated successfully: ${latitude}, ${longitude} (accuracy: ${accuracy}m, fallback: ${isFallback})`);
+      } catch (error) {
+        console.error('Failed to update location:', error);
+        setLocationError('Failed to update location');
+        
+        // Retry after 5 seconds
+        retryTimeout = setTimeout(() => {
+          updateLocationWithRetry(latitude, longitude, accuracy, isFallback);
+        }, 5000);
+      }
+    };
+
+    const tryFallbackLocation = () => {
+      console.log('Trying fallback location with lower accuracy requirements...');
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords || {};
           if (latitude && longitude) {
-            deliveryAPI.updateLocation(latitude, longitude).catch(() => {});
-            setPartnerPosition({ lat: latitude, lng: longitude });
+            updateLocationWithRetry(latitude, longitude, accuracy, true);
           }
         },
-        () => {},
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+        (error) => {
+          console.warn('Fallback location also failed:', error.message);
+          setLocationError('Unable to get accurate location. Please check GPS settings.');
+        },
+        { 
+          enableHighAccuracy: false,  // Use network location as fallback
+          timeout: 10000, 
+          maximumAge: 30000  // Accept older cached location
+        }
       );
+    };
+
+    if (navigator.geolocation) {
+      // First try high accuracy GPS
+      watchId = navigator.geolocation.watchPosition(
+        (position) => {
+          const { latitude, longitude, accuracy } = position.coords || {};
+          if (latitude && longitude) {
+            updateLocationWithRetry(latitude, longitude, accuracy, false);
+          }
+        },
+        (error) => {
+          let errorMessage = 'Location access denied';
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorMessage = 'Location access denied by user';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorMessage = 'Location information unavailable';
+              break;
+            case error.TIMEOUT:
+              errorMessage = 'GPS timeout - trying network location';
+              console.log('GPS timeout, trying fallback location...');
+              tryFallbackLocation();
+              return;
+          }
+          console.error('Geolocation error:', errorMessage);
+          setLocationError(errorMessage);
+        },
+        { 
+          enableHighAccuracy: true, 
+          timeout: 20000,  // Increased timeout for GPS
+          maximumAge: 5000,  // Reduced cache age for better accuracy
+          // Additional options for better accuracy
+          altitude: false,
+          altitudeAccuracy: false,
+          heading: false,
+          speed: false
+        }
+      );
+
+      // Set a fallback timeout in case GPS never responds
+      fallbackTimeout = setTimeout(() => {
+        if (!partnerPosition) {
+          console.log('GPS taking too long, trying fallback location...');
+          tryFallbackLocation();
+        }
+      }, 15000);
+    } else {
+      setLocationError('Geolocation not supported by browser');
     }
-    return () => { if (navigator.geolocation && watchId) navigator.geolocation.clearWatch(watchId); };
+    
+    return () => { 
+      if (navigator.geolocation && watchId) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
+      if (fallbackTimeout) {
+        clearTimeout(fallbackTimeout);
+      }
+    };
   }, []);
 
   // Load profile data
@@ -553,7 +667,133 @@ const DeliveryDashboard = () => {
 
         <DeliveryHeader isOnline={isOnline} onToggleStatus={handleToggleStatus} onEditProfile={() => setShowProfileModal(true)} />
 
-
+        {/* Location Status Indicator */}
+        <Paper sx={{ 
+          mb: 2, 
+          p: 2, 
+          borderRadius: '8px',
+          backgroundColor: locationError ? '#ffebee' : partnerPosition ? '#e8f5e8' : '#fff3e0',
+          border: `1px solid ${locationError ? '#f44336' : partnerPosition ? '#4caf50' : '#ff9800'}`
+        }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Box sx={{ 
+              width: 12, 
+              height: 12, 
+              borderRadius: '50%', 
+              backgroundColor: locationError ? '#f44336' : partnerPosition ? '#4caf50' : '#ff9800' 
+            }} />
+            <Box sx={{ flex: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 600, color: '#333' }}>
+                {locationError ? 'Location Error' : partnerPosition ? 'Location Tracking Active' : 'Getting Location...'}
+              </Typography>
+              <Typography variant="caption" sx={{ color: '#666' }}>
+                {locationError ? locationError : 
+                 partnerPosition ? `Last updated: ${lastLocationUpdate ? lastLocationUpdate.toLocaleTimeString() : 'Just now'}${locationAccuracy ? ` (${Math.round(locationAccuracy)}m accuracy)` : ''}` :
+                 'Please allow location access for accurate tracking'}
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {partnerPosition && (
+                <Typography variant="caption" sx={{ color: '#4caf50', fontWeight: 600 }}>
+                  {partnerPosition.lat.toFixed(6)}, {partnerPosition.lng.toFixed(6)}
+                </Typography>
+              )}
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => {
+                  if (navigator.geolocation) {
+                    // First try high accuracy GPS
+                    navigator.geolocation.getCurrentPosition(
+                      (position) => {
+                        const { latitude, longitude, accuracy } = position.coords;
+                        if (latitude && longitude) {
+                          // Accept up to 200m accuracy for manual refresh
+                          if (accuracy && accuracy > 200) {
+                            console.warn(`Manual refresh accuracy too low: ${accuracy}m, trying fallback...`);
+                            // Try fallback with network location
+                            navigator.geolocation.getCurrentPosition(
+                              (fallbackPosition) => {
+                                const { latitude: lat, longitude: lng, accuracy: acc } = fallbackPosition.coords;
+                                if (lat && lng) {
+                                  deliveryAPI.updateLocation(lat, lng)
+                                    .then(() => {
+                                      setPartnerPosition({ lat, lng });
+                                      setLocationAccuracy(acc);
+                                      setLastLocationUpdate(new Date());
+                                      setLocationError(null);
+                                    })
+                                    .catch((error) => {
+                                      console.error('Manual fallback location update failed:', error);
+                                      setLocationError('Manual update failed');
+                                    });
+                                }
+                              },
+                              (fallbackError) => {
+                                console.error('Manual fallback location request failed:', fallbackError);
+                                setLocationError('Manual location request failed');
+                              },
+                              { enableHighAccuracy: false, timeout: 8000, maximumAge: 30000 }
+                            );
+                          } else {
+                            deliveryAPI.updateLocation(latitude, longitude)
+                              .then(() => {
+                                setPartnerPosition({ lat: latitude, lng: longitude });
+                                setLocationAccuracy(accuracy);
+                                setLastLocationUpdate(new Date());
+                                setLocationError(null);
+                              })
+                              .catch((error) => {
+                                console.error('Manual location update failed:', error);
+                                setLocationError('Manual update failed');
+                              });
+                          }
+                        }
+                      },
+                      (error) => {
+                        console.error('Manual GPS location request failed:', error);
+                        // Try fallback immediately
+                        navigator.geolocation.getCurrentPosition(
+                          (fallbackPosition) => {
+                            const { latitude, longitude, accuracy } = fallbackPosition.coords;
+                            if (latitude && longitude) {
+                              deliveryAPI.updateLocation(latitude, longitude)
+                                .then(() => {
+                                  setPartnerPosition({ lat: latitude, lng: longitude });
+                                  setLocationAccuracy(accuracy);
+                                  setLastLocationUpdate(new Date());
+                                  setLocationError(null);
+                                })
+                                .catch((error) => {
+                                  console.error('Manual fallback location update failed:', error);
+                                  setLocationError('Manual update failed');
+                                });
+                            }
+                          },
+                          (fallbackError) => {
+                            console.error('Manual fallback location request failed:', fallbackError);
+                            setLocationError('Manual location request failed');
+                          },
+                          { enableHighAccuracy: false, timeout: 8000, maximumAge: 30000 }
+                        );
+                      },
+                      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+                    );
+                  }
+                }}
+                sx={{ 
+                  minWidth: 'auto', 
+                  px: 1, 
+                  py: 0.5, 
+                  fontSize: '12px',
+                  textTransform: 'none'
+                }}
+              >
+                Refresh
+              </Button>
+            </Box>
+          </Box>
+        </Paper>
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
 

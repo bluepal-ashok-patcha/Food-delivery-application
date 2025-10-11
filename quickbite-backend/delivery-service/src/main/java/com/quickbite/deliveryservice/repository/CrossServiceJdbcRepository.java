@@ -29,6 +29,28 @@ public class CrossServiceJdbcRepository {
     public void updateUserRole(Long userId, String role) {
         jdbcTemplate.update("UPDATE users SET role = ? WHERE id = ?", role, userId);
     }
+
+    public Map<String, Object> getUserDetails(Long userId) {
+        try {
+            return jdbcTemplate.queryForMap(
+                "SELECT id, email, name, phone FROM users WHERE id = ?",
+                userId
+            );
+        } catch (EmptyResultDataAccessException ex) {
+            return null;
+        }
+    }
+
+    public Map<String, Object> getRestaurantDetails(Long restaurantId) {
+        try {
+            return jdbcTemplate.queryForMap(
+                "SELECT id, name, latitude, longitude, delivery_fee FROM restaurants WHERE id = ?",
+                restaurantId
+            );
+        } catch (EmptyResultDataAccessException ex) {
+            return null;
+        }
+    }
 }
 
 

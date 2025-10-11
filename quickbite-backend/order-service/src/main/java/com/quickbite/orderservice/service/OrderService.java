@@ -9,6 +9,7 @@ import com.quickbite.orderservice.entity.OrderStatus;
 import com.quickbite.orderservice.entity.PaymentStatus;
 import com.quickbite.orderservice.repository.CartRepository;
 import com.quickbite.orderservice.repository.OrderRepository;
+import com.quickbite.orderservice.repository.CrossServiceJdbcRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeanUtils;
@@ -40,6 +41,9 @@ public class OrderService {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private CrossServiceJdbcRepository crossServiceRepository;
 
     @Transactional
     public OrderResponseDto placeOrder(OrderRequestDto orderRequestDto) {
@@ -265,11 +269,49 @@ public class OrderService {
     public OrderResponseDto convertToDto(Order order) {
         OrderResponseDto dto = new OrderResponseDto();
         BeanUtils.copyProperties(order, dto);
+        
+        // Set item count
         if (order.getItems() != null) {
+            dto.setItemCount(order.getItems().size());
             dto.setItems(order.getItems().stream()
                     .map(this::convertOrderItemToDto)
                     .collect(Collectors.toList()));
+        } else {
+            dto.setItemCount(0);
         }
+        
+        // Fetch customer name
+        try {
+            Map<String, Object> userDetails = crossServiceRepository.getUserDetails(order.getUserId());
+            if (userDetails != null && userDetails.get("name") != null) {
+                dto.setCustomerName((String) userDetails.get("name"));
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch customer name for user {}: {}", order.getUserId(), e.getMessage());
+        }
+        
+        // Fetch restaurant name
+        try {
+            Map<String, Object> restaurantDetails = crossServiceRepository.getRestaurantDetails(order.getRestaurantId());
+            if (restaurantDetails != null && restaurantDetails.get("name") != null) {
+                dto.setRestaurantName((String) restaurantDetails.get("name"));
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch restaurant name for restaurant {}: {}", order.getRestaurantId(), e.getMessage());
+        }
+        
+        // Fetch delivery partner name if available
+        if (order.getDeliveryPartnerId() != null) {
+            try {
+                Map<String, Object> partnerDetails = crossServiceRepository.getDeliveryPartnerDetails(order.getDeliveryPartnerId());
+                if (partnerDetails != null && partnerDetails.get("name") != null) {
+                    dto.setDeliveryPartnerName((String) partnerDetails.get("name"));
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch delivery partner name for partner {}: {}", order.getDeliveryPartnerId(), e.getMessage());
+            }
+        }
+        
         return dto;
     }
 

@@ -15,8 +15,8 @@ const OrdersTable = ({ orders, getStatusColor, onViewOrder, onUpdateStatus, onAs
           <TableRow>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Order</TableCell>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Items</TableCell>
-            <TableCell sx={{ fontWeight: 700, color: '#333' }}>Customer ID</TableCell>
-            <TableCell sx={{ fontWeight: 700, color: '#333' }}>Restaurant ID</TableCell>
+            <TableCell sx={{ fontWeight: 700, color: '#333' }}>Customer</TableCell>
+            <TableCell sx={{ fontWeight: 700, color: '#333' }}>Restaurant</TableCell>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Total</TableCell>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Status</TableCell>
             <TableCell sx={{ fontWeight: 700, color: '#333' }}>Placed At</TableCell>
@@ -40,12 +40,12 @@ const OrdersTable = ({ orders, getStatusColor, onViewOrder, onUpdateStatus, onAs
               </TableCell>
               <TableCell>
                 <Typography variant="body2" sx={{ color: '#333' }}>
-                  {(order.items?.length || 0)}
+                  {order.itemCount || order.items?.length || 0}
                 </Typography>
               </TableCell>
               <TableCell>
                 <Typography variant="body2" sx={{ color: '#333' }}>
-                  {order.userId || order.customerId || '—'}
+                  {order.customerName || order.userId || order.customerId || '—'}
                 </Typography>
               </TableCell>
               <TableCell>
@@ -54,7 +54,7 @@ const OrdersTable = ({ orders, getStatusColor, onViewOrder, onUpdateStatus, onAs
                     <Restaurant sx={{ fontSize: 16 }} />
                   </Avatar>
                   <Typography variant="body2" sx={{ color: '#333' }}>
-                    {order.restaurantId || '—'}
+                    {order.restaurantName || order.restaurantId || '—'}
                   </Typography>
                 </Box>
               </TableCell>

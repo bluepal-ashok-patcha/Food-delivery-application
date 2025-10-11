@@ -12,9 +12,13 @@ public class OrderResponseDto {
 
     private Long id;
     private Long userId;
+    private String customerName; // Added customer name
     private Long restaurantId;
+    private String restaurantName; // Added restaurant name
     private Long deliveryPartnerId;
+    private String deliveryPartnerName; // Added delivery partner name
     private List<OrderItemResponseDto> items;
+    private Integer itemCount; // Added item count
     private Double totalAmount;
     private OrderStatus orderStatus;
     private PaymentStatus paymentStatus;
