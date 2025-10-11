@@ -15,9 +15,10 @@ const validationSchema = Yup.object({
     .required('Name is required'),
   email: Yup.string()
     .email('Invalid email format')
+    .matches(/\.com$/, 'Email must end with .com')
     .required('Email is required'),
   phone: Yup.string()
-    .matches(/^\+?[\d\s-()]+$/, 'Invalid phone number')
+    .matches(/^\d{10}$/, 'Phone number must be exactly 10 digits')
     .required('Phone number is required'),
   password: Yup.string()
     .min(6, 'Password must be at least 6 characters')
@@ -43,7 +44,12 @@ const RegisterForm = () => {
     validationSchema,
     onSubmit: (values) => {
       const { confirmPassword, ...userData } = values;
-      dispatch(registerUser(userData));
+      // Normalize email to lowercase before submission
+      const normalizedUserData = {
+        ...userData,
+        email: userData.email.toLowerCase().trim()
+      };
+      dispatch(registerUser(normalizedUserData));
     },
   });
 
@@ -66,92 +72,190 @@ const RegisterForm = () => {
   };
 
   return (
-    <Box component="form" onSubmit={formik.handleSubmit} sx={{ width: '100%' }}>
-      <Typography variant="h5" component="h1" gutterBottom align="center" sx={{ mb: 3, fontWeight: 600 }}>
-        Create Account
-      </Typography>
+    <Box component="form" onSubmit={formik.handleSubmit} sx={{ width: '100%', px: 1 }}>
+      <Box sx={{ mb: 3, textAlign: 'center' }}>
+        <Typography variant="h4" sx={{ fontWeight: 700, color: '#fc8019', mb: 1 }}>
+          Sign Up
+        </Typography>
+        <Typography variant="body2" sx={{ color: '#666', fontSize: '14px' }}>
+          Create your account to get started
+        </Typography>
+      </Box>
       
-      <TextField
-        fullWidth
-        label="Full Name"
-        name="name"
-        value={formik.values.name}
-        onChange={formik.handleChange}
-        error={formik.touched.name && Boolean(formik.errors.name)}
-        helperText={formik.touched.name && formik.errors.name}
-        sx={{ mb: 2 }}
-      />
+      <Box sx={{ mb: 2 }}>
+        <TextField
+          fullWidth
+          label="Full Name"
+          name="name"
+          value={formik.values.name}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          placeholder="Enter your full name"
+          sx={{ 
+            mb: 0,
+            '& .MuiOutlinedInput-root': {
+              height: '48px',
+              fontSize: '14px'
+            }
+          }}
+        />
+        {formik.touched.name && formik.errors.name && (
+          <Typography variant="body2" sx={{ color: '#ff6b35', mt: 0.5, fontSize: '12px', fontWeight: 500 }}>
+            {formik.errors.name}
+          </Typography>
+        )}
+      </Box>
       
-      <TextField
-        fullWidth
-        label="Email"
-        name="email"
-        type="email"
-        value={formik.values.email}
-        onChange={formik.handleChange}
-        error={formik.touched.email && Boolean(formik.errors.email)}
-        helperText={formik.touched.email && formik.errors.email}
-        sx={{ mb: 2 }}
-      />
+      <Box sx={{ mb: 2 }}>
+        <TextField
+          fullWidth
+          label="Email"
+          name="email"
+          type="email"
+          value={formik.values.email}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          placeholder="Enter your email"
+          sx={{ 
+            mb: 0,
+            '& .MuiOutlinedInput-root': {
+              height: '48px',
+              fontSize: '14px'
+            }
+          }}
+        />
+        {formik.touched.email && formik.errors.email && (
+          <Typography variant="body2" sx={{ color: '#ff6b35', mt: 0.5, fontSize: '12px', fontWeight: 500 }}>
+            {formik.errors.email}
+          </Typography>
+        )}
+      </Box>
       
-      <TextField
-        fullWidth
-        label="Phone Number"
-        name="phone"
-        value={formik.values.phone}
-        onChange={formik.handleChange}
-        error={formik.touched.phone && Boolean(formik.errors.phone)}
-        helperText={formik.touched.phone && formik.errors.phone}
-        sx={{ mb: 2 }}
-      />
+      <Box sx={{ mb: 2 }}>
+        <TextField
+          fullWidth
+          label="Phone Number"
+          name="phone"
+          value={formik.values.phone}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          placeholder="Enter 10-digit phone number"
+          sx={{ 
+            mb: 0,
+            '& .MuiOutlinedInput-root': {
+              height: '48px',
+              fontSize: '14px'
+            }
+          }}
+        />
+        {formik.touched.phone && formik.errors.phone && (
+          <Typography variant="body2" sx={{ color: '#ff6b35', mt: 0.5, fontSize: '12px', fontWeight: 500 }}>
+            {formik.errors.phone}
+          </Typography>
+        )}
+      </Box>
       
-      <TextField
-        fullWidth
-        label="Password"
-        name="password"
-        type="password"
-        value={formik.values.password}
-        onChange={formik.handleChange}
-        error={formik.touched.password && Boolean(formik.errors.password)}
-        helperText={formik.touched.password && formik.errors.password}
-        sx={{ mb: 2 }}
-      />
+      <Box sx={{ mb: 2 }}>
+        <TextField
+          fullWidth
+          label="Password"
+          name="password"
+          type="password"
+          value={formik.values.password}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          placeholder="Create a password"
+          sx={{ 
+            mb: 0,
+            '& .MuiOutlinedInput-root': {
+              height: '48px',
+              fontSize: '14px'
+            }
+          }}
+        />
+        {formik.touched.password && formik.errors.password && (
+          <Typography variant="body2" sx={{ color: '#ff6b35', mt: 0.5, fontSize: '12px', fontWeight: 500 }}>
+            {formik.errors.password}
+          </Typography>
+        )}
+      </Box>
       
-      <TextField
-        fullWidth
-        label="Confirm Password"
-        name="confirmPassword"
-        type="password"
-        value={formik.values.confirmPassword}
-        onChange={formik.handleChange}
-        error={formik.touched.confirmPassword && Boolean(formik.errors.confirmPassword)}
-        helperText={formik.touched.confirmPassword && formik.errors.confirmPassword}
-        sx={{ mb: 2 }}
-      />
+      <Box sx={{ mb: 3 }}>
+        <TextField
+          fullWidth
+          label="Confirm Password"
+          name="confirmPassword"
+          type="password"
+          value={formik.values.confirmPassword}
+          onChange={formik.handleChange}
+          onBlur={formik.handleBlur}
+          placeholder="Confirm your password"
+          sx={{ 
+            mb: 0,
+            '& .MuiOutlinedInput-root': {
+              height: '48px',
+              fontSize: '14px'
+            }
+          }}
+        />
+        {formik.touched.confirmPassword && formik.errors.confirmPassword && (
+          <Typography variant="body2" sx={{ color: '#ff6b35', mt: 0.5, fontSize: '12px', fontWeight: 500 }}>
+            {formik.errors.confirmPassword}
+          </Typography>
+        )}
+      </Box>
       
       {error && (
-        <Typography color="error" variant="body2" sx={{ mb: 2, textAlign: 'center' }}>
-          {error}
-        </Typography>
+        <Box sx={{ 
+          backgroundColor: '#ffebee', 
+          border: '1px solid #ffcdd2', 
+          borderRadius: '3px', 
+          p: 1.5, 
+          mb: 2,
+          textAlign: 'center' 
+        }}>
+          <Typography variant="body2" sx={{ color: '#d32f2f', fontSize: '13px', fontWeight: 500 }}>
+            {error}
+          </Typography>
+        </Box>
       )}
       
       <Button
         type="submit"
         fullWidth
         loading={loading}
-        sx={{ mb: 2 }}
+        size="large"
+        sx={{ 
+          mb: 2, 
+          height: '48px',
+          fontSize: '16px',
+          fontWeight: 600,
+          background: 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)',
+          '&:hover': {
+            background: 'linear-gradient(135deg, #e6730a 0%, #e55a2b 100%)',
+          }
+        }}
       >
-        Create Account
+        {loading ? 'Creating Account...' : 'Create Account'}
       </Button>
       
-      <Box sx={{ textAlign: 'center' }}>
-        <Typography variant="body2">
+      <Box sx={{ textAlign: 'center', pt: 1 }}>
+        <Typography variant="body2" sx={{ color: '#666', fontSize: '14px' }}>
           Already have an account?{' '}
           <Link
             component="button"
             variant="body2"
             onClick={handleSwitchToLogin}
-            sx={{ textDecoration: 'none', fontWeight: 600 }}
+            sx={{ 
+              textDecoration: 'none', 
+              fontWeight: 600, 
+              color: '#fc8019',
+              fontSize: '14px',
+              '&:hover': {
+                color: '#e6730a',
+                textDecoration: 'underline'
+              }
+            }}
           >
             Sign In
           </Link>

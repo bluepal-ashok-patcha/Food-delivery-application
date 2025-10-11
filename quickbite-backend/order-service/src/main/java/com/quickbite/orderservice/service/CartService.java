@@ -257,8 +257,23 @@ public class CartService {
                     .sum();
         }
 
-        // Calculate delivery fee (simplified - could be distance-based)
-        double deliveryFee = subtotal > 0 ? 2.99 : 0.0;
+        // Calculate delivery fee from restaurant's actual delivery fee
+        double deliveryFee = 0.0;
+        if (subtotal > 0 && cart.getRestaurantId() != null) {
+            try {
+                Map<String, Object> restaurantDetails = crossServiceRepository.getRestaurantDetails(cart.getRestaurantId());
+                if (restaurantDetails != null && restaurantDetails.get("delivery_fee") != null) {
+                    deliveryFee = ((Number) restaurantDetails.get("delivery_fee")).doubleValue();
+                } else {
+                    // Fallback to default delivery fee if restaurant details not found
+                    deliveryFee = 2.99;
+                }
+            } catch (Exception e) {
+                log.warn("Failed to fetch restaurant delivery fee for restaurant {}: {}", cart.getRestaurantId(), e.getMessage());
+                // Fallback to default delivery fee
+                deliveryFee = 2.99;
+            }
+        }
 
         // Calculate tax (8% of subtotal)
         double tax = subtotal * 0.08;

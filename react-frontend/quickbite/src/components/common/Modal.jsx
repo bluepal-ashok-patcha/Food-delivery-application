@@ -14,8 +14,11 @@ import { styled } from '@mui/material/styles';
 
 const StyledDialog = styled(Dialog)(({ theme }) => ({
   '& .MuiDialog-paper': {
-    borderRadius: '12px',
+    borderRadius: '3px',
     maxHeight: '90vh',
+    maxWidth: '420px',
+    width: '100%',
+    margin: '16px',
   },
 }));
 
@@ -23,7 +26,7 @@ const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
-  padding: '20px 24px 16px',
+  padding: '16px 20px 12px',
   borderBottom: '1px solid #f0f0f0',
   position: 'sticky',
   top: 0,
@@ -32,7 +35,7 @@ const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
 }));
 
 const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
-  padding: '24px',
+  padding: '20px',
   overflowY: 'auto',
   flex: 1,
 }));

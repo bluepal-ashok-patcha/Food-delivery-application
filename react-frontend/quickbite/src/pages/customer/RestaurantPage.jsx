@@ -28,6 +28,12 @@ const RestaurantPage = () => {
   }, [dispatch, id]);
 
   const handleAddToCart = async (item) => {
+    // Check if restaurant is closed
+    if (!currentRestaurant.isOpen) {
+      alert('This restaurant is currently closed. You cannot add items to cart.');
+      return;
+    }
+    
     await dispatch(addToCartAsync({
       restaurantId: currentRestaurant.id,
       menuItemId: item.id,
@@ -82,10 +88,14 @@ const RestaurantPage = () => {
     <Box sx={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
       {/* Swiggy-like Restaurant Header */}
       <Box sx={{ 
-        background: 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)',
+        background: currentRestaurant.isOpen 
+          ? 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)'
+          : 'linear-gradient(135deg, #666 0%, #999 100%)',
         color: 'white',
         position: 'relative',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        filter: currentRestaurant.isOpen ? 'none' : 'grayscale(100%)',
+        opacity: currentRestaurant.isOpen ? 1 : 0.8
       }}>
         {/* Background Image */}
         <Box sx={{
@@ -94,7 +104,7 @@ const RestaurantPage = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          backgroundImage: `url(${currentRestaurant.coverImage || currentRestaurant.image})`,
+          backgroundImage: `url(${currentRestaurant.coverImage || currentRestaurant.image || '/api/placeholder/800/400'})`,
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           opacity: 0.1,
@@ -166,23 +176,37 @@ const RestaurantPage = () => {
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Rating value={currentRestaurant.rating} readOnly size="small" />
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {currentRestaurant.rating} ({currentRestaurant.totalRatings}+)
+                      {currentRestaurant.rating} ({currentRestaurant.totalRatings || 0}+)
                     </Typography>
                   </Box>
                   
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <AccessTime sx={{ fontSize: 16 }} />
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {currentRestaurant.deliveryTime}
+                      {currentRestaurant.deliveryTime || '30-40 mins'}
                     </Typography>
                   </Box>
                   
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <LocalShipping sx={{ fontSize: 16 }} />
                     <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                      {formatPrice(currentRestaurant.deliveryFee)} delivery
+                      {formatPrice(currentRestaurant.deliveryFee || 0)} delivery
                     </Typography>
                   </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                      Min. {formatPrice(currentRestaurant.minimumOrder || 0)}
+                    </Typography>
+                  </Box>
+
+                  {currentRestaurant.deliveryRadiusKm && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        {currentRestaurant.deliveryRadiusKm}km radius
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
 
                 {/* Restaurant Details */}
@@ -191,7 +215,7 @@ const RestaurantPage = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <LocationOn sx={{ fontSize: 14 }} />
                       <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '11px' }}>
-                        {currentRestaurant.address}
+                        {currentRestaurant.address || 'Address not available'}
                       </Typography>
                     </Box>
                   </Grid>
@@ -199,7 +223,25 @@ const RestaurantPage = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                       <Phone sx={{ fontSize: 14 }} />
                       <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '11px' }}>
-                        {currentRestaurant.phone}
+                        {currentRestaurant.phone || currentRestaurant.contactNumber || 'Contact not available'}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+
+                {/* Cuisine and Opening Hours */}
+                <Grid container spacing={1} sx={{ mb: 1 }}>
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '11px', fontWeight: 600 }}>
+                        Cuisine: {currentRestaurant.cuisine || currentRestaurant.cuisineType || 'Not specified'}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      <Typography variant="caption" sx={{ opacity: 0.9, fontSize: '11px', fontWeight: 600 }}>
+                        Hours: {currentRestaurant.openingHours || 'Hours not available'}
                       </Typography>
                     </Box>
                   </Grid>
@@ -207,6 +249,43 @@ const RestaurantPage = () => {
 
                 {/* Tags and Status */}
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1 }}>
+                  {/* Cuisine Type Tag */}
+                  <Chip 
+                    label={currentRestaurant.cuisine || currentRestaurant.cuisineType || 'Restaurant'}
+                    size="small"
+                    sx={{ 
+                      backgroundColor: 'rgba(255,255,255,0.2)',
+                      color: 'white',
+                      fontWeight: 600,
+                      '&:hover': { backgroundColor: 'rgba(255,255,255,0.3)' }
+                    }}
+                  />
+                  
+                  {/* Veg/Non-Veg Tags */}
+                  {currentRestaurant.isPureVeg && (
+                    <Chip 
+                      label="Pure Veg"
+                      size="small"
+                      sx={{ 
+                        backgroundColor: '#4caf50',
+                        color: 'white',
+                        fontWeight: 700
+                      }}
+                    />
+                  )}
+                  {currentRestaurant.isVeg && !currentRestaurant.isPureVeg && (
+                    <Chip 
+                      label="Veg Options"
+                      size="small"
+                      sx={{ 
+                        backgroundColor: '#8bc34a',
+                        color: 'white',
+                        fontWeight: 700
+                      }}
+                    />
+                  )}
+                  
+                  {/* Custom Tags */}
                   {currentRestaurant.tags?.map((tag, index) => (
                     <Chip 
                       key={index}
@@ -220,6 +299,8 @@ const RestaurantPage = () => {
                       }}
                     />
                   ))}
+                  
+                  {/* Status Chip */}
                   <Chip 
                     label={currentRestaurant.isOpen ? 'Open Now' : 'Closed'}
                     size="small"
@@ -253,6 +334,24 @@ const RestaurantPage = () => {
           </Grid>
         </Container>
       </Box>
+
+      {/* Closed Restaurant Banner */}
+      {!currentRestaurant.isOpen && (
+        <Box sx={{
+          backgroundColor: '#f44336',
+          color: 'white',
+          textAlign: 'center',
+          py: 2,
+          px: 2
+        }}>
+          <Typography variant="h6" sx={{ fontWeight: 700, mb: 0.5 }}>
+            🚫 Restaurant Currently Closed
+          </Typography>
+          <Typography variant="body2" sx={{ opacity: 0.9 }}>
+            This restaurant is not accepting orders at the moment. Please try again later.
+          </Typography>
+        </Box>
+      )}
 
       {/* Menu Categories Navigation */}
       <Box sx={{ 
@@ -354,6 +453,7 @@ const RestaurantPage = () => {
                   onAdd={() => handleAddToCart(item)}
                   onRemove={() => handleRemoveFromCart(item)}
                   formatPrice={formatPrice}
+                  isRestaurantClosed={!currentRestaurant.isOpen}
                 />
                 ))}
             </Box>

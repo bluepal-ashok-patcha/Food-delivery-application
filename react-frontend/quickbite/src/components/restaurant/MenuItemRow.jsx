@@ -3,7 +3,7 @@ import { Box, Paper, Typography, IconButton, Chip, Tooltip, Badge } from '@mui/m
 import { AccessTime, Add, Remove, LocalFireDepartment, Star } from '@mui/icons-material';
 import ReadMoreText from '../common/ReadMoreText';
 
-const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice }) => (
+const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice, isRestaurantClosed = false }) => (
   <Paper sx={{ 
     p: 0, 
     display: 'flex', 
@@ -12,7 +12,7 @@ const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice }) => (
     borderRadius: '16px', 
     boxShadow: '0 4px 20px rgba(0,0,0,0.08)', 
     transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 
-    backgroundColor: 'white', 
+    backgroundColor: isRestaurantClosed ? '#f5f5f5' : 'white', 
     border: '1px solid #f0f0f0', 
     minHeight: '160px', 
     width: '100%', 
@@ -21,7 +21,9 @@ const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice }) => (
     overflow: 'hidden', 
     boxSizing: 'border-box',
     position: 'relative',
-    '&:hover': { 
+    filter: isRestaurantClosed ? 'grayscale(100%)' : 'none',
+    opacity: isRestaurantClosed ? 0.7 : 1,
+    '&:hover': isRestaurantClosed ? {} : { 
       boxShadow: '0 12px 32px rgba(252, 128, 25, 0.15)', 
       transform: 'translateY(-4px)', 
       borderColor: '#fc8019',
@@ -320,18 +322,22 @@ const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice }) => (
         </Box>
       )}
       
-      <Tooltip title="Add to cart">
+      <Tooltip title={isRestaurantClosed ? "Restaurant is closed" : "Add to cart"}>
         <IconButton 
-          onClick={onAdd} 
+          onClick={isRestaurantClosed ? () => alert('This restaurant is currently closed. You cannot add items to cart.') : onAdd} 
           size="small" 
+          disabled={isRestaurantClosed}
           sx={{ 
-            background: 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)',
+            background: isRestaurantClosed 
+              ? 'linear-gradient(135deg, #ccc 0%, #999 100%)'
+              : 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)',
             color: 'white', 
             width: '40px', 
             height: '40px',
             borderRadius: '50%',
-            boxShadow: '0 4px 12px rgba(252, 128, 25, 0.3)',
-            '&:hover': { 
+            boxShadow: isRestaurantClosed ? 'none' : '0 4px 12px rgba(252, 128, 25, 0.3)',
+            cursor: isRestaurantClosed ? 'not-allowed' : 'pointer',
+            '&:hover': isRestaurantClosed ? {} : { 
               background: 'linear-gradient(135deg, #e6730a 0%, #e55a2b 100%)',
               transform: 'scale(1.1)',
               boxShadow: '0 6px 16px rgba(252, 128, 25, 0.4)'

@@ -3,7 +3,7 @@ import { Button as MuiButton, CircularProgress } from '@mui/material';
 import { styled } from '@mui/material/styles';
 
 const StyledButton = styled(MuiButton)(({ theme, variant, size, fullWidth }) => ({
-  borderRadius: '8px',
+  borderRadius: '3px',
   textTransform: 'none',
   fontWeight: 600,
   boxShadow: 'none',
