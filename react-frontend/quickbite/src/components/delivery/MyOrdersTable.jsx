@@ -20,6 +20,8 @@ import {
 } from '@mui/icons-material';
 
 const MyOrdersTable = ({ orders = [], onCompleteOrder, onRowClick, onAcceptOrder }) => {
+  // Debug: Log orders to see if items are present
+  console.log('MyOrdersTable orders:', orders);
   const getStatusColor = (status) => {
     const colors = {
       'assigned': '#FC8019',
@@ -55,7 +57,7 @@ const MyOrdersTable = ({ orders = [], onCompleteOrder, onRowClick, onAcceptOrder
           <Card 
             sx={{ 
               height: '100%',
-              borderRadius: '8px',
+              borderRadius: '3px',
               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
               border: '1px solid #f0f0f0',
               transition: 'all 0.2s ease',
@@ -75,20 +77,50 @@ const MyOrdersTable = ({ orders = [], onCompleteOrder, onRowClick, onAcceptOrder
                   <Typography variant="body2" sx={{ color: '#666', fontSize: '13px' }}>
                     {(order.items && order.items.length) || 0} items • ₹{order.deliveryFee != null ? order.deliveryFee : 0}
                   </Typography>
+                  {/* Debug: Show items data */}
+                  {console.log('Order items in card:', order.items)}
                 </Box>
                 <Chip 
                   label={getStatusLabel(order.status)}
+                  variant="outlined"
                   sx={{
                     background: getStatusColor(order.status),
                     color: 'white',
                     fontWeight: 500,
                     fontSize: '11px',
                     height: '22px',
-                    borderRadius: '4px'
+                    borderRadius: '3px'
                   }}
                   size="small"
                 />
               </Box>
+
+              {/* Order Items */}
+              {console.log('Rendering order items for order', order.id, ':', order.items)}
+              {order.items && order.items.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="body2" sx={{ fontWeight: 600, color: '#1a1a1a', mb: 1, fontSize: '13px' }}>
+                    Order Items:
+                  </Typography>
+                  <Stack spacing={0.5}>
+                    {order.items.slice(0, 3).map((item, index) => (
+                      <Box key={index} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="caption" sx={{ color: '#666', fontSize: '11px', flex: 1 }}>
+                          {item.quantity}x {item.name}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: '#666', fontSize: '11px', fontWeight: 500 }}>
+                          ₹{item.price * item.quantity}
+                        </Typography>
+                      </Box>
+                    ))}
+                    {order.items.length > 3 && (
+                      <Typography variant="caption" sx={{ color: '#999', fontSize: '10px', fontStyle: 'italic' }}>
+                        +{order.items.length - 3} more items
+                      </Typography>
+                    )}
+                  </Stack>
+                </Box>
+              )}
 
               {/* Customer & Restaurant Info */}
               <Stack spacing={1.5} sx={{ mb: 2 }}>
@@ -134,7 +166,7 @@ const MyOrdersTable = ({ orders = [], onCompleteOrder, onRowClick, onAcceptOrder
                       background: '#FC8019',
                       textTransform: 'none',
                       fontWeight: 600,
-                      borderRadius: '6px',
+                      borderRadius: '3px',
                       py: 1,
                       fontSize: '14px',
                       '&:hover': {
@@ -159,7 +191,7 @@ const MyOrdersTable = ({ orders = [], onCompleteOrder, onRowClick, onAcceptOrder
                       color: '#FC8019',
                       textTransform: 'none',
                       fontWeight: 500,
-                      borderRadius: '4px',
+                      borderRadius: '3px',
                       fontSize: '12px',
                       '&:hover': {
                         borderColor: '#E6730A',
@@ -180,7 +212,7 @@ const MyOrdersTable = ({ orders = [], onCompleteOrder, onRowClick, onAcceptOrder
                       color: '#FC8019',
                       textTransform: 'none',
                       fontWeight: 500,
-                      borderRadius: '4px',
+                      borderRadius: '3px',
                       fontSize: '12px',
                       '&:hover': {
                         borderColor: '#E6730A',
@@ -203,7 +235,7 @@ const MyOrdersTable = ({ orders = [], onCompleteOrder, onRowClick, onAcceptOrder
                       background: '#FC8019',
                       textTransform: 'none',
                       fontWeight: 600,
-                      borderRadius: '6px',
+                      borderRadius: '3px',
                       py: 1,
                       fontSize: '14px',
                       '&:hover': {
@@ -225,7 +257,7 @@ const MyOrdersTable = ({ orders = [], onCompleteOrder, onRowClick, onAcceptOrder
                       background: '#4CAF50',
                       textTransform: 'none',
                       fontWeight: 600,
-                      borderRadius: '6px',
+                      borderRadius: '3px',
                       py: 1,
                       fontSize: '14px',
                       '&:hover': {

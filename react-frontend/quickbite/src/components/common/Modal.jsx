@@ -12,11 +12,11 @@ import {
 import { Close as CloseIcon } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 
-const StyledDialog = styled(Dialog)(({ theme }) => ({
+const StyledDialog = styled(Dialog)(({ theme, maxWidth }) => ({
   '& .MuiDialog-paper': {
     borderRadius: '3px',
     maxHeight: '90vh',
-    maxWidth: '420px',
+    maxWidth: maxWidth === 'lg' ? '900px' : maxWidth === 'md' ? '600px' : maxWidth === 'sm' ? '420px' : '420px',
     width: '100%',
     margin: '16px',
   },

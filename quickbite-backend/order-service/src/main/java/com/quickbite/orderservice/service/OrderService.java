@@ -68,12 +68,29 @@ public class OrderService {
             deliveryLng = coords[1];
         }
 
-        // 4. Create and save the order
+        // 4. Calculate delivery fee from restaurant
+        Double deliveryFee = 0.0;
+        try {
+            Map<String, Object> restaurantDetails = crossServiceRepository.getRestaurantDetails(orderRequestDto.getRestaurantId());
+            if (restaurantDetails != null && restaurantDetails.get("delivery_fee") != null) {
+                deliveryFee = ((Number) restaurantDetails.get("delivery_fee")).doubleValue();
+            } else {
+                // Fallback to default delivery fee if restaurant details not found
+                deliveryFee = 2.99;
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch restaurant delivery fee for restaurant {}: {}", orderRequestDto.getRestaurantId(), e.getMessage());
+            // Fallback to default delivery fee
+            deliveryFee = 2.99;
+        }
+
+        // 5. Create and save the order
         Order order = Order.builder()
                 .userId(orderRequestDto.getUserId())
                 .restaurantId(orderRequestDto.getRestaurantId())
                 .items(orderItems)
                 .totalAmount(totalAmount)
+                .deliveryFee(deliveryFee) // Store calculated delivery fee
                 .deliveryAddress(deliveryAddress)
                 .deliveryLatitude(deliveryLat)
                 .deliveryLongitude(deliveryLng)
@@ -208,6 +225,7 @@ public class OrderService {
                 .restaurantId(cart.getRestaurantId())
                 .items(orderItems)
                 .totalAmount(cart.getTotal()) // Use cart's calculated total
+                .deliveryFee(cart.getDeliveryFee()) // Store delivery fee from cart
                 .deliveryAddress(deliveryAddress)
                 .deliveryLatitude(deliveryLat)
                 .deliveryLongitude(deliveryLng)

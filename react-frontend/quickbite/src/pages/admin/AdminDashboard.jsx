@@ -258,7 +258,7 @@ const AdminDashboard = () => {
 
           mb: 3,
 
-          borderRadius: '4px',
+          borderRadius: '3px',
 
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
 
@@ -323,7 +323,7 @@ const AdminDashboard = () => {
 
         <Paper sx={{ 
 
-          borderRadius: '4px',
+          borderRadius: '3px',
 
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
 
@@ -941,7 +941,7 @@ const AdminDashboard = () => {
               )}
               
               {!loading.coupons && (
-                <TableContainer sx={{ borderRadius: '4px', border: '1px solid #e0e0e0', background: '#fff' }}>
+                <TableContainer sx={{ borderRadius: '3px', border: '1px solid #e0e0e0', background: '#fff' }}>
                   <Table>
                     <TableHead sx={{ background: '#f8f9fa' }}>
                       <TableRow>
@@ -968,7 +968,7 @@ const AdminDashboard = () => {
                             <Typography variant="body2">{c.validFrom ? new Date(c.validFrom).toLocaleDateString() : '—'} → {c.validUntil ? new Date(c.validUntil).toLocaleDateString() : '—'}</Typography>
                           </TableCell>
                           <TableCell>
-                            <Chip label={c.isActive ? 'Active' : 'Inactive'} color={c.isActive ? 'success' : 'default'} size="small" />
+                            <Chip label={c.isActive ? 'Active' : 'Inactive'} color={c.isActive ? 'success' : 'default'} variant="outlined" size="small" />
                           </TableCell>
                           <TableCell>
                             <ActionButtons 
@@ -1096,7 +1096,7 @@ const AdminDashboard = () => {
                 onClick={() => setOpenOrderModal(false)} 
                 variant="outlined"
                 sx={{
-                  borderRadius: '6px',
+                  borderRadius: '3px',
                   px: 3,
                   py: 1,
                   fontWeight: 500,
@@ -1127,7 +1127,7 @@ const AdminDashboard = () => {
                 }}
                 sx={{ 
                   background: '#fc8019',
-                  borderRadius: '6px',
+                  borderRadius: '3px',
                   px: 3,
                   py: 1,
                   fontWeight: 500,
@@ -1155,7 +1155,7 @@ const AdminDashboard = () => {
             <Box sx={{ 
               p: 3, 
               background: 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)', 
-              borderRadius: '5px',
+              borderRadius: '3px',
               color: 'white',
               position: 'relative',
               overflow: 'hidden'
@@ -1183,6 +1183,7 @@ const AdminDashboard = () => {
                 </Box>
                 <Chip 
                   label={(formValues.orderStatus || formValues.status || '').toString().replace('_', ' ').toUpperCase() || 'UNKNOWN'}
+                  variant="outlined"
                   sx={{ 
                     background: 'rgba(255,255,255,0.2)', 
                     color: 'white', 
@@ -1201,7 +1202,7 @@ const AdminDashboard = () => {
                   <Box sx={{
                     width: 40,
                     height: 40,
-                    borderRadius: '5px',
+                    borderRadius: '3px',
                     background: 'rgba(255,255,255,0.2)',
                     display: 'flex',
                     alignItems: 'center',
@@ -1260,7 +1261,7 @@ const AdminDashboard = () => {
                       gap: 2,
                       p: 2, 
                       border: '1px solid #f0f0f0', 
-                      borderRadius: '5px',
+                      borderRadius: '3px',
                       backgroundColor: '#fff',
                       boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
                       transition: 'all 0.2s ease',
@@ -1273,7 +1274,7 @@ const AdminDashboard = () => {
                       <Box sx={{
                         width: 50,
                         height: 50,
-                        borderRadius: '5px',
+                        borderRadius: '3px',
                         overflow: 'hidden',
                         flexShrink: 0,
                         background: '#f5f5f5'
@@ -1362,7 +1363,7 @@ const AdminDashboard = () => {
               mt: 2, 
               p: 2.5, 
               border: '1px solid #f0f0f0', 
-              borderRadius: '5px', 
+              borderRadius: '3px', 
               backgroundColor: '#fff',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
@@ -1412,7 +1413,7 @@ const AdminDashboard = () => {
                       alignItems: 'center',
                       p: 1.5,
                       background: 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)',
-                      borderRadius: '5px',
+                      borderRadius: '3px',
                       color: 'white'
                     }}>
                       <Typography variant="body1" sx={{ fontWeight: 700, fontSize: '16px' }}>Total Amount</Typography>
@@ -1431,7 +1432,7 @@ const AdminDashboard = () => {
                 mt: 2, 
                 p: 2.5, 
                 border: '1px solid #f0f0f0', 
-                borderRadius: '5px', 
+                borderRadius: '3px', 
                 backgroundColor: '#fff',
                 boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
               }}>
@@ -1483,7 +1484,7 @@ const AdminDashboard = () => {
               mt: 2, 
               p: 2.5, 
               border: '1px solid #f0f0f0', 
-              borderRadius: '5px', 
+              borderRadius: '3px', 
               backgroundColor: '#fff',
               boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
             }}>
@@ -1499,7 +1500,7 @@ const AdminDashboard = () => {
                   gap: 1.5, 
                   p: 1.5,
                   background: 'linear-gradient(135deg, #4caf50 0%, #66bb6a 100%)',
-                  borderRadius: '5px',
+                  borderRadius: '3px',
                   color: 'white'
                 }}>
                   <Box sx={{
@@ -1530,7 +1531,7 @@ const AdminDashboard = () => {
                   gap: 1.5, 
                   p: 1.5,
                   background: 'linear-gradient(135deg, #ff9800 0%, #ffb74d 100%)',
-                  borderRadius: '5px',
+                  borderRadius: '3px',
                   color: 'white',
                   mb: 1.5
                 }}>
@@ -1568,7 +1569,7 @@ const AdminDashboard = () => {
                   }}
                   sx={{ 
                     background: '#fc8019',
-                    borderRadius: '6px',
+                    borderRadius: '3px',
                     px: 3,
                     py: 1,
                     fontWeight: 500,

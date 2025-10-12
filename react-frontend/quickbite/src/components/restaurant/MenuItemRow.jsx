@@ -206,6 +206,7 @@ const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice, isRestauran
           <Chip
             icon={<AccessTime sx={{ fontSize: 14 }} />}
             label={`${item.preparationTime} min`}
+            variant="outlined"
             size="small"
             sx={{
               backgroundColor: '#f8f9fa',
@@ -225,6 +226,7 @@ const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice, isRestauran
         {item.nutrition && (
           <Chip
             label={`${item.nutrition.calories} cal`}
+            variant="outlined"
             size="small"
             sx={{
               backgroundColor: '#e8f5e8',
@@ -241,6 +243,7 @@ const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice, isRestauran
           <Chip
             icon={<Star sx={{ fontSize: 14 }} />}
             label="Bestseller"
+            variant="outlined"
             size="small"
             sx={{
               background: 'linear-gradient(135deg, #ff6b35 0%, #fc8019 100%)',

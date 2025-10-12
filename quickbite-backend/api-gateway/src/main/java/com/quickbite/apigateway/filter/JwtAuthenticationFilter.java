@@ -151,6 +151,8 @@ public class JwtAuthenticationFilter implements GatewayFilter {
         
         // Assignment lookup (multiple roles can view)
         mappings.put("GET:/api/delivery/assignments/order/{orderId}", List.of("RESTAURANT_OWNER", "ADMIN", "DELIVERY_PARTNER"));
+        // Order items lookup (multiple roles can view)
+        mappings.put("GET:/api/delivery/assignments/order/{orderId}/items", List.of("RESTAURANT_OWNER", "ADMIN", "DELIVERY_PARTNER"));
         
         // Delivery: available orders feed (partners claimable list)
         mappings.put("GET:/api/delivery/assignments/available", List.of("DELIVERY_PARTNER", "ADMIN"));

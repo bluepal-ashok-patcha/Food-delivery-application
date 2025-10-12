@@ -210,7 +210,7 @@ const OrderTrack = () => {
   return (
     <Container maxWidth="md" sx={{ py: 3 }}>
       <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Track your order</Typography>
-      <Paper sx={{ p: 2, borderRadius: '8px', mb: 2 }}>
+      <Paper sx={{ p: 2, borderRadius: '3px', mb: 2 }}>
         <Stepper activeStep={stepIndex} alternativeLabel>
           {['Order Placed', 'Preparing', 'Out for Delivery', 'Delivered'].map((label) => (
             <Step key={label}>
@@ -220,7 +220,7 @@ const OrderTrack = () => {
         </Stepper>
       </Paper>
 
-      <Paper sx={{ p: 2, borderRadius: '8px' }}>
+      <Paper sx={{ p: 2, borderRadius: '3px' }}>
         {!assignment && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minHeight: 120 }}>
             <LoadingSpinner size={28} />

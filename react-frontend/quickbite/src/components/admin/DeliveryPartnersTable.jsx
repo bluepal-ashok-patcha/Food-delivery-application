@@ -66,6 +66,7 @@ const DeliveryPartnersTable = ({ partners, onViewPartner, onEditPartner, onDelet
               <TableCell>
                 <Chip 
                   label={(partner.status || 'OFFLINE').toString()} 
+                  variant="outlined"
                   sx={{
                     background: (partner.status || 'OFFLINE').toString() === 'AVAILABLE' ? '#4caf50' : 
                                (partner.status || 'OFFLINE').toString() === 'ON_DELIVERY' ? '#2196f3' : 

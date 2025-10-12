@@ -3,7 +3,7 @@ import { Card as MuiCard, CardContent, CardMedia, CardActions } from '@mui/mater
 import { styled } from '@mui/material/styles';
 
 const StyledCard = styled(MuiCard)(({ theme, variant }) => ({
-  borderRadius: '12px',
+  borderRadius: '3px',
   boxShadow: '0 2px 12px rgba(0,0,0,0.08)',
   transition: 'all 0.3s ease',
   '&:hover': {

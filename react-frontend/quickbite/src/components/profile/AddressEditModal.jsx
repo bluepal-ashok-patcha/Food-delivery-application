@@ -114,7 +114,7 @@ const AddressEditModal = ({ open, onClose, address, onSave }) => {
       maxWidth="md"
       PaperProps={{
         sx: {
-          borderRadius: '16px',
+          borderRadius: '3px',
           boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
           overflow: 'hidden'
         }

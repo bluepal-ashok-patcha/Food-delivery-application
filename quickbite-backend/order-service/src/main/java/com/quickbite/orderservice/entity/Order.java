@@ -38,6 +38,9 @@ public class Order {
     @Column(nullable = false)
     private Double totalAmount;
 
+    @Column
+    private Double deliveryFee;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private OrderStatus orderStatus;

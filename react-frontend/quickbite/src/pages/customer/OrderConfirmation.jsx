@@ -11,7 +11,7 @@ const OrderConfirmation = () => {
   if (!order) {
     return (
       <Container maxWidth="sm" sx={{ py: 4 }}>
-        <Paper sx={{ p: 3, borderRadius: '8px' }}>
+        <Paper sx={{ p: 3, borderRadius: '3px' }}>
           <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>No recent order</Typography>
           <Button variant="contained" onClick={() => navigate('/')} sx={{ textTransform: 'none', backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' } }}>
             Go to Home
@@ -26,7 +26,7 @@ const OrderConfirmation = () => {
 
   return (
     <Container maxWidth="sm" sx={{ py: 4 }}>
-      <Paper sx={{ p: 3, borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+      <Paper sx={{ p: 3, borderRadius: '3px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
         <Typography variant="h5" sx={{ fontWeight: 700, mb: 1 }}>Order Confirmed!</Typography>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Order ID: #{order.id}</Typography>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
@@ -36,7 +36,7 @@ const OrderConfirmation = () => {
         {paymentStatus !== 'PAID' && (
           <Alert severity="info" sx={{ mb: 2 }}>Payment will be marked as PAID after the payment service webhook confirms success.</Alert>
         )}
-        <Box sx={{ p: 2, backgroundColor: '#f8f9fa', borderRadius: '6px', border: '1px solid #f0f0f0', mb: 2 }}>
+        <Box sx={{ p: 2, backgroundColor: '#f8f9fa', borderRadius: '3px', border: '1px solid #f0f0f0', mb: 2 }}>
           <Typography variant="body1" sx={{ fontWeight: 600 }}>Estimated Delivery: {eta}</Typography>
           <Typography variant="body2" color="text.secondary">We'll notify you as the order progresses.</Typography>
         </Box>

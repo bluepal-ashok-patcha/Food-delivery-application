@@ -86,10 +86,10 @@ const OrderCard = ({ order }) => {
 
 
   return (
-  <Paper sx={{ p: 2, borderRadius: '10px', boxShadow: '0 6px 16px rgba(0,0,0,0.08)' }}>
+  <Paper sx={{ p: 2, borderRadius: '3px', boxShadow: '0 6px 16px rgba(0,0,0,0.08)' }}>
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1.5 }}>
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <Avatar src={restaurantImage || undefined} alt={restaurantName} sx={{ width: 40, height: 40, borderRadius: '8px' }} />
+        <Avatar src={restaurantImage || undefined} alt={restaurantName} sx={{ width: 40, height: 40, borderRadius: '3px' }} />
         <Box>
           <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '15px' }}>{restaurantName}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: '12px' }}>
@@ -148,7 +148,7 @@ const OrderCard = ({ order }) => {
       );
     })()}
     {status === 'delivered' && !reviewStatus.restaurantReviewed && !reviewStatus.deliveryReviewed && (
-      <Box sx={{ mt: 1.5, p: 1.5, backgroundColor: '#f8f9fa', borderRadius: '6px', textAlign: 'center' }}>
+      <Box sx={{ mt: 1.5, p: 1.5, backgroundColor: '#f8f9fa', borderRadius: '3px', textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: '12px' }}>
           How was your experience?
         </Typography>
@@ -161,7 +161,7 @@ const OrderCard = ({ order }) => {
             textTransform: 'none', 
             backgroundColor: '#fc8019', 
             '&:hover': { backgroundColor: '#e6730a' },
-            borderRadius: '20px',
+            borderRadius: '3px',
             px: 2
           }}
         >
@@ -170,7 +170,7 @@ const OrderCard = ({ order }) => {
       </Box>
     )}
     {status === 'delivered' && (reviewStatus.restaurantReviewed || reviewStatus.deliveryReviewed) && (
-      <Box sx={{ mt: 1.5, p: 1.5, backgroundColor: '#e8f5e8', borderRadius: '6px', textAlign: 'center' }}>
+      <Box sx={{ mt: 1.5, p: 1.5, backgroundColor: '#e8f5e8', borderRadius: '3px', textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary" sx={{ fontSize: '12px', color: '#4caf50' }}>
           ✓ Thank you for your feedback!
         </Typography>

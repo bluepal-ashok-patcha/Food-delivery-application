@@ -6,7 +6,7 @@ import ActionButtons from './ActionButtons';
 const OrdersTable = ({ orders, getStatusColor, onViewOrder, onUpdateStatus, onAssignPartner }) => {
   return (
     <TableContainer sx={{ 
-      borderRadius: '4px',
+      borderRadius: '3px',
       border: '1px solid #e0e0e0',
       background: '#fff'
     }}>
@@ -72,6 +72,7 @@ const OrdersTable = ({ orders, getStatusColor, onViewOrder, onUpdateStatus, onAs
                   return (
                     <Chip 
                       label={normalized}
+                      variant="outlined"
                       sx={{
                         background: bg,
                         color: 'white',

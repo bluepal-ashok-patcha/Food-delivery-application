@@ -66,6 +66,7 @@ const UsersTable = ({ users, onViewUser, onEditUser, onDeleteUser, onToggleActiv
               <TableCell>
                 <Chip 
                   label={user.role.replace('_', ' ').toUpperCase()} 
+                  variant="outlined"
                   sx={{
                     background: user.role === 'admin' ? '#f44336' : '#2196f3',
                     color: 'white',
@@ -79,6 +80,7 @@ const UsersTable = ({ users, onViewUser, onEditUser, onDeleteUser, onToggleActiv
               <TableCell>
                 <Chip 
                   label={user.isActive ? 'Active' : 'Inactive'} 
+                  variant="outlined"
                   onClick={() => onToggleActive && onToggleActive(user)}
                   sx={{
                     background: user.isActive ? '#4caf50' : '#9e9e9e',

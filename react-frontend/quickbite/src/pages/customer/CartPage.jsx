@@ -300,7 +300,7 @@ const CartPage = () => {
                 py: 1,
                 fontSize: '14px',
                 fontWeight: 600,
-                borderRadius: '8px',
+                borderRadius: '3px',
                 textTransform: 'none'
               }}
             >
@@ -317,7 +317,7 @@ const CartPage = () => {
       <CartHeader onBack={() => navigate(-1)} />
 
       {/* Progress Stepper */}
-      <Container maxWidth="md" sx={{ py: 2, px: { xs: 1, sm: 2 } }}>
+      <Container maxWidth="lg" sx={{ py: 2, px: { xs: 1, sm: 2 } }}>
         <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 2 }}>
           {steps.map((label) => (
             <Step key={label}>
@@ -327,12 +327,12 @@ const CartPage = () => {
         </Stepper>
       </Container>
 
-      <Container maxWidth="md" sx={{ py: 2, px: { xs: 1, sm: 2 }, flexGrow: 1 }}>
-        <Grid container spacing={2}>
+      <Container maxWidth="lg" sx={{ py: 2, px: { xs: 1, sm: 2 }, flexGrow: 1 }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
           {/* Left Column - Cart Items */}
-          <Grid item xs={12} md={8}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
             {/* Restaurant Info */}
-            <Card sx={{ borderRadius: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', mb: 2 }}>
+            <Card sx={{ borderRadius: '3px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', mb: 3 }}>
               <CardContent sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <Avatar sx={{ width: 40, height: 40, backgroundColor: '#fc8019' }}>
@@ -350,7 +350,7 @@ const CartPage = () => {
               </CardContent>
             </Card>
 
-            <Card sx={{ borderRadius: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', mb: 2 }}>
+            <Card sx={{ borderRadius: '3px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', mb: 3 }}>
               <CardContent sx={{ p: 0 }}>
                 {items.map((item, index) => (
                   <CartItemRow
@@ -365,7 +365,7 @@ const CartPage = () => {
             </Card>
 
             {/* Delivery Information */}
-            <Card sx={{ borderRadius: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', mb: 2 }}>
+            <Card sx={{ borderRadius: '3px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', mb: 3 }}>
               <CardContent sx={{ p: 2 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                   <LocationOn sx={{ color: '#fc8019', fontSize: '20px' }} />
@@ -403,15 +403,17 @@ const CartPage = () => {
                   <Box sx={{ 
                     p: 1.5, 
                     border: '1px solid #e0e0e0', 
-                    borderRadius: '6px',
+                    borderRadius: '3px',
                     backgroundColor: '#f9f9f9',
                     minHeight: '60px',
+                    maxHeight: '100px',
+                    overflow: 'auto',
                     display: 'flex',
                     alignItems: 'center'
                   }}>
                     {selectedAddress ? (
                       <Box>
-                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '14px', mb: 0.5 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '14px', mb: 0.5, wordBreak: 'break-word' }}>
                           {selectedAddress.street}, {selectedAddress.city}, {selectedAddress.state} {selectedAddress.zipCode}
                         </Typography>
                         {selectedAddress.type && (
@@ -482,7 +484,7 @@ const CartPage = () => {
                     rows={2}
                     sx={{
                       '& .MuiOutlinedInput-root': {
-                        borderRadius: '8px',
+                        borderRadius: '3px',
                         fontSize: '14px'
                       }
                     }}
@@ -490,11 +492,11 @@ const CartPage = () => {
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
 
           {/* Right Column - Order Summary */}
-          <Grid item xs={12} md={4}>
-            <Card sx={{ borderRadius: '8px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', position: 'sticky', top: 20 }}>
+          <Box sx={{ width: { xs: '100%', md: '380px' }, flexShrink: 0 }}>
+            <Card sx={{ borderRadius: '3px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', position: 'sticky', top: 20 }}>
               <CardContent sx={{ p: 2 }}>
                 <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#333', fontSize: '16px' }}>
                   Order Summary
@@ -543,8 +545,8 @@ const CartPage = () => {
                 <OrderSummaryCard subtotal={subtotal} deliveryFee={deliveryFee} tax={tax} total={total} appliedCoupon={appliedCoupon} onPlaceOrder={handlePlaceOrder} isProcessing={isProcessing} formatPrice={formatPrice} />
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
       </Container>
 
       {/* Address Selection Modal */}

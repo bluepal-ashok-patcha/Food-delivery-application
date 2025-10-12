@@ -167,7 +167,7 @@ const ProfilePage = () => {
             My Profile
           </Typography>
           {/* Personal Information */}
-          <Paper sx={{ p: 2, mb: 2, borderRadius: '12px', boxShadow: '0 4px 24px rgba(252,128,25,0.08)' }}>
+          <Paper sx={{ p: 2, mb: 2, borderRadius: '3px', boxShadow: '0 4px 24px rgba(252,128,25,0.08)' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '18px' }}>
                 Personal Information
@@ -186,7 +186,7 @@ const ProfilePage = () => {
                   fontSize: '13px',
                   px: 2,
                   py: 1,
-                  borderRadius: '8px',
+                  borderRadius: '3px',
                   backgroundColor: isEditing ? undefined : '#fc8019',
                   color: isEditing ? undefined : 'white',
                   '&:hover': { backgroundColor: isEditing ? undefined : '#e6730a' }
@@ -252,7 +252,7 @@ const ProfilePage = () => {
                     fontSize: '13px',
                     px: 2,
                     py: 1,
-                    borderRadius: '8px'
+                    borderRadius: '3px'
                   }}
                 >
                   Save Changes
@@ -268,7 +268,7 @@ const ProfilePage = () => {
                     fontSize: '13px',
                     px: 2,
                     py: 1,
-                    borderRadius: '8px'
+                    borderRadius: '3px'
                   }}
                 >
                   Cancel
@@ -277,7 +277,7 @@ const ProfilePage = () => {
             )}
           </Paper>
           {/* Delivery Addresses */}
-          <Paper sx={{ p: 2, borderRadius: '12px', boxShadow: '0 4px 24px rgba(252,128,25,0.08)' }}>
+          <Paper sx={{ p: 2, borderRadius: '3px', boxShadow: '0 4px 24px rgba(252,128,25,0.08)' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
               <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '18px' }}>
                 Delivery Addresses
@@ -293,7 +293,7 @@ const ProfilePage = () => {
                   fontSize: '13px',
                   px: 2,
                   py: 1,
-                  borderRadius: '8px'
+                  borderRadius: '3px'
                 }}
               >
                 Add Address

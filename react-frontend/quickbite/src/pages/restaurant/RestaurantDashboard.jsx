@@ -487,7 +487,7 @@ const RestaurantDashboard = () => {
         <Paper sx={{ 
           mb: 3,
           p: 3,
-          borderRadius: '4px',
+          borderRadius: '3px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
           background: 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)',
           color: 'white'
@@ -581,7 +581,7 @@ const RestaurantDashboard = () => {
 
         <Paper sx={{ 
           mb: 3,
-          borderRadius: '4px',
+          borderRadius: '3px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
           overflow: 'hidden'
         }}>
@@ -611,7 +611,7 @@ const RestaurantDashboard = () => {
         </Paper>
 
         <Paper sx={{ 
-          borderRadius: '4px',
+          borderRadius: '3px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
           overflow: 'hidden'
         }}>
@@ -629,7 +629,7 @@ const RestaurantDashboard = () => {
                   </Typography>
                   <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
                     {upcomingOrders.slice(0, 8).map(u => (
-                      <Chip key={u.id} label={`#${u.id} • ${u.status}`} onClick={() => handleOrderRowClick(u)} sx={{ cursor: 'pointer' }} />
+                      <Chip key={u.id} label={`#${u.id} • ${u.status}`} variant="outlined" onClick={() => handleOrderRowClick(u)} sx={{ cursor: 'pointer' }} />
                     ))}
                   </Stack>
                 </Paper>
@@ -664,7 +664,7 @@ const RestaurantDashboard = () => {
                       <Grid item xs={12} key={category.id}>
                         <Paper sx={{ 
                           p: 3,
-                          borderRadius: '4px',
+                          borderRadius: '3px',
                           boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                           background: '#fff'
                         }}>
@@ -690,7 +690,7 @@ const RestaurantDashboard = () => {
                     <Grid item xs={12}>
                       <Paper sx={{ 
                         p: 4,
-                        borderRadius: '4px',
+                        borderRadius: '3px',
                         boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
                         background: '#fff',
                         textAlign: 'center'

@@ -14,8 +14,8 @@ const CouponAccordion = ({ couponCode, setCouponCode, isApplying, onApply, appli
     </AccordionSummary>
     <AccordionDetails>
       <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
-        <TextField fullWidth placeholder="Enter coupon code" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px', fontSize: '14px' } }} />
-        <Button variant="outlined" onClick={onApply} disabled={isApplying} sx={{ borderColor: '#fc8019', color: '#fc8019', borderRadius: '8px', px: 2, py: 0.75, fontSize: '14px', minWidth: '80px', '&:hover': { borderColor: '#e6730a', backgroundColor: '#fff5f0' } }}>
+        <TextField fullWidth placeholder="Enter coupon code" value={couponCode} onChange={(e) => setCouponCode(e.target.value)} size="small" sx={{ '& .MuiOutlinedInput-root': { borderRadius: '3px', fontSize: '14px' } }} />
+        <Button variant="outlined" onClick={onApply} disabled={isApplying} sx={{ borderColor: '#fc8019', color: '#fc8019', borderRadius: '3px', px: 2, py: 0.75, fontSize: '14px', minWidth: '80px', '&:hover': { borderColor: '#e6730a', backgroundColor: '#fff5f0' } }}>
           {isApplying ? 'Applying...' : 'Apply'}
         </Button>
       </Box>

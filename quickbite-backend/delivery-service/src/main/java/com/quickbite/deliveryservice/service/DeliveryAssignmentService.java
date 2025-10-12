@@ -130,8 +130,8 @@ public class DeliveryAssignmentService {
         e.deliveryFee = request.getDeliveryFee();
 
         // Look up missing data from orders table
-        if (e.deliveryLatitude == null || e.deliveryLongitude == null || e.deliveryAddress == null || e.customerId == null) {
-            String orderSql = "SELECT user_id, delivery_address, delivery_latitude, delivery_longitude, restaurant_id FROM orders WHERE id = ?";
+        if (e.deliveryLatitude == null || e.deliveryLongitude == null || e.deliveryAddress == null || e.customerId == null || e.deliveryFee == null) {
+            String orderSql = "SELECT user_id, delivery_address, delivery_latitude, delivery_longitude, restaurant_id, delivery_fee FROM orders WHERE id = ?";
             jdbcTemplate.query(orderSql, ps -> ps.setLong(1, request.getOrderId()), rs -> {
                 if (rs.next()) {
                     if (e.customerId == null) e.customerId = rs.getLong("user_id");
@@ -139,6 +139,12 @@ public class DeliveryAssignmentService {
                     if (e.deliveryLatitude == null) e.deliveryLatitude = (Double) rs.getObject("delivery_latitude");
                     if (e.deliveryLongitude == null) e.deliveryLongitude = (Double) rs.getObject("delivery_longitude");
                     if (e.restaurantId == null) e.restaurantId = rs.getLong("restaurant_id");
+                    if (e.deliveryFee == null) {
+                        Double orderDeliveryFee = (Double) rs.getObject("delivery_fee");
+                        if (orderDeliveryFee != null) {
+                            e.deliveryFee = BigDecimal.valueOf(orderDeliveryFee);
+                        }
+                    }
                 }
                 return null;
             });
@@ -160,7 +166,22 @@ public class DeliveryAssignmentService {
         }
 
         if (e.deliveryFee == null) {
-            e.deliveryFee = BigDecimal.valueOf(3.99);
+            // Try to get delivery fee from restaurant if not available from order
+            if (e.restaurantId != null) {
+                try {
+                    Map<String, Object> restaurantDetails = crossServiceRepository.getRestaurantDetails(e.restaurantId);
+                    if (restaurantDetails != null && restaurantDetails.get("delivery_fee") != null) {
+                        e.deliveryFee = BigDecimal.valueOf(((Number) restaurantDetails.get("delivery_fee")).doubleValue());
+                    } else {
+                        e.deliveryFee = BigDecimal.valueOf(2.99); // Fallback to default
+                    }
+                } catch (Exception ex) {
+                    log.warn("Failed to fetch restaurant delivery fee for restaurant {}: {}", e.restaurantId, ex.getMessage());
+                    e.deliveryFee = BigDecimal.valueOf(2.99); // Fallback to default
+                }
+            } else {
+                e.deliveryFee = BigDecimal.valueOf(2.99); // Fallback to default
+            }
         }
         return e;
     }
@@ -318,7 +339,7 @@ public class DeliveryAssignmentService {
     @Transactional(readOnly = true)
     public List<com.quickbite.deliveryservice.dto.AvailableOrderDto> listAvailableOrders(Long partnerUserId) {
         // Orders that are READY_FOR_PICKUP, payment COMPLETED, and no delivery_assignment
-        String sql = "SELECT o.id AS order_id, o.user_id AS customer_id, o.restaurant_id AS restaurant_id, o.delivery_address, o.delivery_latitude, o.delivery_longitude, o.total_amount, r.name AS restaurant_name, r.address AS restaurant_address, r.latitude AS pickup_latitude, r.longitude AS pickup_longitude " +
+        String sql = "SELECT o.id AS order_id, o.user_id AS customer_id, o.restaurant_id AS restaurant_id, o.delivery_address, o.delivery_latitude, o.delivery_longitude, o.total_amount, o.delivery_fee, r.name AS restaurant_name, r.address AS restaurant_address, r.latitude AS pickup_latitude, r.longitude AS pickup_longitude " +
                 "FROM orders o " +
                 "JOIN restaurants r ON r.id = o.restaurant_id " +
                 "LEFT JOIN delivery_assignments da ON da.order_id = o.id " +
@@ -337,8 +358,25 @@ public class DeliveryAssignmentService {
                 .deliveryLatitude(getDoubleOrNull(rs, "delivery_latitude"))
                 .deliveryLongitude(getDoubleOrNull(rs, "delivery_longitude"))
                 .totalAmount(getDoubleOrNull(rs, "total_amount"))
-                .deliveryFee(null)
+                .deliveryFee(getDoubleOrNull(rs, "delivery_fee"))
                 .build());
+    }
+
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> getOrderItems(Long orderId) {
+        log.info("Fetching order items for order ID: {}", orderId);
+        String sql = "SELECT menu_item_id, name, price, quantity, special_instructions FROM order_items WHERE order_id = ?";
+        List<Map<String, Object>> items = jdbcTemplate.query(sql, (rs, rowNum) -> {
+            Map<String, Object> item = new java.util.HashMap<>();
+            item.put("menuItemId", rs.getLong("menu_item_id"));
+            item.put("name", rs.getString("name"));
+            item.put("price", rs.getDouble("price"));
+            item.put("quantity", rs.getInt("quantity"));
+            item.put("specialInstructions", rs.getString("special_instructions"));
+            return item;
+        }, orderId);
+        log.info("Found {} items for order {}: {}", items.size(), orderId, items);
+        return items;
     }
 
     private Double getDoubleOrNull(java.sql.ResultSet rs, String col) throws java.sql.SQLException {
@@ -491,8 +529,10 @@ public class DeliveryAssignmentService {
         // Fetch customer name
         try {
             Map<String, Object> userDetails = crossServiceRepository.getUserDetails(assignment.getCustomerId());
+            log.info("User details for customer {}: {}", assignment.getCustomerId(), userDetails);
             if (userDetails != null && userDetails.get("name") != null) {
                 dto.setCustomerName((String) userDetails.get("name"));
+                log.info("Set customer name to: {}", dto.getCustomerName());
             }
         } catch (Exception e) {
             log.warn("Failed to fetch customer name for user {}: {}", assignment.getCustomerId(), e.getMessage());
@@ -501,8 +541,10 @@ public class DeliveryAssignmentService {
         // Fetch restaurant name
         try {
             Map<String, Object> restaurantDetails = crossServiceRepository.getRestaurantDetails(assignment.getRestaurantId());
+            log.info("Restaurant details for restaurant {}: {}", assignment.getRestaurantId(), restaurantDetails);
             if (restaurantDetails != null && restaurantDetails.get("name") != null) {
                 dto.setRestaurantName((String) restaurantDetails.get("name"));
+                log.info("Set restaurant name to: {}", dto.getRestaurantName());
             }
         } catch (Exception e) {
             log.warn("Failed to fetch restaurant name for restaurant {}: {}", assignment.getRestaurantId(), e.getMessage());

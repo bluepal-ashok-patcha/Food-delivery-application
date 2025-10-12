@@ -109,7 +109,7 @@ const RatingModal = ({ open, onClose, order, assignment, onReviewSubmitted }) =>
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: '16px',
+          borderRadius: '3px',
           boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
         }
       }}
@@ -121,7 +121,7 @@ const RatingModal = ({ open, onClose, order, assignment, onReviewSubmitted }) =>
         justifyContent: 'space-between',
         background: 'linear-gradient(135deg, #fc8019 0%, #e6730a 100%)',
         color: 'white',
-        borderRadius: '16px 16px 0 0'
+        borderRadius: '3px 3px 0 0'
       }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Star sx={{ fontSize: 24 }} />
@@ -191,7 +191,7 @@ const RatingModal = ({ open, onClose, order, assignment, onReviewSubmitted }) =>
             variant="outlined"
             sx={{
               '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
+                borderRadius: '3px',
                 '&:hover .MuiOutlinedInput-notchedOutline': {
                   borderColor: '#fc8019'
                 },
@@ -257,7 +257,7 @@ const RatingModal = ({ open, onClose, order, assignment, onReviewSubmitted }) =>
             variant="outlined"
             sx={{
               '& .MuiOutlinedInput-root': {
-                borderRadius: '12px',
+                borderRadius: '3px',
                 '&:hover .MuiOutlinedInput-notchedOutline': {
                   borderColor: '#2196f3'
                 },
@@ -278,7 +278,7 @@ const RatingModal = ({ open, onClose, order, assignment, onReviewSubmitted }) =>
             disabled={submitting}
             sx={{
               textTransform: 'none',
-              borderRadius: '12px',
+              borderRadius: '3px',
               py: 1.5,
               borderColor: '#e0e0e0',
               color: '#666',
@@ -297,7 +297,7 @@ const RatingModal = ({ open, onClose, order, assignment, onReviewSubmitted }) =>
             disabled={submitting || (restaurantRating === 0 && deliveryRating === 0)}
             sx={{
               textTransform: 'none',
-              borderRadius: '12px',
+              borderRadius: '3px',
               py: 1.5,
               background: 'linear-gradient(135deg, #fc8019 0%, #e6730a 100%)',
               boxShadow: '0 4px 12px rgba(252,128,25,0.3)',

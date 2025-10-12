@@ -7,7 +7,7 @@ const AvailableOrdersCard = ({ order, onAcceptOrder }) => {
     <Card sx={{ 
       height: '100%',
       background: '#fff',
-      borderRadius: '4px',
+      borderRadius: '3px',
       boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
       transition: 'all 0.3s ease',
       '&:hover': {
@@ -22,6 +22,7 @@ const AvailableOrdersCard = ({ order, onAcceptOrder }) => {
           </Typography>
           <Chip 
             label="Ready for Pickup" 
+            variant="outlined"
             sx={{
               background: 'linear-gradient(45deg, #2196f3, #1976d2)',
               color: 'white',
@@ -78,7 +79,7 @@ const AvailableOrdersCard = ({ order, onAcceptOrder }) => {
               background: 'linear-gradient(45deg, #fc8019, #ff6b35)',
               textTransform: 'none',
               fontWeight: 600,
-              borderRadius: '4px',
+              borderRadius: '3px',
               py: 1.5,
               boxShadow: '0 4px 16px rgba(252, 128, 25, 0.3)',
               '&:hover': {

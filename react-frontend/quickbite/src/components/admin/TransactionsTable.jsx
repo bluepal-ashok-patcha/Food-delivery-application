@@ -36,7 +36,7 @@ const TransactionsTable = ({ transactions }) => {
                 </Typography>
               </TableCell>
               <TableCell>
-                <Chip label={tx.status || '—'} color={statusColor(tx.status)} size="small" />
+                <Chip label={tx.status || '—'} color={statusColor(tx.status)} variant="outlined" size="small" />
               </TableCell>
               <TableCell>
                 {(tx.createdAt) ? new Date(tx.createdAt).toLocaleString() : '—'}

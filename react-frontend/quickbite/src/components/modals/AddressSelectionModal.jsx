@@ -225,7 +225,7 @@ const AddressSelectionModal = ({ open, onClose, onSelectAddress, selectedAddress
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: '16px',
+          borderRadius: '3px',
           boxShadow: '0 12px 24px rgba(0,0,0,0.15)',
           overflow: 'hidden'
         }

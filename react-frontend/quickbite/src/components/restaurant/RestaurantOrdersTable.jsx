@@ -19,7 +19,7 @@ const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
 
   return (
     <TableContainer sx={{ 
-      borderRadius: '4px',
+      borderRadius: '3px',
       border: '1px solid #e0e0e0',
       background: '#fff'
     }}>
@@ -134,7 +134,7 @@ const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
                             background: '#28a745',
                             textTransform: 'none',
                             fontWeight: 500,
-                            borderRadius: '4px',
+                            borderRadius: '3px',
                             fontSize: '12px',
                             '&:hover': {
                               background: '#218838'
@@ -153,7 +153,7 @@ const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
                             color: '#dc3545',
                             textTransform: 'none',
                             fontWeight: 500,
-                            borderRadius: '4px',
+                            borderRadius: '3px',
                             fontSize: '12px',
                             '&:hover': {
                               borderColor: '#c82333',
@@ -174,7 +174,7 @@ const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
                           background: '#fd7e14',
                           textTransform: 'none',
                           fontWeight: 500,
-                          borderRadius: '4px',
+                          borderRadius: '3px',
                           fontSize: '12px',
                           '&:hover': {
                             background: '#e8690b'
@@ -193,7 +193,7 @@ const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
                           background: '#6f42c1',
                           textTransform: 'none',
                           fontWeight: 500,
-                          borderRadius: '4px',
+                          borderRadius: '3px',
                           fontSize: '12px',
                           '&:hover': {
                             background: '#5a32a3'

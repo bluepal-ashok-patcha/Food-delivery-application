@@ -262,6 +262,7 @@ const MenuCard = ({ item, onEdit }) => {
         }}>
           <Chip 
             label={item.inStock ? 'Available' : 'Out of Stock'} 
+            variant="outlined"
             sx={{
               background: item.inStock 
                 ? 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)' 

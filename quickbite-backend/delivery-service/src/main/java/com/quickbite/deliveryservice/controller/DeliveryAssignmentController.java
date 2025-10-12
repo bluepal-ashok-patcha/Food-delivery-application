@@ -4,6 +4,8 @@ import com.quickbite.deliveryservice.dto.*;
 import com.quickbite.deliveryservice.entity.DeliveryStatus;
 import com.quickbite.deliveryservice.service.DeliveryAssignmentService;
 import jakarta.validation.Valid;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,8 +14,11 @@ import com.quickbite.deliveryservice.util.JwtUtil;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+
 import org.springframework.jdbc.core.JdbcTemplate;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/delivery/assignments")
 public class DeliveryAssignmentController {
@@ -117,6 +122,20 @@ public class DeliveryAssignmentController {
                 .success(true)
                 .message("Available orders fetched successfully")
                 .data(list)
+                .build();
+        return ResponseEntity.ok(body);
+    }
+
+    @GetMapping("/order/{orderId}/items")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getOrderItems(@PathVariable Long orderId, HttpServletRequest request) {
+        Long userId = extractUserId(request);
+        log.info("Frontend requesting order items for order ID: {} by user: {}", orderId, userId);
+        List<Map<String, Object>> items = assignmentService.getOrderItems(orderId);
+        log.info("Returning {} items for order {}", items.size(), orderId);
+        ApiResponse<List<Map<String, Object>>> body = ApiResponse.<List<Map<String, Object>>>builder()
+                .success(true)
+                .message("Order items fetched successfully")
+                .data(items)
                 .build();
         return ResponseEntity.ok(body);
     }

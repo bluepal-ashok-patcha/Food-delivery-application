@@ -479,6 +479,12 @@ export const deliveryAPI = {
     return response.data;
   },
 
+  // Get order items for a specific order
+  getOrderItems: async (orderId) => {
+    const response = await api.get(`/api/delivery/assignments/order/${orderId}/items`);
+    return response.data;
+  },
+
   // Update current partner GPS location
   updateLocation: async (latitude, longitude) => {
     const response = await api.put('/api/delivery/assignments/location', {

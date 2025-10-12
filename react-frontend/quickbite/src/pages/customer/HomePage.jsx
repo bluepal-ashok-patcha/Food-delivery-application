@@ -153,7 +153,7 @@ const HomePage = () => {
 
       <Container maxWidth="lg">
         {isAuthenticated && (activeLoading || activeOrder) && (
-          <Paper sx={{ p: 2, borderRadius: '14px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', background: 'linear-gradient(135deg, #fff6ed 0%, #ffffff 60%, #fdf1e6 100%)', mb: 2 }}>
+          <Paper sx={{ p: 2, borderRadius: '3px', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.08)', background: 'linear-gradient(135deg, #fff6ed 0%, #ffffff 60%, #fdf1e6 100%)', mb: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Box sx={{ width: 52, height: 52, borderRadius: '50%', backgroundColor: '#fc8019', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 26, boxShadow: '0 6px 14px rgba(252,128,25,0.35)' }}>🛵</Box>
@@ -168,7 +168,7 @@ const HomePage = () => {
                 {activeAssignment?.estimatedDuration && (
                   <Chip size="small" color="primary" label={`~ ${activeAssignment.estimatedDuration} mins`} />
                 )}
-                <Button variant="contained" onClick={goToTrack} sx={{ textTransform: 'none', backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' }, borderRadius: '10px', px: 2.2 }}>Track</Button>
+                <Button variant="contained" onClick={goToTrack} sx={{ textTransform: 'none', backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' }, borderRadius: '3px', px: 2.2 }}>Track</Button>
               </Box>
             </Box>
             <Box sx={{ mt: 1.5 }}>

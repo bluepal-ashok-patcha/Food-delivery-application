@@ -128,32 +128,59 @@ const DeliveryDashboard = () => {
         const data = activeRes?.data || [];
         const available = availableRes?.data || [];
         if (!isMounted) return;
+        
+        // Debug: Log the data structure
+        console.log('Active assignments data:', data);
+        console.log('First assignment details:', data[0]);
         // Normalize to current UI shape
-        const normalized = data.map((a) => ({
-          id: a.orderId || a.id,
-          orderId: a.orderId || a.id,
-          assignmentId: a.id, // This is the assignment ID needed for acceptAssignment
-          customerId: a.customerId,
-          customerName: a.customerName || a.customerFullName || a.userName || `Customer #${a.customerId}`,
-          restaurantId: a.restaurantId,
-          restaurantName: a.restaurantName || a.restaurantTitle || `Restaurant #${a.restaurantId}`,
-          deliveryPartnerId: a.deliveryPartnerId,
-          status: toUiStatus(a.status),
-          deliveryAddress: a.deliveryAddress || a.customerAddress || a.dropAddress || 'Delivery address not available',
-          restaurantAddress: a.pickupAddress || a.restaurantAddress || 'Pickup address not available',
-          pickupLatitude: a.pickupLatitude,
-          pickupLongitude: a.pickupLongitude,
-          deliveryLatitude: a.deliveryLatitude,
-          deliveryLongitude: a.deliveryLongitude,
-          currentLatitude: a.currentLatitude,
-          currentLongitude: a.currentLongitude,
-          // optional fields for UI compatibility
-          subtotal: a.subtotal || 0,
-          deliveryFee: a.deliveryFee || 0,
-          tax: a.tax || 0,
-          total: a.total || 0,
-          orderDate: a.assignedAt || new Date().toISOString(),
+        const normalized = await Promise.all(data.map(async (a) => {
+          // Fetch order items for each order
+          let items = [];
+          try {
+            const itemsResponse = await deliveryAPI.getOrderItems(a.orderId || a.id);
+            items = itemsResponse.data || [];
+            console.log('Order items for order', a.orderId || a.id, ':', items);
+            console.log('Items response:', itemsResponse);
+          } catch (error) {
+            console.warn('Failed to fetch order items for order', a.orderId || a.id, error);
+          }
+
+          return {
+            id: a.orderId || a.id,
+            orderId: a.orderId || a.id,
+            assignmentId: a.id, // This is the assignment ID needed for acceptAssignment
+            customerId: a.customerId,
+            customerName: a.customerName || a.customerFullName || a.userName || `Customer #${a.customerId}`,
+            restaurantId: a.restaurantId,
+            restaurantName: a.restaurantName || a.restaurantTitle || `Restaurant #${a.restaurantId}`,
+            
+            // Debug: Log the names
+            debugCustomerName: a.customerName,
+            debugRestaurantName: a.restaurantName,
+            debugOriginalData: a,
+            deliveryPartnerId: a.deliveryPartnerId,
+            status: toUiStatus(a.status),
+            deliveryAddress: a.deliveryAddress || a.customerAddress || a.dropAddress || 'Delivery address not available',
+            restaurantAddress: a.pickupAddress || a.restaurantAddress || 'Pickup address not available',
+            pickupLatitude: a.pickupLatitude,
+            pickupLongitude: a.pickupLongitude,
+            deliveryLatitude: a.deliveryLatitude,
+            deliveryLongitude: a.deliveryLongitude,
+            currentLatitude: a.currentLatitude,
+            currentLongitude: a.currentLongitude,
+            // optional fields for UI compatibility
+            subtotal: a.subtotal || 0,
+            deliveryFee: a.deliveryFee || 0,
+            tax: a.tax || 0,
+            total: a.total || 0,
+            orderDate: a.assignedAt || new Date().toISOString(),
+            items: items, // Add order items
+          };
         }));
+        
+        // Debug: Log normalized data
+        console.log('Normalized data:', normalized);
+        console.log('First normalized order:', normalized[0]);
         const normalizedAvailable = available.map((o) => ({
           id: o.orderId,
           orderId: o.orderId,
@@ -583,16 +610,24 @@ const DeliveryDashboard = () => {
 
 
 
-  const openOrderDetails = (order) => {
+  const openOrderDetails = async (order) => {
+    // Fetch order items if not already loaded
+    let orderWithItems = { ...order };
+    if (!order.items || order.items.length === 0) {
+      try {
+        const itemsResponse = await deliveryAPI.getOrderItems(order.orderId || order.id);
+        orderWithItems.items = itemsResponse.data || [];
+      } catch (error) {
+        console.warn('Failed to fetch order items for order', order.orderId || order.id, error);
+        orderWithItems.items = [];
+      }
+    }
 
-    setSelectedOrder(order);
-
+    setSelectedOrder(orderWithItems);
     setShowOrderModal(true);
 
     // Set map ready after a short delay to ensure modal is fully rendered
-
     setTimeout(() => setMapReady(true), 100);
-
   };
 
 
@@ -671,7 +706,7 @@ const DeliveryDashboard = () => {
         <Paper sx={{ 
           mb: 2, 
           p: 2, 
-          borderRadius: '8px',
+          borderRadius: '3px',
           backgroundColor: locationError ? '#ffebee' : partnerPosition ? '#e8f5e8' : '#fff3e0',
           border: `1px solid ${locationError ? '#f44336' : partnerPosition ? '#4caf50' : '#ff9800'}`
         }}>
@@ -815,7 +850,7 @@ const DeliveryDashboard = () => {
 
           mb: 3,
 
-          borderRadius: '4px',
+          borderRadius: '3px',
 
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
 
@@ -875,7 +910,7 @@ const DeliveryDashboard = () => {
 
         <Paper sx={{ 
 
-          borderRadius: '4px',
+          borderRadius: '3px',
 
           boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
 
@@ -985,7 +1020,7 @@ const DeliveryDashboard = () => {
                       <Grid item xs={6} md={3}>
                         <Paper sx={{ 
                           p: 3, 
-                          borderRadius: '8px', 
+                          borderRadius: '3px', 
                           border: '1px solid #e0e0e0',
                           textAlign: 'center',
                           height: '120px',
@@ -1005,7 +1040,7 @@ const DeliveryDashboard = () => {
                       <Grid item xs={6} md={3}>
                         <Paper sx={{ 
                           p: 3, 
-                          borderRadius: '8px', 
+                          borderRadius: '3px', 
                           border: '1px solid #e0e0e0',
                           textAlign: 'center',
                           height: '120px',
@@ -1025,7 +1060,7 @@ const DeliveryDashboard = () => {
                       <Grid item xs={6} md={3}>
                         <Paper sx={{ 
                           p: 3, 
-                          borderRadius: '8px', 
+                          borderRadius: '3px', 
                           border: '1px solid #e0e0e0',
                           textAlign: 'center',
                           height: '120px',
@@ -1045,7 +1080,7 @@ const DeliveryDashboard = () => {
                       <Grid item xs={6} md={3}>
                         <Paper sx={{ 
                           p: 3, 
-                          borderRadius: '8px', 
+                          borderRadius: '3px', 
                           border: '1px solid #e0e0e0',
                           textAlign: 'center',
                           height: '120px',
@@ -1066,7 +1101,7 @@ const DeliveryDashboard = () => {
                   
                   {/* Earnings Section */}
                   <Grid item xs={12}>
-                    <Paper sx={{ p: 3, borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+                    <Paper sx={{ p: 3, borderRadius: '3px', border: '1px solid #e0e0e0' }}>
                       <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#1a1a1a' }}>
                         Earnings Overview
                       </Typography>
@@ -1107,7 +1142,7 @@ const DeliveryDashboard = () => {
                   
                   {/* Detailed Stats */}
                 <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 3, borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+                    <Paper sx={{ p: 3, borderRadius: '3px', border: '1px solid #e0e0e0' }}>
                       <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#1a1a1a' }}>
                         Delivery Statistics
                       </Typography>
@@ -1135,7 +1170,7 @@ const DeliveryDashboard = () => {
                 </Grid>
                 
                 <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 3, borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+                    <Paper sx={{ p: 3, borderRadius: '3px', border: '1px solid #e0e0e0' }}>
                       <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#1a1a1a' }}>
                         Performance Metrics
                       </Typography>
@@ -1178,7 +1213,7 @@ const DeliveryDashboard = () => {
 
           title={selectedOrder ? `Delivery Order #${selectedOrder.id}` : 'Delivery Order'}
 
-          maxWidth="md"
+          maxWidth="lg"
 
           fullWidth
 
@@ -1233,7 +1268,7 @@ const DeliveryDashboard = () => {
 
                 width: '100%',
 
-                borderRadius: '8px',
+                borderRadius: '3px',
 
                 overflow: 'hidden',
 
@@ -1299,7 +1334,7 @@ const DeliveryDashboard = () => {
 
                 <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Order Details</Typography>
 
-                <Chip label={selectedOrder.status.replace('_',' ')} sx={{ alignSelf: 'flex-start' }} />
+                <Chip label={selectedOrder.status.replace('_',' ')} variant="outlined" sx={{ alignSelf: 'flex-start' }} />
                 {selectedOrder.status === 'accepted' && (
                   <Typography variant="body2" sx={{ color: '#2196f3' }}>
                     Accepted. Proceed towards the restaurant for pickup.
@@ -1311,6 +1346,46 @@ const DeliveryDashboard = () => {
                 <Typography variant="body2">Restaurant #{selectedOrder.restaurantId}</Typography>
 
                 <Typography variant="body2">Destination: {selectedOrder.deliveryAddress}</Typography>
+
+                {/* Order Items */}
+                {selectedOrder.items && selectedOrder.items.length > 0 && (
+                  <Box sx={{ mt: 2 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                      Order Items:
+                    </Typography>
+                    <Box sx={{ maxHeight: '200px', overflowY: 'auto' }}>
+                      {selectedOrder.items.map((item, index) => (
+                        <Box key={index} sx={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          py: 1,
+                          px: 1,
+                          borderBottom: '1px solid #f0f0f0'
+                        }}>
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                              {item.quantity}x {item.name}
+                            </Typography>
+                            {item.specialInstructions && (
+                              <Typography variant="caption" sx={{ color: '#666', fontStyle: 'italic' }}>
+                                Note: {item.specialInstructions}
+                              </Typography>
+                            )}
+                          </Box>
+                          <Typography variant="body2" sx={{ fontWeight: 600, color: '#FC8019' }}>
+                            ₹{item.price * item.quantity}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                    <Box sx={{ mt: 1, p: 1, backgroundColor: '#f8f9fa', borderRadius: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                        Total: ₹{selectedOrder.total || 0} (Delivery Fee: ₹{selectedOrder.deliveryFee || 0})
+                      </Typography>
+                    </Box>
+                  </Box>
+                )}
 
                 <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
 

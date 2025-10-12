@@ -9,7 +9,7 @@ const EmptyAddresses = ({ onAdd }) => (
     <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5, fontSize: '14px' }}>
       Add your delivery addresses for faster checkout
     </Typography>
-    <Button variant="contained" startIcon={<Add />} onClick={onAdd} size="small" sx={{ backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' }, fontSize: '13px', px: 2, py: 1, borderRadius: '6px' }}>
+    <Button variant="contained" startIcon={<Add />} onClick={onAdd} size="small" sx={{ backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' }, fontSize: '13px', px: 2, py: 1, borderRadius: '3px' }}>
       Add Your First Address
     </Button>
   </Box>
