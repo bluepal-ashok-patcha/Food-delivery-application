@@ -1,241 +1,136 @@
 package com.quickbite.restaurantservice.service;
-import java.io.IOException;
-import java.io.InputStream;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.ss.usermodel.CellType;
-import org.apache.poi.ss.usermodel.DateUtil;
-import org.apache.poi.ss.usermodel.Row;
-import org.apache.poi.ss.usermodel.Sheet;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.context.annotation.Bean;
+
+import com.quickbite.restaurantservice.dto.*;
+import org.apache.poi.ss.usermodel.*;
 import org.springframework.stereotype.Component;
 
-import com.quickbite.restaurantservice.dto.MenuCategoryDto;
-import com.quickbite.restaurantservice.dto.MenuItemDto;
-import com.quickbite.restaurantservice.dto.ParsedRestaurant;
-import com.quickbite.restaurantservice.dto.RestaurantDto;
-import com.quickbite.restaurantservice.entity.RestaurantStatus;
+import java.io.InputStream;
+import java.time.LocalTime;
+import java.util.*;
 
 @Component
 public class ExcelRestaurantImporter {
 
-    public List<ParsedRestaurant> parse(InputStream excelStream) throws IOException {
-        Workbook wb = new XSSFWorkbook(excelStream);
-        Sheet restaurantsSheet = wb.getSheet("Restaurants");
-        Sheet menusSheet = wb.getSheet("Menus");
-
-        if (restaurantsSheet == null) {
-            throw new IllegalArgumentException("Restaurants sheet is missing");
+    public List<ParsedRestaurant> parse(InputStream inputStream) throws Exception {
+        Workbook workbook = WorkbookFactory.create(inputStream);
+        Sheet sheet = workbook.getSheet("Restaurants");
+        if (sheet == null) {
+            throw new RuntimeException("Restaurants sheet is missing");
         }
 
-        // Map key = name.trim().toLowerCase() + "|" + contactNumber.trim()
-        Map<String, ParsedRestaurant> map = new LinkedHashMap<>();
+        Iterator<Row> rows = sheet.iterator();
+        if (!rows.hasNext()) return List.of();
+        rows.next(); // skip header
 
-        // Parse Restaurants sheet: header -> colIndex
-        Map<String, Integer> restHeader = buildHeaderIndex(restaurantsSheet);
-        for (int r = restaurantsSheet.getFirstRowNum() + 1; r <= restaurantsSheet.getLastRowNum(); r++) {
-            Row row = restaurantsSheet.getRow(r);
-            if (row == null) continue;
-            String name = getCellString(row, restHeader.get("name"));
-            String contactNumber = getCellString(row, restHeader.get("contactnumber"));
-            if (isBlank(name) && isBlank(contactNumber)) continue;
+        Map<String, ParsedRestaurant> restaurantMap = new LinkedHashMap<>();
 
-            RestaurantDto dto = new RestaurantDto();
-            // Important: do not set dto.id
-            dto.setName(name);
-            dto.setAddress(getCellString(row, restHeader.get("address")));
-            dto.setContactNumber(contactNumber);
-            dto.setCuisineType(getCellString(row, restHeader.get("cuisinetype")));
-            dto.setOpeningTime(parseLocalTime(getCellString(row, restHeader.get("openingtime"))));
-            dto.setClosingTime(parseLocalTime(getCellString(row, restHeader.get("closingtime"))));
-            dto.setDescription(getCellString(row, restHeader.get("description")));
-            dto.setImage(getCellString(row, restHeader.get("image")));
-            dto.setCoverImage(getCellString(row, restHeader.get("coverimage")));
-            dto.setRating(parseDoubleOrNull(getCellString(row, restHeader.get("rating"))));
-            dto.setTotalRatings(parseIntegerOrNull(getCellString(row, restHeader.get("totalratings"))));
-            dto.setDeliveryTime(getCellString(row, restHeader.get("deliverytime")));
-            dto.setDeliveryFee(parseDoubleOrNull(getCellString(row, restHeader.get("deliveryfee"))));
-            dto.setMinimumOrder(parseDoubleOrNull(getCellString(row, restHeader.get("minimumorder"))));
-            dto.setIsOpen(parseBooleanOrNull(getCellString(row, restHeader.get("isopen"))));
-            dto.setIsActive(parseBooleanOrNull(getCellString(row, restHeader.get("isactive"))));
-            dto.setIsVeg(parseBooleanOrNull(getCellString(row, restHeader.get("isveg"))));
-            dto.setIsPureVeg(parseBooleanOrNull(getCellString(row, restHeader.get("ispureveg"))));
-            dto.setOpeningHours(getCellString(row, restHeader.get("openinghours")));
-            dto.setDeliveryRadiusKm(parseIntegerOrNull(getCellString(row, restHeader.get("deliveryradiuskm"))));
-            dto.setLatitude(parseDoubleOrNull(getCellString(row, restHeader.get("latitude"))));
-            dto.setLongitude(parseDoubleOrNull(getCellString(row, restHeader.get("longitude"))));
-            dto.setTags(getCellString(row, restHeader.get("tags")));
-            dto.setOwnerId(parseLongOrNull(getCellString(row, restHeader.get("ownerid"))));
-            dto.setStatus(parseRestaurantStatus(getCellString(row, restHeader.get("status"))));
+        while (rows.hasNext()) {
+            Row row = rows.next();
 
-            // We'll attach menuCategories after parsing Menus sheet.
-            dto.setMenuCategories(new ArrayList<>());
+            String restaurantName = getString(row, 0);
+            if (restaurantName == null || restaurantName.isEmpty()) continue;
 
-            String key = makeKey(name, contactNumber);
-            ParsedRestaurant pr = new ParsedRestaurant();
-            pr.setRestaurantDto(dto);
-            pr.setRowNumber(r + 1); // +1 to match Excel's 1-based row numbers
-            map.put(key, pr);
+            ParsedRestaurant restaurant = restaurantMap.computeIfAbsent(restaurantName, k -> {
+                ParsedRestaurant r = new ParsedRestaurant();
+                r.setName(getString(row, 0));
+                r.setCuisineType(getString(row, 1));
+                r.setAddress(getString(row, 2));
+                r.setContactNumber(getString(row, 3));
+                r.setDescription(getString(row, 4));
+                r.setImage(getString(row, 5));
+                r.setCoverImage(getString(row, 6));
+                r.setRating(getDouble(row, 7));
+                r.setTotalRatings(getInt(row, 8));
+                r.setDeliveryTime(getString(row, 9));
+                r.setDeliveryFee(getDouble(row, 10));
+                r.setMinimumOrder(getDouble(row, 11));
+                r.setIsOpen(getBoolean(row, 12));
+                r.setIsActive(getBoolean(row, 13));
+                r.setIsVeg(getBoolean(row, 14));
+                r.setIsPureVeg(getBoolean(row, 15));
+                r.setOpeningHours(getString(row, 16));
+                r.setDeliveryRadiusKm(getInt(row, 17));
+                r.setLatitude(getDouble(row, 18));
+                r.setLongitude(getDouble(row, 19));
+                r.setTags(getString(row, 20));
+                r.setOpeningTime(getLocalTime(row, 21));
+                r.setClosingTime(getLocalTime(row, 22));
+                r.setOwnerId(getLong(row, 23));
+                r.setStatus(getString(row, 24));
+                return r;
+            });
+
+            String categoryName = getString(row, 25);
+            if (categoryName == null) continue;
+
+            ParsedMenuCategory category = restaurant.getMenuCategories().stream()
+                    .filter(c -> c.getName().equalsIgnoreCase(categoryName))
+                    .findFirst()
+                    .orElseGet(() -> {
+                        ParsedMenuCategory newCat = new ParsedMenuCategory();
+                        newCat.setName(categoryName);
+                        restaurant.getMenuCategories().add(newCat);
+                        return newCat;
+                    });
+
+            ParsedMenuItem item = new ParsedMenuItem();
+            item.setName(getString(row, 26));
+            item.setDescription(getString(row, 27));
+            item.setPrice(getDouble(row, 28));
+            item.setImageUrl(getString(row, 29));
+            item.setInStock(getBoolean(row, 30));
+            item.setOriginalPrice(getDouble(row, 31));
+            item.setIsVeg(getBoolean(row, 32));
+            item.setIsPopular(getBoolean(row, 33));
+            item.setPreparationTime(getInt(row, 34));
+            item.setCustomizationJson(getString(row, 35));
+            item.setNutritionJson(getString(row, 36));
+
+            category.getMenuItems().add(item);
         }
 
-        // Parse Menus sheet (if present)
-        if (menusSheet != null) {
-            Map<String, Integer> menuHeader = buildHeaderIndex(menusSheet);
-            for (int r = menusSheet.getFirstRowNum() + 1; r <= menusSheet.getLastRowNum(); r++) {
-                Row row = menusSheet.getRow(r);
-                if (row == null) continue;
-                String restaurantName = getCellString(row, menuHeader.get("restaurantname"));
-                String restaurantContact = getCellString(row, menuHeader.get("restaurantcontactnumber"));
-                if (isBlank(restaurantName) && isBlank(restaurantContact)) continue;
-                String key = makeKey(restaurantName, restaurantContact);
-                ParsedRestaurant pr = map.get(key);
-                if (pr == null) {
-                    // skip or collect as error — for now attach to a phantom key? We'll skip and caller will notice menu orphaned
-                    continue;
-                }
-
-                String categoryName = getCellString(row, menuHeader.get("categoryname"));
-                String itemName = getCellString(row, menuHeader.get("itemname"));
-                if (isBlank(categoryName) || isBlank(itemName)) continue;
-
-                MenuItemDto item = new MenuItemDto();
-                item.setName(itemName);
-                item.setDescription(getCellString(row, menuHeader.get("itemdescription")));
-                item.setPrice(parseDoubleOrNull(getCellString(row, menuHeader.get("price"))));
-                item.setImageUrl(getCellString(row, menuHeader.get("imageurl")));
-                Boolean inStock = parseBooleanOrNull(getCellString(row, menuHeader.get("instock")));
-                if (inStock != null) item.setInStock(inStock);
-                item.setOriginalPrice(parseDoubleOrNull(getCellString(row, menuHeader.get("originalprice"))));
-                item.setIsVeg(parseBooleanOrNull(getCellString(row, menuHeader.get("isveg"))));
-                item.setIsPopular(parseBooleanOrNull(getCellString(row, menuHeader.get("ispopular"))));
-                item.setPreparationTime(parseIntegerOrNull(getCellString(row, menuHeader.get("preparationtime"))));
-                item.setCustomizationJson(getCellString(row, menuHeader.get("customizationjson")));
-                item.setNutritionJson(getCellString(row, menuHeader.get("nutritionjson")));
-
-                // Find (or create) the category in pr.getRestaurantDto().getMenuCategories()
-                List<MenuCategoryDto> categories = pr.getRestaurantDto().getMenuCategories();
-                Optional<MenuCategoryDto> catOpt = categories.stream()
-                        .filter(c -> categoryName.equalsIgnoreCase(c.getName()))
-                        .findFirst();
-                MenuCategoryDto category;
-                if (catOpt.isPresent()) {
-                    category = catOpt.get();
-                } else {
-                    category = new MenuCategoryDto();
-                    category.setName(categoryName);
-                    category.setMenuItems(new ArrayList<>());
-                    categories.add(category);
-                }
-                category.getMenuItems().add(item);
-            }
-        }
-
-        wb.close();
-        return new ArrayList<>(map.values());
+        workbook.close();
+        return new ArrayList<>(restaurantMap.values());
     }
 
-    // ------------------- helpers --------------------
-    private Map<String,Integer> buildHeaderIndex(Sheet sheet) {
-        Map<String,Integer> map = new HashMap<>();
-        Row header = sheet.getRow(sheet.getFirstRowNum());
-        if (header == null) return map;
-        for (Cell c : header) {
-            String h = c.getStringCellValue().trim().toLowerCase();
-            map.put(h, c.getColumnIndex());
-        }
-        return map;
+    private String getString(Row row, int index) {
+        Cell cell = row.getCell(index);
+        return (cell != null) ? cell.toString().trim() : null;
     }
 
-    private String getCellString(Row row, Integer colIdx) {
-        if (colIdx == null) return null;
-        Cell cell = row.getCell(colIdx);
-        if (cell == null) return null;
-        if (cell.getCellType() == CellType.STRING) {
-            return cell.getStringCellValue().trim();
-        } else if (cell.getCellType() == CellType.NUMERIC) {
-            if (DateUtil.isCellDateFormatted(cell)) {
-                // turn into HH:mm:ss if it is a time
-                LocalTime t = cell.getLocalDateTimeCellValue().toLocalTime();
-                return t.toString();
-            } else {
-                // remove trailing .0 for integer-like numbers if needed
-                double d = cell.getNumericCellValue();
-                if (d == (long) d) {
-                    return String.valueOf((long) d);
-                } else {
-                    return String.valueOf(d);
-                }
-            }
-        } else if (cell.getCellType() == CellType.BOOLEAN) {
-            return String.valueOf(cell.getBooleanCellValue());
-        } else if (cell.getCellType() == CellType.FORMULA) {
-            try { return cell.getStringCellValue(); } catch (Exception e) { return String.valueOf(cell.getNumericCellValue()); }
-        } else {
+    private Double getDouble(Row row, int index) {
+        try {
+            return row.getCell(index).getNumericCellValue();
+        } catch (Exception e) {
+            try { return Double.parseDouble(getString(row, index)); }
+            catch (Exception ignored) { return null; }
+        }
+    }
+
+    private Long getLong(Row row, int index) {
+        Double val = getDouble(row, index);
+        return val != null ? val.longValue() : null;
+    }
+
+    private Integer getInt(Row row, int index) {
+        Double val = getDouble(row, index);
+        return val != null ? val.intValue() : null;
+    }
+
+    private Boolean getBoolean(Row row, int index) {
+        String val = getString(row, index);
+        if (val == null) return null;
+        return val.equalsIgnoreCase("true") || val.equalsIgnoreCase("yes") || val.equals("1");
+    }
+
+    private LocalTime getLocalTime(Row row, int index) {
+        String val = getString(row, index);
+        if (val == null) return null;
+        try {
+            return LocalTime.parse(val);
+        } catch (Exception e) {
             return null;
         }
     }
-
-    private String makeKey(String name, String contact) {
-        return (name == null ? "" : name.trim().toLowerCase()) + "|" + (contact == null ? "" : contact.trim());
-    }
-
-    private boolean isBlank(String s) { return s == null || s.trim().isEmpty(); }
-
-    private LocalTime parseLocalTime(String s) {
-        if (isBlank(s)) return null;
-        try {
-            if (s.length() <=5) { // HH:mm
-                return LocalTime.parse(s, DateTimeFormatter.ofPattern("H:mm"));
-            } else if (s.length() == 8) { // HH:mm:ss
-                return LocalTime.parse(s);
-            } else {
-                return LocalTime.parse(s); // fallback
-            }
-        } catch (Exception e) {
-            try {
-                return LocalTime.parse(s, DateTimeFormatter.ofPattern("h:mm a")); // e.g. 9:00 AM
-            } catch (Exception ex) {
-                return null;
-            }
-        }
-    }
-
-    private Double parseDoubleOrNull(String s) {
-        if (isBlank(s)) return null;
-        try { return Double.parseDouble(s); } catch (Exception e) { return null; }
-    }
-
-    private Integer parseIntegerOrNull(String s) {
-        if (isBlank(s)) return null;
-        try { return Integer.parseInt(s); } catch (Exception e) { Double d = parseDoubleOrNull(s); return d == null ? null : d.intValue(); }
-    }
-
-    private Long parseLongOrNull(String s) {
-        if (isBlank(s)) return null;
-        try { return Long.parseLong(s); } catch (Exception e) { Double d = parseDoubleOrNull(s); return d == null ? null : d.longValue(); }
-    }
-
-    private Boolean parseBooleanOrNull(String s) {
-        if (isBlank(s)) return null;
-        s = s.trim().toLowerCase();
-        if (s.equals("true") || s.equals("yes") || s.equals("1")) return true;
-        if (s.equals("false") || s.equals("no") || s.equals("0")) return false;
-        return null;
-    }
-
-    private RestaurantStatus parseRestaurantStatus(String s) {
-        if (isBlank(s)) return null;
-        try { return RestaurantStatus.valueOf(s.trim().toUpperCase()); } catch (Exception e) { return null; }
-    }
 }
-
