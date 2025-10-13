@@ -95,7 +95,7 @@ const UsersTable = ({ users, onViewUser, onEditUser, onDeleteUser, onToggleActiv
               <TableCell>
                 <ActionButtons 
                   menuOnly
-                  onView={() => onViewUser && onViewUser(user)}
+                  showView={false}
                   onEdit={() => onEditUser && onEditUser(user)}
                   onDelete={() => onDeleteUser && onDeleteUser(user)}
                 />

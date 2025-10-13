@@ -15,7 +15,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -133,8 +135,21 @@ public class DeliveryService {
 
     @Transactional
     public DeliveryPartnerReviewDto addPartnerReview(DeliveryPartnerReviewDto dto) {
+        // Check if review already exists for this order and user
+        if (dto.getOrderId() != null) {
+            Optional<DeliveryPartnerReview> existingReview = deliveryPartnerReviewRepository
+                .findByPartnerUserIdAndUserIdAndOrderId(dto.getPartnerUserId(), dto.getUserId(), dto.getOrderId());
+            if (existingReview.isPresent()) {
+                throw new RuntimeException("You have already reviewed this order");
+            }
+        }
+        
         DeliveryPartnerReview entity = new DeliveryPartnerReview();
         BeanUtils.copyProperties(dto, entity, "id", "createdAt");
+        // Set createdAt to current time if not already set
+        if (entity.getCreatedAt() == null) {
+            entity.setCreatedAt(Instant.now());
+        }
         DeliveryPartnerReview saved = deliveryPartnerReviewRepository.save(entity);
         DeliveryPartnerReviewDto out = new DeliveryPartnerReviewDto();
         BeanUtils.copyProperties(saved, out);

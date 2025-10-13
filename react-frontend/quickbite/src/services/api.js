@@ -500,6 +500,13 @@ export const deliveryAPI = {
     return response.data;
   },
 
+  // Admin edit partner profile using same endpoint; backend will use DTO.userId for ADMIN
+  updatePartnerProfileAsAdmin: async (partnerUserId, profileData) => {
+    const body = { ...profileData, userId: partnerUserId };
+    const response = await api.put('/api/delivery/partners/profile', body);
+    return response.data;
+  },
+
   // Get delivery partner profile
   getProfile: async () => {
     const response = await api.get('/api/delivery/partners/profile');
@@ -685,6 +692,10 @@ export const adminAPI = {
   },
   getAvailablePartners: async () => {
     const response = await api.get('/api/delivery/partners/available');
+    return response.data;
+  },
+  getOfflinePartners: async () => {
+    const response = await api.get('/api/delivery/admin/offline');
     return response.data;
   },
 

@@ -18,7 +18,7 @@ import {
   fetchDeliveryPartners, fetchAllDeliveryPartners, approveDeliveryPartner, rejectDeliveryPartner,
   fetchCoupons, createCoupon, updateCoupon, deleteCoupon,
   fetchTransactions, fetchAnalytics,
-  deleteUser, deleteRestaurant, assignOrderToPartner, deletePartner,
+    deleteUser, deleteRestaurant, assignOrderToPartner, deletePartner, addPartner, updatePartner, updateDeliveryPartnerProfile,
   setRestaurantOpenAsync, setRestaurantActiveAsync
 } from '../../store/slices/adminSlice';
 import UsersTable from '../../components/admin/UsersTable';
@@ -857,19 +857,33 @@ const AdminDashboard = () => {
             <Box sx={{ p: 4 }}>
 
               <TabHeader 
-
                 title="Delivery Partner Management" 
-
                 subtitle="Manage delivery partners and their performance"
-
                 addButtonText="Refresh Partners"
-
-                onAddClick={() => { 
-                  // Refresh partners data
-                  dispatch(fetchAllDeliveryPartners());
-                }}
-
+                onAddClick={() => { dispatch(fetchAllDeliveryPartners()); }}
               />
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
+                <TextField 
+                  select 
+                  label="Filter"
+                  value={userRoleFilter}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setUserRoleFilter(val);
+                    dispatch(fetchAllDeliveryPartners()).then(() => {
+                      // No server-side filter, we'll filter in render
+                    });
+                  }}
+                  sx={{ minWidth: 220 }}
+                  SelectProps={{ native: true }}
+                  InputLabelProps={{ shrink: true }}
+                >
+                  <option value="ALL">All</option>
+                  <option value="PENDING">Pending Approval</option>
+                  <option value="AVAILABLE">Available</option>
+                  <option value="OFFLINE">Offline</option>
+                </TextField>
+              </Stack>
 
               
               {loading.partners && (
@@ -891,7 +905,12 @@ const AdminDashboard = () => {
                     Approved partners show their current status: AVAILABLE (ready for orders), ON_DELIVERY (currently delivering), or OFFLINE (inactive).
                   </Typography>
               <DeliveryPartnersTable 
-                partners={partners}
+                partners={partners.filter(p => {
+                  if (userRoleFilter === 'PENDING') return p.isPending;
+                  if (userRoleFilter === 'AVAILABLE') return (p.status || '').toString() === 'AVAILABLE';
+                  if (userRoleFilter === 'OFFLINE') return (p.status || '').toString() === 'OFFLINE' || p.isOffline;
+                  return true;
+                })}
                 onViewPartner={() => {}}
                 onEditPartner={(p) => { setFormValues(p); setOpenPartnerModal(true); }}
                 onDeletePartner={(p) => dispatch(deletePartner(p.id))}
@@ -1746,7 +1765,7 @@ const AdminDashboard = () => {
                     dispatch(updateUser({ id: formValues.id, userData: { name: formValues.name, email: formValues.email, phone: formValues.phone, role: formValues.role } }));
                   } else {
 
-                    dispatch(createUser({ userData: { name: formValues.name, email: formValues.email, phone: formValues.phone }, role: formValues.role || 'CUSTOMER' }));
+                    dispatch(createUser({ userData: { name: formValues.name, email: formValues.email, phone: formValues.phone, password: formValues.password }, role: formValues.role || 'CUSTOMER' }));
                   }
 
                   setOpenUserModal(false);
@@ -1772,6 +1791,9 @@ const AdminDashboard = () => {
             <TextField label="Email" value={formValues.email || ''} onChange={(e) => setFormValues(v => ({ ...v, email: e.target.value }))} fullWidth />
 
             <TextField label="Phone" value={formValues.phone || ''} onChange={(e) => setFormValues(v => ({ ...v, phone: e.target.value }))} fullWidth />
+            {!formValues?.id && (
+              <TextField label="Password" type="password" value={formValues.password || ''} onChange={(e) => setFormValues(v => ({ ...v, password: e.target.value }))} fullWidth />
+            )}
 
             <TextField 
 
@@ -2036,31 +2058,20 @@ const AdminDashboard = () => {
               <Button onClick={() => setOpenPartnerModal(false)} variant="outlined">Cancel</Button>
 
               <Button 
-
                 variant="contained" 
-
                 sx={{ background: '#fc8019' }}
-
                 onClick={() => {
-
-                  if (formValues?.id) {
-
-                    dispatch(updatePartner({ id: formValues.id, changes: { name: formValues.name, phone: formValues.phone, vehicleType: formValues.vehicleType } }));
-
+                  if (formValues?.userId) {
+                    dispatch(updateDeliveryPartnerProfile({ userId: formValues.userId, profile: { name: formValues.name, phoneNumber: formValues.phoneNumber, vehicleDetails: formValues.vehicleDetails } }));
+                  } else if (formValues?.id) {
+                    dispatch(updatePartner({ id: formValues.id, changes: { name: formValues.name, phoneNumber: formValues.phoneNumber, vehicleDetails: formValues.vehicleDetails } }));
                   } else {
-
-                    dispatch(addPartner({ name: formValues.name, phone: formValues.phone, vehicleType: formValues.vehicleType }));
-
+                    dispatch(addPartner({ name: formValues.name, phoneNumber: formValues.phoneNumber, vehicleDetails: formValues.vehicleDetails }));
                   }
-
                   setOpenPartnerModal(false);
-
                 }}
-
               >
-
                 Save
-
               </Button>
 
             </Stack>
@@ -2073,9 +2084,9 @@ const AdminDashboard = () => {
 
             <TextField label="Name" value={formValues.name || ''} onChange={(e) => setFormValues(v => ({ ...v, name: e.target.value }))} fullWidth />
 
-            <TextField label="Phone" value={formValues.phone || ''} onChange={(e) => setFormValues(v => ({ ...v, phone: e.target.value }))} fullWidth />
+            <TextField label="Phone Number" value={formValues.phoneNumber || ''} onChange={(e) => setFormValues(v => ({ ...v, phoneNumber: e.target.value }))} fullWidth />
 
-            <TextField label="Vehicle Type" value={formValues.vehicleType || ''} onChange={(e) => setFormValues(v => ({ ...v, vehicleType: e.target.value }))} fullWidth />
+            <TextField label="Vehicle Details" value={formValues.vehicleDetails || ''} onChange={(e) => setFormValues(v => ({ ...v, vehicleDetails: e.target.value }))} fullWidth />
 
           </Stack>
 

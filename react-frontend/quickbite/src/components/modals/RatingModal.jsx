@@ -37,10 +37,16 @@ const RatingModal = ({ open, onClose, order, assignment, onReviewSubmitted }) =>
       return;
     }
 
+    console.log('RatingModal: Order data:', order);
+    console.log('RatingModal: Assignment data:', assignment);
+    console.log('RatingModal: Restaurant rating:', restaurantRating);
+    console.log('RatingModal: Delivery rating:', deliveryRating);
+
     setSubmitting(true);
     try {
       // Submit restaurant review only if rating is provided
       if (order?.restaurantId && restaurantRating > 0) {
+        console.log('RatingModal: Submitting restaurant review for order:', order.id);
         await dispatch(submitRestaurantReview({
           restaurantId: order.restaurantId,
           orderId: order.id,

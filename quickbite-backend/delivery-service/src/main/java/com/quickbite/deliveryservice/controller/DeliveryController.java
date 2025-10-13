@@ -74,7 +74,11 @@ public class DeliveryController {
 
     @PutMapping("/partners/profile")
     public ResponseEntity<ApiResponse<DeliveryPartnerDto>> updateProfile(@RequestBody DeliveryPartnerDto partnerDto, HttpServletRequest request) {
-        Long userId = extractUserId(request);
+        // Allow ADMIN to edit any partner by specifying userId in DTO; otherwise use authenticated user
+        String role = request.getHeader("X-User-Role");
+        Long userId = ("ADMIN".equals(role) && partnerDto.getUserId() != null)
+                ? partnerDto.getUserId()
+                : extractUserId(request);
         partnerDto.setUserId(userId);
         DeliveryPartnerDto updatedPartner = deliveryService.updateDeliveryPartnerProfile(userId, partnerDto);
         return ResponseEntity.ok(ApiResponse.<DeliveryPartnerDto>builder()

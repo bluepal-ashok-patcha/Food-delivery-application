@@ -69,12 +69,14 @@ const OrderTrack = () => {
   useEffect(() => {
     const delivered = stepIndex === 3 || (assignment && assignment.status === 'DELIVERED') || ((orderObj?.status || orderObj?.orderStatus) === 'DELIVERED');
     if (delivered && orderObj?.id) {
+      console.log('OrderTrack: Fetching review status for order:', orderObj.id, 'delivered:', delivered, 'stepIndex:', stepIndex);
       orderAPI.getOrderReviewStatus(orderObj.id)
         .then(response => {
+          console.log('OrderTrack: Review status response:', response.data);
           setReviewStatus(response.data);
         })
         .catch(error => {
-          console.error('Error fetching review status:', error);
+          console.error('OrderTrack: Error fetching review status:', error);
         });
     }
   }, [stepIndex, assignment, orderObj]);
@@ -106,38 +108,100 @@ const OrderTrack = () => {
 
   // Poll assignment every 5 seconds ONLY after an assignment exists, until terminal status
   useEffect(() => {
-    if (!id || !assignment || !assignment.id) return;
+    if (!id) {
+      console.log('OrderTrack: Not polling assignment - missing order id');
+      return;
+    }
     let intervalId;
     const fetchAssignment = async () => {
       try {
+        console.log('OrderTrack: Polling assignment for order:', id);
         const res = await deliveryAPI.getAssignmentByOrder(id);
         const a = res?.data;
-        if (a) setAssignment(a);
+        if (a && a.id) {
+          console.log('OrderTrack: Assignment update received:', a);
+          setAssignment(a);
+        }
         const s = a?.status;
         if (['DELIVERED', 'CANCELLED', 'FAILED'].includes(s)) {
+          console.log('OrderTrack: Terminal status reached, stopping polling:', s);
           clearInterval(intervalId);
         }
-      } catch (_) {}
+      } catch (error) {
+        console.log('OrderTrack: Assignment polling error:', error);
+      }
     };
+    console.log('OrderTrack: Starting assignment polling for order:', id);
+    // Poll immediately once, then every 5s. This also recovers if previous GET returned 500.
+    fetchAssignment();
     intervalId = setInterval(fetchAssignment, 5000);
-    return () => intervalId && clearInterval(intervalId);
-  }, [id, assignment]);
+    return () => {
+      console.log('OrderTrack: Stopping assignment polling for order:', id);
+      intervalId && clearInterval(intervalId);
+    };
+  }, [id]);
 
   // Retry creating assignment every 15s ONLY if payment is cleared or order is confirmed
   useEffect(() => {
     if (!id) return;
     let retryId;
     const tryCreate = async () => {
-      if (assignment && assignment.id) return; // already created
+      if (assignment && assignment.id) {
+        console.log('OrderTrack: Assignment already exists, skipping creation');
+        return; // already created
+      }
       const statusStr = (orderObj?.orderStatus || orderObj?.status || '').toUpperCase();
       const paymentStr = (orderObj?.paymentStatus || orderObj?.payment_state || '').toUpperCase();
-      const isPaymentCleared = paymentStr === 'SUCCESS' || paymentStr === 'PAID';
+      // Treat more payment success variants as cleared
+      const isPaymentCleared = ['SUCCESS','PAID','COMPLETED','CAPTURED','SUCCEEDED'].includes(paymentStr);
       const isOrderConfirmed = ['ACCEPTED', 'PREPARING', 'READY_FOR_PICKUP'].includes(statusStr);
-      if (!isPaymentCleared && !isOrderConfirmed) return; // do not assign if payment failed/pending
+      
+      console.log('OrderTrack: Auto-assignment check:', {
+        orderId: id,
+        statusStr,
+        paymentStr,
+        isPaymentCleared,
+        isOrderConfirmed,
+        hasAssignment: !!(assignment && assignment.id)
+      });
+      
+      if (!isPaymentCleared && !isOrderConfirmed) {
+        console.log('OrderTrack: Payment not cleared and order not confirmed, skipping assignment');
+        return; // do not assign if payment failed/pending
+      }
+      
+      console.log('OrderTrack: Attempting to create assignment for order:', id);
       try {
         setIsAssigning(true);
-        await deliveryAPI.createAssignment(id);
-      } catch (_) {
+        const response = await deliveryAPI.createAssignment(id);
+        console.log('OrderTrack: Assignment creation response:', response);
+        // Immediately set assignment from response to stop further POST retries
+        const created = response?.data || response;
+        if (created && created.id) {
+          setAssignment(created);
+        } else {
+          // Fallback: fetch assignment by order to hydrate full data
+          try {
+            const res = await deliveryAPI.getAssignmentByOrder(id);
+            const a = res?.data;
+            if (a && a.id) setAssignment(a);
+          } catch (fetchErr) {
+            console.log('OrderTrack: Failed to fetch assignment after create:', fetchErr);
+          }
+        }
+      } catch (error) {
+        console.log('OrderTrack: Assignment creation failed:', error);
+        // If server reports already assigned, hydrate assignment once and stop retrying POST
+        const msg = (error?.response?.data?.message || '').toString().toLowerCase();
+        if (msg.includes('already assigned')) {
+          try {
+            const res = await deliveryAPI.getAssignmentByOrder(id);
+            const a = res?.data;
+            if (a && a.id) setAssignment(a);
+          } catch (fetchErr) {
+            console.log('OrderTrack: Failed to fetch assignment after already-assigned error:', fetchErr);
+          }
+        }
         // Ignore errors like no available partners and keep retrying
       } finally {
         setIsAssigning(false);
@@ -288,7 +352,7 @@ const OrderTrack = () => {
             >
               Close
             </Button>
-            {!reviewStatus.restaurantReviewed && !reviewStatus.deliveryReviewed && (
+            {(!reviewStatus.restaurantReviewed || !reviewStatus.deliveryReviewed) && (
               <Button 
                 fullWidth
                 variant="contained" 
@@ -302,7 +366,7 @@ const OrderTrack = () => {
                   '&:hover': { backgroundColor: '#e6730a' } 
                 }}
               >
-                Rate Order
+                {!reviewStatus.restaurantReviewed && !reviewStatus.deliveryReviewed ? 'Rate Order' : 'Complete Rating'}
               </Button>
             )}
             <Button 

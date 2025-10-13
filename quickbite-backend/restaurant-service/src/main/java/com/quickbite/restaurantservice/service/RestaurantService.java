@@ -3,9 +3,11 @@ package com.quickbite.restaurantservice.service;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpHeaders;
@@ -359,8 +361,21 @@ public class RestaurantService {
 
     @Transactional
     public RestaurantReviewDto addReview(RestaurantReviewDto dto) {
+        // Check if review already exists for this order and user
+        if (dto.getOrderId() != null) {
+            Optional<RestaurantReview> existingReview = restaurantReviewRepository
+                .findByRestaurantIdAndUserIdAndOrderId(dto.getRestaurantId(), dto.getUserId(), dto.getOrderId());
+            if (existingReview.isPresent()) {
+                throw new RuntimeException("You have already reviewed this order");
+            }
+        }
+        
         RestaurantReview entity = new RestaurantReview();
-        BeanUtils.copyProperties(dto, entity, "id");
+        BeanUtils.copyProperties(dto, entity, "id", "createdAt");
+        // Set createdAt to current time if not already set
+        if (entity.getCreatedAt() == null) {
+            entity.setCreatedAt(Instant.now());
+        }
         RestaurantReview saved = restaurantReviewRepository.save(entity);
         
         // Update restaurant rating and totalRatings

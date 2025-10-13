@@ -176,7 +176,7 @@ const RestaurantsTable = ({ restaurants, onViewRestaurant, onEditRestaurant, onD
               <TableCell>
                 <ActionButtons 
                   menuOnly
-                  onView={() => onViewRestaurant && onViewRestaurant(restaurant)}
+                  showView={false}
                   onEdit={() => onEditRestaurant && onEditRestaurant(restaurant)}
                   onDelete={() => onDeleteRestaurant && onDeleteRestaurant(restaurant)}
                 />

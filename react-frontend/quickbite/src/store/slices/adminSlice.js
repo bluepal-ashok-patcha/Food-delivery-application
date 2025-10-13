@@ -68,6 +68,22 @@ const fetchUsers = createAsyncThunk(
   }
 );
 
+// Admin: update delivery partner profile via unified endpoint (backend uses DTO.userId)
+const updateDeliveryPartnerProfile = createAsyncThunk(
+  'admin/updateDeliveryPartnerProfile',
+  async ({ userId, profile }, { rejectWithValue, dispatch }) => {
+    try {
+      const response = await deliveryAPI.updatePartnerProfileAsAdmin(userId, profile);
+      dispatch(showNotification({ message: 'Partner updated successfully', type: 'success' }));
+      return response;
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to update partner';
+      dispatch(showNotification({ message: msg, type: 'error' }));
+      return rejectWithValue(msg);
+    }
+  }
+);
+
 const createUser = createAsyncThunk(
   'admin/createUser',
   async ({ userData, role = 'CUSTOMER' }, { rejectWithValue, dispatch }) => {
@@ -299,7 +315,7 @@ const fetchAllDeliveryPartners = createAsyncThunk(
   'admin/fetchAllDeliveryPartners',
   async (_, { rejectWithValue }) => {
     try {
-      // Fetch both pending and available partners
+      // Fetch pending, available, and offline partners
       const [pendingResponse, availableResponse] = await Promise.all([
         adminAPI.getPendingPartners(),
         adminAPI.getAvailablePartners()
@@ -307,12 +323,25 @@ const fetchAllDeliveryPartners = createAsyncThunk(
       
       const pending = pendingResponse?.data || [];
       const available = availableResponse?.data || [];
+      let offline = [];
+      try {
+        const offlineResponse = await adminAPI.getOfflinePartners();
+        offline = offlineResponse?.data || [];
+      } catch (_) {}
       
-      // Combine both lists, avoiding duplicates and marking pending partners
-      const allPartners = [...pending.map(p => ({ ...p, isPending: true }))];
+      // Combine both lists, avoiding duplicates and marking only true approval-pending partners as pending
+      const allPartners = [...pending.map(p => {
+        // Pending if user still has CUSTOMER role (backend pending list implies that)
+        return { ...p, isPending: true };
+      })];
       available.forEach(partner => {
         if (!allPartners.find(p => p.userId === partner.userId)) {
           allPartners.push({ ...partner, isPending: false });
+        }
+      });
+      offline.forEach(partner => {
+        if (!allPartners.find(p => p.userId === partner.userId)) {
+          allPartners.push({ ...partner, isPending: false, isOffline: true });
         }
       });
       
@@ -772,6 +801,13 @@ const adminSlice = createSlice({
         state.loading.partners = false;
         state.error.partners = action.payload;
       })
+      .addCase(updateDeliveryPartnerProfile.fulfilled, (state, action) => {
+        const updated = action.payload?.data;
+        if (updated) {
+          const idx = state.partners.findIndex(p => p.userId === updated.userId || p.id === updated.id);
+          if (idx !== -1) state.partners[idx] = { ...state.partners[idx], ...updated };
+        }
+      })
       .addCase(approveDeliveryPartner.fulfilled, (state, action) => {
         const index = state.partners.findIndex(p => p.userId === action.payload.data.userId);
         if (index !== -1) {
@@ -868,6 +904,7 @@ export {
   fetchAllDeliveryPartners,
   approveDeliveryPartner, 
   rejectDeliveryPartner,
+  updateDeliveryPartnerProfile,
   fetchCoupons, 
   createCoupon, 
   updateCoupon, 

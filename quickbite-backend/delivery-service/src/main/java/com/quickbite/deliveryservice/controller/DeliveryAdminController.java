@@ -35,8 +35,8 @@ public class DeliveryAdminController {
         List<DeliveryPartnerDto> pending = partners.stream().filter(p -> {
             Map<String, Object> auth = crossServiceJdbcRepository.findAuthUserById(p.getUserId());
             String role = auth != null ? (String) auth.get("role") : null;
-            // Pending = auth role still CUSTOMER or partner status OFFLINE with minimal data
-            return role == null || "CUSTOMER".equals(role) || p.getStatus() == DeliveryPartnerStatus.OFFLINE;
+            // Pending ONLY if auth role is still CUSTOMER (self-registered) or auth record missing
+            return role == null || "CUSTOMER".equals(role);
         }).map(p -> {
             DeliveryPartnerDto dto = new DeliveryPartnerDto();
             BeanUtils.copyProperties(p, dto);
@@ -81,6 +81,25 @@ public class DeliveryAdminController {
                 .success(true)
                 .message("Delivery partner rejected")
                 .data(dto)
+                .build());
+    }
+
+    @GetMapping("/offline")
+    public ResponseEntity<ApiResponse<List<DeliveryPartnerDto>>> listOfflinePartners() {
+        List<DeliveryPartner> partners = deliveryPartnerRepository.findAll();
+        List<DeliveryPartnerDto> offline = partners.stream()
+                .filter(p -> p.getStatus() == DeliveryPartnerStatus.OFFLINE)
+                .map(p -> {
+                    DeliveryPartnerDto dto = new DeliveryPartnerDto();
+                    BeanUtils.copyProperties(p, dto);
+                    return dto;
+                })
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(ApiResponse.<List<DeliveryPartnerDto>>builder()
+                .success(true)
+                .message("Offline delivery partners fetched successfully")
+                .data(offline)
                 .build());
     }
 }

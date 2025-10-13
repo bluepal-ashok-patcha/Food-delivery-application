@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography, Button, Stack } from '@mui/material';
 import { Add } from '@mui/icons-material';
 
-const TabHeader = ({ title, subtitle, showAddButton = true, addButtonText = "Add Item", onAddClick }) => {
+const TabHeader = ({ title, subtitle, showAddButton = true, addButtonText = "Add Item", onAddClick, extraActions }) => {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
       <Box>
@@ -33,6 +33,7 @@ const TabHeader = ({ title, subtitle, showAddButton = true, addButtonText = "Add
             {addButtonText}
           </Button>
         )}
+        {extraActions}
       </Stack>
     </Box>
   );

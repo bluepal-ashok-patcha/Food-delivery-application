@@ -22,10 +22,17 @@ export const submitRestaurantReview = createAsyncThunk(
   'reviews/submitRestaurantReview',
   async ({ restaurantId, orderId, rating, comment, userName }, { rejectWithValue }) => {
     try {
-      const response = await restaurantAPI.addReview(restaurantId, { orderId, rating, comment });
+      console.log('Submitting restaurant review:', { restaurantId, orderId, rating, comment });
+      const reviewData = { orderId, rating, comment };
+      console.log('Review data being sent:', reviewData);
+      const response = await restaurantAPI.addReview(restaurantId, reviewData);
+      console.log('Review response:', response);
       return { restaurantId, review: { rating, comment, userName, date: new Date().toISOString().slice(0,10) } };
     } catch (e) {
-      return rejectWithValue('Failed to submit review');
+      console.error('Review submission error:', e);
+      console.error('Error response:', e.response?.data);
+      console.error('Error status:', e.response?.status);
+      return rejectWithValue(e.response?.data?.message || 'Failed to submit review');
     }
   }
 );
@@ -34,10 +41,17 @@ export const submitPartnerReview = createAsyncThunk(
   'reviews/submitPartnerReview',
   async ({ partnerId, orderId, rating, comment, userName }, { rejectWithValue }) => {
     try {
-      const response = await restaurantAPI.addDeliveryPartnerReview(partnerId, { orderId, rating, comment });
+      console.log('Submitting delivery partner review:', { partnerId, orderId, rating, comment });
+      const reviewData = { orderId, rating, comment };
+      console.log('Delivery review data being sent:', reviewData);
+      const response = await restaurantAPI.addDeliveryPartnerReview(partnerId, reviewData);
+      console.log('Delivery review response:', response);
       return { partnerId, review: { rating, comment, userName, date: new Date().toISOString().slice(0,10) } };
     } catch (e) {
-      return rejectWithValue('Failed to submit review');
+      console.error('Delivery review submission error:', e);
+      console.error('Error response:', e.response?.data);
+      console.error('Error status:', e.response?.status);
+      return rejectWithValue(e.response?.data?.message || 'Failed to submit review');
     }
   }
 );

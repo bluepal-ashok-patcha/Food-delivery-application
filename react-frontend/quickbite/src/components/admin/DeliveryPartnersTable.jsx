@@ -113,7 +113,7 @@ const DeliveryPartnersTable = ({ partners, onViewPartner, onEditPartner, onDelet
                 ) : (
                   <ActionButtons 
                     menuOnly
-                    onView={() => onViewPartner && onViewPartner(partner)}
+                    showView={false}
                     onEdit={() => onEditPartner && onEditPartner(partner)}
                     onDelete={() => onDeletePartner && onDeletePartner(partner)}
                   />

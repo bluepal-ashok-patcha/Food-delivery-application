@@ -98,8 +98,9 @@ mappings.put("POST:/api/delivery/partners/{partnerUserId}/reviews", List.of("CUS
 // ===== DELIVERY PARTNER ENDPOINTS =====
 // Delivery partner management
 mappings.put("POST:/api/delivery/partners", List.of("DELIVERY_PARTNER"));
-mappings.put("GET:/api/delivery/partners/profile", List.of("DELIVERY_PARTNER"));
-mappings.put("PUT:/api/delivery/partners/profile", List.of("DELIVERY_PARTNER"));
+mappings.put("GET:/api/delivery/partners/profile", List.of("DELIVERY_PARTNER", "ADMIN"));
+// Allow ADMIN to update partner profile as well (when provided userId in DTO)
+mappings.put("PUT:/api/delivery/partners/profile", List.of("DELIVERY_PARTNER", "ADMIN"));
 mappings.put("PUT:/api/delivery/partners/status", List.of("DELIVERY_PARTNER"));
 mappings.put("PUT:/api/delivery/partners/location", List.of("DELIVERY_PARTNER"));
 
@@ -191,6 +192,8 @@ mappings.put("GET:/api/payments/coupons/{couponId}", List.of("ADMIN"));
 // Delivery admin
 mappings.put("GET:/api/delivery/admin/**", List.of("ADMIN"));
 mappings.put("PUT:/api/delivery/admin/**", List.of("ADMIN"));
+// Offline partners list
+mappings.put("GET:/api/delivery/admin/offline", List.of("ADMIN"));
 
 //----------------------------------------------------------------------------------------------
 

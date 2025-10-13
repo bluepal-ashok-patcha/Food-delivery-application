@@ -345,35 +345,33 @@ public class OrderService {
         Map<String, Boolean> status = new HashMap<>();
         
         try {
-            // Check restaurant review status - look for recent reviews by this user for this restaurant
-            // Since we don't have order_id yet, we'll check if user reviewed this restaurant recently
-            String restaurantReviewSql = "SELECT COUNT(*) FROM restaurant_reviews WHERE restaurant_id = ? AND user_id = ? AND created_at >= ?";
-            // Check for reviews in the last 7 days (to avoid false positives from old reviews)
-            String sevenDaysAgo = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS).toString();
-            Long restaurantReviewCount = jdbcTemplate.queryForObject(restaurantReviewSql, Long.class, order.getRestaurantId(), userId, sevenDaysAgo);
+            // Check restaurant review status - look for reviews by this user for this specific order
+            String restaurantReviewSql = "SELECT COUNT(*) FROM restaurant_reviews WHERE restaurant_id = ? AND user_id = ? AND order_id = ?";
+            Long restaurantReviewCount = jdbcTemplate.queryForObject(restaurantReviewSql, Long.class, order.getRestaurantId(), userId, orderId);
             status.put("restaurantReviewed", restaurantReviewCount > 0);
         } catch (Exception e) {
             // If table doesn't exist or column doesn't exist, default to false
+            log.warn("Failed to check restaurant review status for order {}: {}", orderId, e.getMessage());
             status.put("restaurantReviewed", false);
         }
         
         try {
-            // Check delivery partner review status - look for recent reviews by this user
+            // Check delivery partner review status - look for reviews by this user for this specific order
             // We need to get the delivery partner ID from the assignment
             String deliveryPartnerSql = "SELECT delivery_partner_id FROM delivery_assignments WHERE order_id = ?";
             List<Long> partnerIds = jdbcTemplate.queryForList(deliveryPartnerSql, Long.class, orderId);
             
             if (!partnerIds.isEmpty()) {
                 Long partnerId = partnerIds.get(0);
-                String deliveryReviewSql = "SELECT COUNT(*) FROM delivery_partner_reviews WHERE partner_user_id = ? AND user_id = ? AND created_at >= ?";
-                String sevenDaysAgo = java.time.Instant.now().minus(7, java.time.temporal.ChronoUnit.DAYS).toString();
-                Long deliveryReviewCount = jdbcTemplate.queryForObject(deliveryReviewSql, Long.class, partnerId, userId, sevenDaysAgo);
+                String deliveryReviewSql = "SELECT COUNT(*) FROM delivery_partner_reviews WHERE partner_user_id = ? AND user_id = ? AND order_id = ?";
+                Long deliveryReviewCount = jdbcTemplate.queryForObject(deliveryReviewSql, Long.class, partnerId, userId, orderId);
                 status.put("deliveryReviewed", deliveryReviewCount > 0);
             } else {
                 status.put("deliveryReviewed", false);
             }
         } catch (Exception e) {
             // If table doesn't exist or column doesn't exist, default to false
+            log.warn("Failed to check delivery review status for order {}: {}", orderId, e.getMessage());
             status.put("deliveryReviewed", false);
         }
         

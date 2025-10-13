@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Stack, IconButton, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
 import { Visibility, Edit, Delete, MoreVert } from '@mui/icons-material';
 
-const ActionButtons = ({ showDelete = true, showMore = true, onView, onEdit, onDelete, onMore, menuOnly = false }) => {
+const ActionButtons = ({ showDelete = true, showMore = true, showView = true, onView, onEdit, onDelete, onMore, menuOnly = false }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
@@ -23,10 +23,12 @@ const ActionButtons = ({ showDelete = true, showMore = true, onView, onEdit, onD
           <MoreVert />
         </IconButton>
         <Menu anchorEl={anchorEl} open={open} onClose={handleCloseMenu} elevation={2}>
-          <MenuItem onClick={() => { handleCloseMenu(); onView && onView(); }}>
-            <ListItemIcon><Visibility fontSize="small" /></ListItemIcon>
-            <ListItemText primary="View" />
-          </MenuItem>
+          {showView && (
+            <MenuItem onClick={() => { handleCloseMenu(); onView && onView(); }}>
+              <ListItemIcon><Visibility fontSize="small" /></ListItemIcon>
+              <ListItemText primary="View" />
+            </MenuItem>
+          )}
           <MenuItem onClick={() => { handleCloseMenu(); onEdit && onEdit(); }}>
             <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
             <ListItemText primary="Edit" />
@@ -44,16 +46,18 @@ const ActionButtons = ({ showDelete = true, showMore = true, onView, onEdit, onD
 
   return (
     <Stack direction="row" spacing={1}>
-      <IconButton 
-        size="small"
-        sx={{ 
-          color: '#2196f3',
-          '&:hover': { backgroundColor: '#e3f2fd' }
-        }}
-        onClick={onView}
-      >
-        <Visibility />
-      </IconButton>
+      {showView && (
+        <IconButton 
+          size="small"
+          sx={{ 
+            color: '#2196f3',
+            '&:hover': { backgroundColor: '#e3f2fd' }
+          }}
+          onClick={onView}
+        >
+          <Visibility />
+        </IconButton>
+      )}
       <IconButton 
         size="small"
         sx={{ 
@@ -86,10 +90,12 @@ const ActionButtons = ({ showDelete = true, showMore = true, onView, onEdit, onD
             <MoreVert />
           </IconButton>
           <Menu anchorEl={anchorEl} open={open} onClose={handleCloseMenu} elevation={2}>
-            <MenuItem onClick={() => { handleCloseMenu(); onView && onView(); }}>
-              <ListItemIcon><Visibility fontSize="small" /></ListItemIcon>
-              <ListItemText primary="View" />
-            </MenuItem>
+            {showView && (
+              <MenuItem onClick={() => { handleCloseMenu(); onView && onView(); }}>
+                <ListItemIcon><Visibility fontSize="small" /></ListItemIcon>
+                <ListItemText primary="View" />
+              </MenuItem>
+            )}
             <MenuItem onClick={() => { handleCloseMenu(); onEdit && onEdit(); }}>
               <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
               <ListItemText primary="Edit" />

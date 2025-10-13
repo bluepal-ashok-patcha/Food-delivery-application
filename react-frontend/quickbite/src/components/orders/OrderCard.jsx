@@ -71,16 +71,19 @@ const OrderCard = ({ order }) => {
 
   // Check review status for delivered orders
   useEffect(() => {
-    if (order?.orderStatus === 'DELIVERED' && order?.id) {
+    const isDelivered = order?.orderStatus === 'DELIVERED' || order?.status === 'DELIVERED' || status === 'delivered';
+    if (isDelivered && order?.id) {
+      console.log('Fetching review status for order:', order.id, 'status:', order?.orderStatus || order?.status);
       orderAPI.getOrderReviewStatus(order.id)
         .then(response => {
+          console.log('Review status response:', response.data);
           setReviewStatus(response.data);
         })
         .catch(error => {
           console.error('Error fetching review status:', error);
         });
     }
-  }, [order?.orderStatus, order?.id]);
+  }, [order?.orderStatus, order?.status, status, order?.id]);
 
   const inr = (n) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 0 }).format(Number(n || 0));
 
@@ -147,10 +150,10 @@ const OrderCard = ({ order }) => {
         </Box>
       );
     })()}
-    {status === 'delivered' && !reviewStatus.restaurantReviewed && !reviewStatus.deliveryReviewed && (
+    {status === 'delivered' && (!reviewStatus.restaurantReviewed || !reviewStatus.deliveryReviewed) && (
       <Box sx={{ mt: 1.5, p: 1.5, backgroundColor: '#f8f9fa', borderRadius: '3px', textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary" gutterBottom sx={{ fontSize: '12px' }}>
-          How was your experience?
+          {!reviewStatus.restaurantReviewed && !reviewStatus.deliveryReviewed ? 'How was your experience?' : 'Complete your rating'}
         </Typography>
         <Button 
           variant="contained" 
@@ -165,14 +168,22 @@ const OrderCard = ({ order }) => {
             px: 2
           }}
         >
-          Rate Order
+          {!reviewStatus.restaurantReviewed && !reviewStatus.deliveryReviewed ? 'Rate Order' : 'Complete Rating'}
         </Button>
       </Box>
     )}
-    {status === 'delivered' && (reviewStatus.restaurantReviewed || reviewStatus.deliveryReviewed) && (
+    {status === 'delivered' && reviewStatus.restaurantReviewed && reviewStatus.deliveryReviewed && (
       <Box sx={{ mt: 1.5, p: 1.5, backgroundColor: '#e8f5e8', borderRadius: '3px', textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary" sx={{ fontSize: '12px', color: '#4caf50' }}>
           ✓ Thank you for your feedback!
+        </Typography>
+      </Box>
+    )}
+    {/* Debug info - remove this later */}
+    {status === 'delivered' && (
+      <Box sx={{ mt: 1, p: 1, backgroundColor: '#f0f0f0', borderRadius: '3px', fontSize: '10px' }}>
+        <Typography variant="caption" color="text.secondary">
+          Debug: Status={status}, RestaurantReviewed={reviewStatus.restaurantReviewed ? 'true' : 'false'}, DeliveryReviewed={reviewStatus.deliveryReviewed ? 'true' : 'false'}
         </Typography>
       </Box>
     )}

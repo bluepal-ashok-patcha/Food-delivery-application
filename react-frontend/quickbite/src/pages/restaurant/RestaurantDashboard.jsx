@@ -42,6 +42,8 @@ const RestaurantDashboard = () => {
   const [showOrderModal, setShowOrderModal] = useState(false);
   const [showItemModal, setShowItemModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  // Track original category of item while editing, to support moving between categories
+  const [originalCategoryId, setOriginalCategoryId] = useState(null);
   const [showRecentOrdersModal, setShowRecentOrdersModal] = useState(false);
   const [currentCategoryId, setCurrentCategoryId] = useState(null);
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -201,6 +203,23 @@ const RestaurantDashboard = () => {
     ? analytics.totalRevenue
     : restaurantOrders.reduce((sum, order) => sum + (parseFloat(order.totalAmount) || 0), 0);
 
+  // Normalize completion rate to percentage (handles ratio or percent from backend)
+  const completionRatePercent = (() => {
+    const raw = analytics?.completionRate;
+    let percent = 0;
+    if (typeof raw === 'number' && !Number.isNaN(raw)) {
+      percent = raw > 1 ? raw : raw * 100;
+    } else {
+      const delivered = analytics?.deliveredOrders ?? analytics?.delivered ?? analytics?.completedOrders;
+      const total = analytics?.totalOrders ?? analytics?.total;
+      if (typeof delivered === 'number' && typeof total === 'number' && total > 0) {
+        percent = (delivered / total) * 100;
+      }
+    }
+    percent = Math.round(Math.min(100, Math.max(0, percent)));
+    return percent;
+  })();
+
   const stats = [
     { 
       title: 'Total Orders', 
@@ -213,16 +232,16 @@ const RestaurantDashboard = () => {
     },
     { 
       title: 'Total Revenue', 
-      value: `$${Number(totalRevenue || 0).toFixed(2)}`, 
+      value: `₹${Number(totalRevenue || 0).toFixed(0)}`, 
       icon: <AttachMoney />, 
       color: '#6c757d',
       change: '',
       trend: 'neutral',
-      subtitle: `Avg: $${Number(analytics?.averageOrderValue ?? 0).toFixed(2)}`
+      subtitle: `Avg: ₹${Number(analytics?.averageOrderValue ?? 0).toFixed(0)}`
     },
     { 
       title: 'Completion Rate', 
-      value: `${Math.round((analytics?.completionRate ?? 0) * 100)}%`, 
+      value: `${completionRatePercent}%`, 
       icon: <AccessTime />, 
       color: '#6c757d',
       change: '',
@@ -301,6 +320,7 @@ const RestaurantDashboard = () => {
       nutrition: {}
     });
     setCurrentCategoryId(categories[0]?.id || null);
+    setOriginalCategoryId(categories[0]?.id || null);
     setShowItemModal(true);
   };
 
@@ -312,6 +332,7 @@ const RestaurantDashboard = () => {
       nutrition: nutrition 
     });
     setCurrentCategoryId(categoryId);
+    setOriginalCategoryId(categoryId);
     setShowItemModal(true);
   };
 
@@ -327,18 +348,19 @@ const RestaurantDashboard = () => {
       inStock: Boolean(editingItem.inStock),
       // Convert nutrition object to JSON string for backend
       nutritionJson: editingItem.nutrition ? JSON.stringify({
-        calories: editingItem.nutrition.calories || 0,
-        protein: editingItem.nutrition.protein || 0,
-        carbs: editingItem.nutrition.carbs || 0,
-        fat: editingItem.nutrition.fat || 0,
+        calories: Number(editingItem.nutrition.calories) || 0,
+        protein: Number(editingItem.nutrition.protein) || 0,
+        carbs: Number(editingItem.nutrition.carbs) || 0,
+        fat: Number(editingItem.nutrition.fat) || 0,
       }) : '{}',
       // Convert customization to JSON string
       customizationJson: editingItem.customizationJson || '{}'
     };
 
     if (editingItem.id) {
-      // Update existing item
-      dispatch(updateMenuItem({ itemId: editingItem.id, itemData }));
+      // Always update in place; send target category id to backend
+      const updatePayload = { ...itemData, categoryId: currentCategoryId };
+      dispatch(updateMenuItem({ itemId: editingItem.id, itemData: updatePayload }));
     } else {
       // Add new item
       dispatch(addMenuItem({ categoryId: currentCategoryId, itemData }));
@@ -651,6 +673,9 @@ const RestaurantDashboard = () => {
                 subtitle="Manage your restaurant menu items"
                 addButtonText="Add Item"
                 onAddClick={handleMenuAddClick}
+                extraActions={(
+                  <Button size="medium" variant="outlined" onClick={() => { setShowCategoriesModal(true); setCurrentCategoryId(null); }} sx={{ textTransform: 'none' }}>Add Category</Button>
+                )}
               />
               
               {loading.categories ? (
@@ -735,7 +760,7 @@ const RestaurantDashboard = () => {
                   <EnhancedStatCard stat={{ title: 'Total Revenue', value: `$${(analytics?.totalRevenue ?? 0).toLocaleString()}`, icon: <AttachMoney />, color: '#6c757d', subtitle: `Today: $${(analytics?.todayRevenue ?? 0).toLocaleString()}` }} />
                 </Grid>
                 <Grid item xs={12} md={3}>
-                  <EnhancedStatCard stat={{ title: 'Completion Rate', value: `${Math.round((analytics?.completionRate ?? 0) * 100)}%`, icon: <AccessTime />, color: '#6c757d', subtitle: 'Delivered / Total' }} />
+                  <EnhancedStatCard stat={{ title: 'Completion Rate', value: `${completionRatePercent}%`, icon: <AccessTime />, color: '#6c757d', subtitle: 'Delivered / Total' }} />
                 </Grid>
                 <Grid item xs={12} md={3}>
                   <EnhancedStatCard stat={{ title: 'Avg Order Value', value: `$${Number(analytics?.averageOrderValue ?? 0).toFixed(2)}`, icon: <AttachMoney />, color: '#6c757d', subtitle: 'Across period' }} />
@@ -976,7 +1001,7 @@ const RestaurantDashboard = () => {
               <Grid container spacing={2}>
                       <Grid item xs={12} md={6}>
                         <TextField 
-                          label="Current Price ($) *" 
+                          label="Current Price (₹) *" 
                           type="number" 
                           step="0.01"
                           fullWidth 
@@ -986,7 +1011,7 @@ const RestaurantDashboard = () => {
                 </Grid>
                       <Grid item xs={12} md={6}>
                         <TextField 
-                          label="Original Price ($)" 
+                          label="Original Price (₹)" 
                           type="number" 
                           step="0.01"
                           fullWidth 
@@ -1047,11 +1072,11 @@ const RestaurantDashboard = () => {
                           label="Calories" 
                           type="number" 
                           fullWidth 
-                          value={editingItem.nutrition?.calories || ''} 
+                          value={editingItem.nutrition?.calories ?? ''} 
                           onChange={(e) => {
-                            const nutrition = JSON.parse(editingItem.nutritionJson || '{}');
-                            nutrition.calories = e.target.value;
-                            setEditingItem({ ...editingItem, nutritionJson: JSON.stringify(nutrition) });
+                            const next = { ...(editingItem.nutrition || {}) };
+                            next.calories = e.target.value;
+                            setEditingItem({ ...editingItem, nutrition: next });
                           }} 
                         />
                       </Grid>
@@ -1061,11 +1086,11 @@ const RestaurantDashboard = () => {
                           type="number" 
                           step="0.1"
                           fullWidth 
-                          value={editingItem.nutrition?.protein || ''} 
+                          value={editingItem.nutrition?.protein ?? ''} 
                           onChange={(e) => {
-                            const nutrition = JSON.parse(editingItem.nutritionJson || '{}');
-                            nutrition.protein = e.target.value;
-                            setEditingItem({ ...editingItem, nutritionJson: JSON.stringify(nutrition) });
+                            const next = { ...(editingItem.nutrition || {}) };
+                            next.protein = e.target.value;
+                            setEditingItem({ ...editingItem, nutrition: next });
                           }} 
                         />
                       </Grid>
@@ -1075,11 +1100,11 @@ const RestaurantDashboard = () => {
                           type="number" 
                           step="0.1"
                           fullWidth 
-                          value={editingItem.nutrition?.carbs || ''} 
+                          value={editingItem.nutrition?.carbs ?? ''} 
                           onChange={(e) => {
-                            const nutrition = JSON.parse(editingItem.nutritionJson || '{}');
-                            nutrition.carbs = e.target.value;
-                            setEditingItem({ ...editingItem, nutritionJson: JSON.stringify(nutrition) });
+                            const next = { ...(editingItem.nutrition || {}) };
+                            next.carbs = e.target.value;
+                            setEditingItem({ ...editingItem, nutrition: next });
                           }} 
                         />
                       </Grid>
@@ -1089,11 +1114,11 @@ const RestaurantDashboard = () => {
                           type="number" 
                           step="0.1"
                           fullWidth 
-                          value={editingItem.nutrition?.fat || ''} 
+                          value={editingItem.nutrition?.fat ?? ''} 
                           onChange={(e) => {
-                            const nutrition = JSON.parse(editingItem.nutritionJson || '{}');
-                            nutrition.fat = e.target.value;
-                            setEditingItem({ ...editingItem, nutritionJson: JSON.stringify(nutrition) });
+                            const next = { ...(editingItem.nutrition || {}) };
+                            next.fat = e.target.value;
+                            setEditingItem({ ...editingItem, nutrition: next });
                           }} 
                         />
                 </Grid>
