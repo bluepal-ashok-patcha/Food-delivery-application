@@ -291,7 +291,8 @@ const initialState = {
   filters: {
     cuisine: '',
     search: '',
-    isOpen: undefined
+    isOpen: undefined,
+    isPureVeg: undefined
   }
 };
 

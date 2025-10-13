@@ -31,6 +31,19 @@ const OrderTrack = () => {
   const [deliveredOpen, setDeliveredOpen] = useState(false);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [reviewStatus, setReviewStatus] = useState({ restaurantReviewed: false, deliveryReviewed: false });
+  const normalizeReviewStatus = (raw) => {
+    const data = raw || {};
+    const toBool = (v) => {
+      if (typeof v === 'boolean') return v;
+      if (typeof v === 'number') return v > 0;
+      if (typeof v === 'string') return v.toLowerCase() === 'true' || v === '1';
+      return false;
+    };
+    return {
+      restaurantReviewed: toBool(data.restaurantReviewed),
+      deliveryReviewed: toBool(data.deliveryReviewed)
+    };
+  };
   const deliveredShownRef = useRef(false);
 
   useEffect(() => {
@@ -71,9 +84,9 @@ const OrderTrack = () => {
     if (delivered && orderObj?.id) {
       console.log('OrderTrack: Fetching review status for order:', orderObj.id, 'delivered:', delivered, 'stepIndex:', stepIndex);
       orderAPI.getOrderReviewStatus(orderObj.id)
-        .then(response => {
-          console.log('OrderTrack: Review status response:', response.data);
-          setReviewStatus(response.data);
+        .then(payload => {
+          console.log('OrderTrack: Review status response:', payload);
+          setReviewStatus(normalizeReviewStatus(payload));
         })
         .catch(error => {
           console.error('OrderTrack: Error fetching review status:', error);
@@ -395,8 +408,8 @@ const OrderTrack = () => {
           // Refresh review status after submission
           if (orderObj?.id) {
             orderAPI.getOrderReviewStatus(orderObj.id)
-              .then(response => {
-                setReviewStatus(response.data);
+              .then(payload => {
+                setReviewStatus(normalizeReviewStatus(payload));
               })
               .catch(error => {
                 console.error('Error fetching review status:', error);

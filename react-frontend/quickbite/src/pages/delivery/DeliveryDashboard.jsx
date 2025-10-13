@@ -960,10 +960,10 @@ const DeliveryDashboard = () => {
 
                   {availableOrders.map((order) => (
 
-                    <Grid item xs={12} md={6} key={order.id}>
-
-                      <AvailableOrdersCard order={order} onAcceptOrder={handleAcceptOrder} />
-
+                    <Grid item xs={12} sm={6} lg={4} key={order.id}>
+                      <Box sx={{ height: '100%', display: 'flex' }}>
+                        <AvailableOrdersCard order={order} onAcceptOrder={handleAcceptOrder} sx={{ flex: 1 }} />
+                      </Box>
                     </Grid>
 
                   ))}

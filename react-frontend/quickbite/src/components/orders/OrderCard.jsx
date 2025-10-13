@@ -69,15 +69,31 @@ const OrderCard = ({ order }) => {
     return () => { cancel = true; };
   }, [order.restaurantId]);
 
+  // Helper to normalize various API payload shapes and value types to booleans
+  const normalizeReviewStatus = (raw) => {
+    const data = raw || {};
+    const toBool = (v) => {
+      if (typeof v === 'boolean') return v;
+      if (typeof v === 'number') return v > 0;
+      if (typeof v === 'string') return v.toLowerCase() === 'true' || v === '1';
+      return false;
+    };
+    return {
+      restaurantReviewed: toBool(data.restaurantReviewed),
+      deliveryReviewed: toBool(data.deliveryReviewed)
+    };
+  };
+
   // Check review status for delivered orders
   useEffect(() => {
     const isDelivered = order?.orderStatus === 'DELIVERED' || order?.status === 'DELIVERED' || status === 'delivered';
     if (isDelivered && order?.id) {
       console.log('Fetching review status for order:', order.id, 'status:', order?.orderStatus || order?.status);
+      setReviewStatus({ restaurantReviewed: false, deliveryReviewed: false });
       orderAPI.getOrderReviewStatus(order.id)
-        .then(response => {
-          console.log('Review status response:', response.data);
-          setReviewStatus(response.data);
+        .then(payload => {
+          console.log('Review status response:', payload);
+          setReviewStatus(normalizeReviewStatus(payload));
         })
         .catch(error => {
           console.error('Error fetching review status:', error);
@@ -179,14 +195,14 @@ const OrderCard = ({ order }) => {
         </Typography>
       </Box>
     )}
-    {/* Debug info - remove this later */}
+    {/* Debug info - remove this later
     {status === 'delivered' && (
       <Box sx={{ mt: 1, p: 1, backgroundColor: '#f0f0f0', borderRadius: '3px', fontSize: '10px' }}>
         <Typography variant="caption" color="text.secondary">
           Debug: Status={status}, RestaurantReviewed={reviewStatus.restaurantReviewed ? 'true' : 'false'}, DeliveryReviewed={reviewStatus.deliveryReviewed ? 'true' : 'false'}
         </Typography>
       </Box>
-    )}
+    )} */}
 
     {/* Rating Modal */}
     <RatingModal
@@ -198,8 +214,8 @@ const OrderCard = ({ order }) => {
         // Refresh review status after submission
         if (order?.id) {
           orderAPI.getOrderReviewStatus(order.id)
-            .then(response => {
-              setReviewStatus(response.data);
+            .then(payload => {
+              setReviewStatus(normalizeReviewStatus(payload));
             })
             .catch(error => {
               console.error('Error fetching review status:', error);

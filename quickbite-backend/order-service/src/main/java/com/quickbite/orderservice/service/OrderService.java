@@ -348,7 +348,9 @@ public class OrderService {
             // Check restaurant review status - look for reviews by this user for this specific order
             String restaurantReviewSql = "SELECT COUNT(*) FROM restaurant_reviews WHERE restaurant_id = ? AND user_id = ? AND order_id = ?";
             Long restaurantReviewCount = jdbcTemplate.queryForObject(restaurantReviewSql, Long.class, order.getRestaurantId(), userId, orderId);
-            status.put("restaurantReviewed", restaurantReviewCount > 0);
+            boolean restaurantReviewed = restaurantReviewCount != null && restaurantReviewCount > 0;
+            status.put("restaurantReviewed", restaurantReviewed);
+            log.debug("ReviewStatus: orderId={}, userId={}, restaurantId={}, restaurantReviewCount={}", orderId, userId, order.getRestaurantId(), restaurantReviewCount);
         } catch (Exception e) {
             // If table doesn't exist or column doesn't exist, default to false
             log.warn("Failed to check restaurant review status for order {}: {}", orderId, e.getMessage());
@@ -365,9 +367,12 @@ public class OrderService {
                 Long partnerId = partnerIds.get(0);
                 String deliveryReviewSql = "SELECT COUNT(*) FROM delivery_partner_reviews WHERE partner_user_id = ? AND user_id = ? AND order_id = ?";
                 Long deliveryReviewCount = jdbcTemplate.queryForObject(deliveryReviewSql, Long.class, partnerId, userId, orderId);
-                status.put("deliveryReviewed", deliveryReviewCount > 0);
+                boolean deliveryReviewed = deliveryReviewCount != null && deliveryReviewCount > 0;
+                status.put("deliveryReviewed", deliveryReviewed);
+                log.debug("ReviewStatus: orderId={}, userId={}, partnerUserId={}, deliveryReviewCount={}", orderId, userId, partnerId, deliveryReviewCount);
             } else {
                 status.put("deliveryReviewed", false);
+                log.debug("ReviewStatus: orderId={}, userId={}, no assignment found -> deliveryReviewed=false", orderId, userId);
             }
         } catch (Exception e) {
             // If table doesn't exist or column doesn't exist, default to false

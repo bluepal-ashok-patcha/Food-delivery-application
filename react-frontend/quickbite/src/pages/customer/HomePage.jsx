@@ -180,6 +180,8 @@ const HomePage = () => {
 
         <SortFilterBar
           count={restaurants.length}
+          isPureVeg={filters.isPureVeg}
+          onTogglePureVeg={(checked) => dispatch(setFilters({ isPureVeg: checked ? true : undefined, page: 0 }))}
           onSelectSort={({ sortBy: sb, sortDir: sd }) => {
             if (!sb || !sd) {
               // Clear sorting to default

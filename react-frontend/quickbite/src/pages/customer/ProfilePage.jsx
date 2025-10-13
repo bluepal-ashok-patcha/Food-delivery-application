@@ -74,6 +74,26 @@ const ProfilePage = () => {
     phoneNumber: Yup.string().required('Phone is required'),
   });
 
+  // Form for creating a new profile when none exists
+  const createFormik = useFormik({
+    initialValues: {
+      firstName: '',
+      lastName: '',
+      phoneNumber: '',
+    },
+    validationSchema,
+    onSubmit: async (values) => {
+      try {
+        const res = await userAPI.createProfile(values);
+        const created = res?.data || res;
+        setProfile(created);
+        dispatch(showNotification({ message: 'Profile created successfully!', type: 'success' }));
+      } catch (e) {
+        dispatch(showNotification({ message: 'Failed to create profile', type: 'error' }));
+      }
+    }
+  });
+
   const formik = useFormik({
     initialValues: {
       firstName: profile?.firstName || '',
@@ -166,6 +186,79 @@ const ProfilePage = () => {
           <Typography variant="h5" gutterBottom sx={{ fontWeight: 800, fontSize: '24px', color: '#fc8019', mb: 2 }}>
             My Profile
           </Typography>
+          {!loadingProfile && !profile && (
+            <Paper sx={{ p: 2, mb: 2, borderRadius: '3px', boxShadow: '0 4px 24px rgba(252,128,25,0.08)' }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '18px' }}>
+                  Create Your Profile
+                </Typography>
+              </Box>
+              <Grid container spacing={2}>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="First Name"
+                    name="firstName"
+                    value={createFormik.values.firstName}
+                    onChange={createFormik.handleChange}
+                    error={createFormik.touched.firstName && Boolean(createFormik.errors.firstName)}
+                    helperText={createFormik.touched.firstName && createFormik.errors.firstName}
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Last Name"
+                    name="lastName"
+                    value={createFormik.values.lastName}
+                    onChange={createFormik.handleChange}
+                    error={createFormik.touched.lastName && Boolean(createFormik.errors.lastName)}
+                    helperText={createFormik.touched.lastName && createFormik.errors.lastName}
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Phone Number"
+                    name="phoneNumber"
+                    value={createFormik.values.phoneNumber}
+                    onChange={createFormik.handleChange}
+                    error={createFormik.touched.phoneNumber && Boolean(createFormik.errors.phoneNumber)}
+                    helperText={createFormik.touched.phoneNumber && createFormik.errors.phoneNumber}
+                    size="small"
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+              </Grid>
+              <Box sx={{ mt: 2, display: 'flex', gap: 1.5 }}>
+                <Button
+                  variant="contained"
+                  startIcon={<Save />}
+                  onClick={createFormik.handleSubmit}
+                  size="small"
+                  sx={{ 
+                    backgroundColor: '#fc8019',
+                    '&:hover': { backgroundColor: '#e6730a' },
+                    fontSize: '13px',
+                    px: 2,
+                    py: 1,
+                    borderRadius: '3px'
+                  }}
+                >
+                  Create Profile
+                </Button>
+              </Box>
+            </Paper>
+          )}
+          {loadingProfile && (
+            <LoadingSpinner fullScreen={false} message="Loading profile..." />
+          )}
+          {!!profile && (
+          <>
           {/* Personal Information */}
           <Paper sx={{ p: 2, mb: 2, borderRadius: '3px', boxShadow: '0 4px 24px rgba(252,128,25,0.08)' }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
@@ -312,6 +405,8 @@ const ProfilePage = () => {
               <EmptyAddresses onAdd={() => setEditAddress({ street: '', city: '', state: '', zipCode: '', type: 'Home' })} />
             )}
           </Paper>
+          </>
+          )}
         </>
       )}
       {tab === 1 && (

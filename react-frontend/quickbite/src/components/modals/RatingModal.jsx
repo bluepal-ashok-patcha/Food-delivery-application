@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,7 @@ import { Close, Restaurant, LocalShipping, Star } from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
 import { submitRestaurantReview, submitPartnerReview } from '../../store/slices/reviewsSlice';
 import { showNotification } from '../../store/slices/uiSlice';
+import { deliveryAPI } from '../../services/api';
 
 const RatingModal = ({ open, onClose, order, assignment, onReviewSubmitted }) => {
   const dispatch = useDispatch();
@@ -26,6 +27,35 @@ const RatingModal = ({ open, onClose, order, assignment, onReviewSubmitted }) =>
   const [restaurantComment, setRestaurantComment] = useState('');
   const [deliveryComment, setDeliveryComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [resolvedPartnerId, setResolvedPartnerId] = useState(null);
+  const [resolvedPartnerName, setResolvedPartnerName] = useState('Delivery Partner');
+
+  // Resolve delivery partner id/name even if assignment is not passed in
+  useEffect(() => {
+    setResolvedPartnerId(null);
+    setResolvedPartnerName('Delivery Partner');
+    const partnerIdFromAssignment = assignment?.deliveryPartnerId || assignment?.deliveryPartnerUserId;
+    if (partnerIdFromAssignment) {
+      setResolvedPartnerId(partnerIdFromAssignment);
+      if (assignment?.deliveryPartnerName) setResolvedPartnerName(assignment.deliveryPartnerName);
+      return;
+    }
+    // Fallback: fetch assignment by order id when modal opens
+    let cancelled = false;
+    (async () => {
+      try {
+        if (open && order?.id) {
+          const res = await deliveryAPI.getAssignmentByOrder(order.id);
+          const a = res?.data || res;
+          if (!cancelled && a) {
+            if (a.deliveryPartnerId) setResolvedPartnerId(a.deliveryPartnerId);
+            if (a.deliveryPartnerName) setResolvedPartnerName(a.deliveryPartnerName);
+          }
+        }
+      } catch (_) {}
+    })();
+    return () => { cancelled = true; };
+  }, [open, order?.id, assignment]);
 
   const handleSubmit = async () => {
     // Validate that at least one rating is provided
@@ -56,10 +86,10 @@ const RatingModal = ({ open, onClose, order, assignment, onReviewSubmitted }) =>
         }));
       }
 
-      // Submit delivery partner review only if rating is provided
-      if (assignment?.deliveryPartnerId && deliveryRating > 0) {
+      // Submit delivery partner review only if rating is provided and we have a partner id
+      if (deliveryRating > 0 && resolvedPartnerId) {
         await dispatch(submitPartnerReview({
-          partnerId: assignment.deliveryPartnerId,
+          partnerId: resolvedPartnerId,
           orderId: order.id,
           rating: deliveryRating,
           comment: deliveryComment,
@@ -227,7 +257,7 @@ const RatingModal = ({ open, onClose, order, assignment, onReviewSubmitted }) =>
                 Delivery Partner
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {assignment?.deliveryPartnerName || 'Delivery Partner'}
+                {resolvedPartnerName}
               </Typography>
             </Box>
           </Box>

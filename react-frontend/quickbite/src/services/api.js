@@ -151,6 +151,7 @@ export const restaurantAPI = {
     if (filters.sortBy) params.append('sortBy', filters.sortBy);
     if (filters.sortDir) params.append('sortDir', filters.sortDir);
     if (filters.isOpen !== undefined) params.append('isOpen', filters.isOpen);
+    if (filters.isPureVeg !== undefined) params.append('isPureVeg', filters.isPureVeg);
     
     const response = await api.get(`/api/restaurants?${params.toString()}`);
     return response.data;
@@ -358,7 +359,8 @@ export const orderAPI = {
   // Get order review status
   getOrderReviewStatus: async (orderId) => {
     const response = await api.get(`/api/orders/user/${orderId}/review-status`);
-    return response.data;
+    // Normalize to return the inner payload { restaurantReviewed, deliveryReviewed }
+    return response.data?.data ?? response.data;
   },
 
   // Update order status

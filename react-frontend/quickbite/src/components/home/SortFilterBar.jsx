@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Box, Typography, Button, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
+import { Box, Typography, Button, Menu, MenuItem, ListItemIcon, ListItemText, FormControlLabel, Switch } from '@mui/material';
 import { FilterList, ArrowDownward, ArrowUpward, SortByAlpha } from '@mui/icons-material';
 
-const SortFilterBar = ({ count, onSelectSort }) => {
+const SortFilterBar = ({ count, onSelectSort, isPureVeg, onTogglePureVeg }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
@@ -19,9 +19,12 @@ const SortFilterBar = ({ count, onSelectSort }) => {
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, py: 2 }}>
-      <Typography variant="h6" sx={{ fontWeight: 600, color: '#333', fontSize: '16px' }}>
-        {count} restaurants near you
-      </Typography>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Typography variant="h6" sx={{ fontWeight: 600, color: '#333', fontSize: '16px' }}>
+          {count} restaurants near you
+        </Typography>
+        <FormControlLabel control={<Switch checked={!!isPureVeg} onChange={(e) => onTogglePureVeg?.(e.target.checked)} />} label="Pure Veg" />
+      </Box>
       <Box>
         <Button
           variant="outlined"
