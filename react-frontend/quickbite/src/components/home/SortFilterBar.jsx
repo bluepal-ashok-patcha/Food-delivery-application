@@ -19,13 +19,27 @@ const SortFilterBar = ({ count, onSelectSort, isPureVeg, onTogglePureVeg }) => {
 
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, py: 2 }}>
+      {/* Left: count */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <Typography variant="h6" sx={{ fontWeight: 600, color: '#333', fontSize: '16px' }}>
           {count} restaurants near you
         </Typography>
-        <FormControlLabel control={<Switch checked={!!isPureVeg} onChange={(e) => onTogglePureVeg?.(e.target.checked)} />} label="Pure Veg" />
       </Box>
-      <Box>
+      {/* Right: Pure Veg toggle + Filter button */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 0.5, borderRadius: '16px', backgroundColor: '#f8f9fa', border: '1px solid #e0e0e0' }}>
+          <Switch 
+            checked={!!isPureVeg} 
+            onChange={(e) => onTogglePureVeg?.(e.target.checked)} 
+            size="small"
+            sx={{
+              '& .MuiSwitch-switchBase.Mui-checked': { color: '#2ea44f' },
+              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#2ea44f' },
+              '& .MuiSwitch-track': { backgroundColor: '#d0d7de' }
+            }}
+          />
+          <Typography variant="body2" sx={{ fontWeight: 600, color: '#333', fontSize: '13px' }}>Pure Veg</Typography>
+        </Box>
         <Button
           variant="outlined"
           startIcon={<FilterList />}

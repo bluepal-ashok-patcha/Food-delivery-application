@@ -36,7 +36,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 
 const ProfilePage = () => {
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const { user, userRole } = useSelector((state) => state.auth);
   const [profile, setProfile] = useState(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const { orders, loading } = useSelector((state) => state.orders);
@@ -177,7 +177,17 @@ const ProfilePage = () => {
       <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
         <Tabs value={tab} onChange={(_, v) => setTab(v)} aria-label="profile tabs" variant="fullWidth">
           <Tab label="Profile" sx={{ fontWeight: 700, fontSize: '16px' }} />
-          <Tab label="Your Orders" sx={{ fontWeight: 700, fontSize: '16px' }} />
+          <Tab 
+            label="Your Orders" 
+            sx={{ fontWeight: 700, fontSize: '16px' }} 
+            onClick={(e) => {
+              if (userRole && ['admin','restaurant_owner','delivery_partner'].includes(userRole)) {
+                // prevent switching tab for restricted roles
+                e.preventDefault();
+                e.stopPropagation();
+              }
+            }}
+          />
         </Tabs>
       </Box>
 

@@ -267,7 +267,13 @@ const Layout = () => {
                 <Button
                   variant="outlined"
                   startIcon={<Avatar sx={{ width: 16, height: 16 }} />}
-                  onClick={() => navigate('/profile')}
+                  onClick={() => {
+                    if (userRole === 'customer') {
+                      navigate('/profile');
+                    } else {
+                      // Do nothing for admin, restaurant_owner, delivery_partner
+                    }
+                  }}
                   sx={{ 
                     borderColor: '#e0e0e0',
                     color: '#333',

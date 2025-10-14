@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, CardContent, IconButton, Box, Typography } from '@mui/material';
-import { FavoriteBorder, Star } from '@mui/icons-material';
+import { Card, CardContent, Box, Typography } from '@mui/material';
+import { Star } from '@mui/icons-material';
 import ReadMoreText from '../common/ReadMoreText';
 
 const RestaurantCard = ({ restaurant, onClick, formatPrice }) => {
@@ -45,9 +45,7 @@ const RestaurantCard = ({ restaurant, onClick, formatPrice }) => {
             {restaurant.offers[0].title}
           </Box>
         )}
-        <IconButton size="small" sx={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(255,255,255,0.9)', width: '28px', height: '28px', '&:hover': { backgroundColor: 'white' } }}>
-          <FavoriteBorder sx={{ fontSize: '16px', color: '#666' }} />
-        </IconButton>
+        {/* Favorite icon removed */}
         
         {/* Closed Overlay */}
         {isClosed && (

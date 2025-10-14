@@ -28,14 +28,14 @@ const OrderSummaryCard = ({ subtotal, deliveryFee, tax, total, appliedCoupon, on
         )}
       </Box>
       <Divider sx={{ my: 1.5 }} />
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
         <Typography variant="h6" sx={{ fontWeight: 600, color: '#333', fontSize: '16px' }}>Total</Typography>
         <Typography variant="h6" sx={{ fontWeight: 600, color: '#fc8019', fontSize: '16px' }}>{formatPrice(total)}</Typography>
       </Box>
       <Button variant="contained" fullWidth startIcon={isProcessing ? <CircularProgress size={20} color="inherit" /> : null} onClick={onPlaceOrder} disabled={isProcessing} sx={{ py: 1.5, backgroundColor: '#fc8019', '&:hover': { backgroundColor: '#e6730a' }, '&:disabled': { backgroundColor: '#f0f0f0', color: '#999' }, fontWeight: 600, fontSize: '16px', borderRadius: '3px', textTransform: 'none' }}>
         {isProcessing ? 'Processing...' : `Place Order - ${formatPrice(total)}`}
       </Button>
-      <Alert severity="info" sx={{ mt: 2, fontSize: '12px' }}>By placing this order, you agree to our Terms & Conditions</Alert>
+      {/* <Alert severity="info" sx={{ mt: 2, fontSize: '12px' }}>By placing this order, you agree to our Terms & Conditions</Alert> */}
     </CardContent>
   </Card>
 );

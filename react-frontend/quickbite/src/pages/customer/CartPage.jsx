@@ -481,7 +481,7 @@ const CartPage = () => {
                     onChange={(e) => setDeliveryInstructions(e.target.value)}
                     size="small"
                     multiline
-                    rows={2}
+                    rows={4}
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: '3px',
