@@ -16,11 +16,12 @@ export const fetchRestaurants = createAsyncThunk(
       // Handle nested response structure from backend
       // Backend returns: { success: true, message: "...", data: [...restaurants...], page: {...} }
       const restaurants = response.data?.data || response.data || response;
+      const pageInfo = response.data?.page || response.page || null;
       
       // Map backend data to frontend format
       const mappedRestaurants = mapRestaurantsFromBackend(restaurants);
       
-      return mappedRestaurants;
+      return { items: mappedRestaurants, page: pageInfo };
     } catch (error) {
       console.error('Error fetching restaurants:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch restaurants';
@@ -265,6 +266,7 @@ export const fetchRestaurantAnalytics = createAsyncThunk(
 
 const initialState = {
   restaurants: [],
+  restaurantsPage: null,
   currentRestaurant: null,
   myRestaurants: [],
   categories: [],
@@ -292,7 +294,11 @@ const initialState = {
     cuisine: '',
     search: '',
     isOpen: undefined,
-    isPureVeg: undefined
+    isPureVeg: undefined,
+    page: 0,
+    size: 12,
+    sortBy: undefined,
+    sortDir: undefined
   }
 };
 
@@ -329,7 +335,11 @@ const restaurantSlice = createSlice({
       })
       .addCase(fetchRestaurants.fulfilled, (state, action) => {
         state.loading.restaurants = false;
-        state.restaurants = action.payload;
+        const items = action.payload?.items || [];
+        const page = action.payload?.page || null;
+        const isFirstPage = !page || page.pageNumber === 0 || state.filters.page === 0;
+        state.restaurants = isFirstPage ? items : [...state.restaurants, ...items];
+        state.restaurantsPage = page;
         state.error.restaurants = null;
       })
       .addCase(fetchRestaurants.rejected, (state, action) => {

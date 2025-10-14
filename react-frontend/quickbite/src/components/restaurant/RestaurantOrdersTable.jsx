@@ -94,7 +94,7 @@ const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
               </TableCell>
               <TableCell>
                 <Typography variant="subtitle1" sx={{ fontWeight: 600, color: '#333' }}>
-                  ${(order.totalAmount || 0).toFixed(2)}
+                  ₹{Number(order.totalAmount || 0).toFixed(2)}
                 </Typography>
               </TableCell>
               <TableCell>

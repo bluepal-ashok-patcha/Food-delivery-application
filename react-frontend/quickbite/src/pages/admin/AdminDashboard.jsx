@@ -2151,7 +2151,7 @@ const AdminDashboard = () => {
 
             </TextField>
 
-            <TextField select label="Restaurant Status" value={(formValues.status || '').toString()} onChange={(e) => setFormValues(v => ({ ...v, status: e.target.value }))} fullWidth SelectProps={{ native: true }}>
+            <TextField select label="Restaurant Status" value={(formValues.status || '').toString()} onChange={(e) => setFormValues(v => ({ ...v, status: e.target.value }))} fullWidth SelectProps={{ native: true }} InputLabelProps={{ shrink: true }}>
               <option value="">Select status</option>
               <option value="PENDING_APPROVAL">Pending Approval</option>
               <option value="APPROVED">Approved</option>
@@ -2173,6 +2173,8 @@ const AdminDashboard = () => {
               fullWidth
 
               SelectProps={{ native: true }}
+              
+              InputLabelProps={{ shrink: true }}
 
             >
 

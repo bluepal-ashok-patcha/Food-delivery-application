@@ -13,7 +13,7 @@ import RestaurantCard from '../../components/home/RestaurantCard';
 
 const HomePage = () => {
   const dispatch = useDispatch();
-  const { restaurants, loading, filters } = useSelector((state) => state.restaurants);
+  const { restaurants, restaurantsPage, loading, filters } = useSelector((state) => state.restaurants);
   const { isAuthenticated } = useSelector((state) => state.auth);
   const [activeOrder, setActiveOrder] = useState(null);
   const [activeAssignment, setActiveAssignment] = useState(null);
@@ -192,7 +192,7 @@ const HomePage = () => {
           }}
         />
 
-        {loading.restaurants ? (
+        {loading.restaurants && restaurants.length === 0 ? (
           <LoadingSpinner fullScreen={false} message="Loading restaurants..." />
         ) : restaurants.length === 0 ? (
           <Paper sx={{ p: 3, textAlign: 'center', borderRadius: '3px', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
@@ -211,6 +211,23 @@ const HomePage = () => {
             {restaurants.map((restaurant) => (
               <RestaurantCard key={restaurant.id} restaurant={restaurant} onClick={handleRestaurantClick} formatPrice={formatPrice} />
             ))}
+          </Box>
+        )}
+
+        {/* Pagination Controls */}
+        {restaurants.length > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
+            <Button 
+              variant="contained"
+              disabled={Boolean(restaurantsPage && restaurantsPage.last)}
+              onClick={() => {
+                const nextPage = (filters.page || 0) + 1;
+                dispatch(setFilters({ page: nextPage }));
+              }}
+              sx={{ backgroundColor: '#fc8019', textTransform: 'none', '&:hover': { backgroundColor: '#e6730a' } }}
+            >
+              {restaurantsPage && restaurantsPage.last ? 'No more results' : (loading.restaurants ? 'Loading…' : 'Load More')}
+            </Button>
           </Box>
         )}
       </Container>

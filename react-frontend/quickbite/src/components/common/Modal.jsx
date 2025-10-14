@@ -35,7 +35,7 @@ const StyledDialogTitle = styled(DialogTitle)(({ theme }) => ({
 }));
 
 const StyledDialogContent = styled(DialogContent)(({ theme }) => ({
-  padding: '20px',
+  padding: '24px',
   overflowY: 'auto',
   flex: 1,
 }));

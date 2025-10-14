@@ -882,7 +882,7 @@ const RestaurantDashboard = () => {
           open={showOrderModal}
           onClose={() => setShowOrderModal(false)}
           title={selectedOrder ? `Order ${selectedOrder.id}` : 'Order'}
-          maxWidth="sm"
+          maxWidth="md"
           fullWidth
           actions={
             <Stack direction="row" spacing={1}>
@@ -915,8 +915,12 @@ const RestaurantDashboard = () => {
             <Stack spacing={2}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <Box>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 0.5 }}>Customer {selectedOrder.userId}</Typography>
-                  <Typography variant="body2" sx={{ color: '#666' }}>{selectedOrder.deliveryAddress}</Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 800, mb: 0.5 }}>
+                    {selectedOrder.customerName || selectedOrder.customer?.name || `Customer ${selectedOrder.userId}`}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: '#666' }}>
+                    {selectedOrder.deliveryAddress || selectedOrder.address || selectedOrder.delivery?.address || '—'}
+                  </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column', alignItems: 'flex-end' }}>
                   <Chip 
@@ -963,54 +967,54 @@ const RestaurantDashboard = () => {
               <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Items</Typography>
               <Stack spacing={1}>
                 {selectedOrder.items?.map((it, idx) => {
-                  const info = menuItemIndex[it.menuItemId] || {};
+                  const itemId = it.menuItemId ?? it.itemId ?? it.id;
+                  const info = menuItemIndex[itemId] || {};
                   return (
                     <Paper key={idx} sx={{ p: 1.5, border: '1px solid #eee', display: 'flex', alignItems: 'center', gap: 1.5 }}>
                       <Box sx={{ width: 56, height: 56, borderRadius: 1, overflow: 'hidden', background: '#f5f5f5', flexShrink: 0 }}>
                         {info.imageUrl ? (
-                          <img src={info.imageUrl} alt={it.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <img src={info.imageUrl} alt={it.name || info.name || 'Item'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         ) : (
                           <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#aaa', fontSize: 12 }}>No Image</Box>
                         )}
                       </Box>
                       <Box sx={{ flex: 1 }}>
-                        <Typography variant="body1" sx={{ fontWeight: 700 }}>{it.quantity}x {it.name}</Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 700 }}>{it.quantity || it.qty || 1}x {it.name || info.name || `#${itemId}`}</Typography>
                           <Typography variant="caption" sx={{ color: '#777' }}>
-                          Item ID: {it.menuItemId}
+                          Item ID: {itemId}
                           </Typography>
                       </Box>
                       <Typography variant="body2" sx={{ fontWeight: 700 }}>
-                        ${Number((it.price || 0) * it.quantity).toFixed(2)}
+                        ₹{Number((it.lineTotal ?? it.total ?? (it.price ?? it.unitPrice ?? 0) * (it.quantity || it.qty || 1))).toFixed(2)}
                       </Typography>
                     </Paper>
                   );
                 })}
               </Stack>
               <Divider />
-              <Grid container spacing={1}>
-                <Grid item xs={6}>
-                  <Paper sx={{ p: 1.5 }}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">Subtotal</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>${Number(selectedOrder.totalAmount || 0).toFixed(2)}</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">Delivery</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>$0.00</Typography>
-                    </Box>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="body2" color="text.secondary">Tax</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 700 }}>$0.00</Typography>
-                    </Box>
-                  </Paper>
-                </Grid>
-                <Grid item xs={6}>
-                  <Paper sx={{ p: 1.5, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="subtitle2">Total</Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 800 }}>${Number(selectedOrder.totalAmount || 0).toFixed(2)}</Typography>
-                  </Paper>
-                </Grid>
-              </Grid>
+              <Box sx={{ 
+                mt: 2, 
+                p: 2.5, 
+                border: '1px solid #f0f0f0', 
+                borderRadius: '3px', 
+                backgroundColor: '#fff',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+              }}>
+                <Box sx={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  p: 1.5,
+                  background: 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)',
+                  borderRadius: '3px',
+                  color: 'white'
+                }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Total Amount</Typography>
+                  <Typography variant="h5" sx={{ fontWeight: 800 }}>
+                    ₹{Number(selectedOrder.totalAmount ?? selectedOrder.total ?? 0).toFixed(2)}
+                  </Typography>
+                </Box>
+              </Box>
               <Typography variant="body2" sx={{ color: '#666' }}>Special: {selectedOrder.specialInstructions || '—'}</Typography>
             </Stack>
           )}
