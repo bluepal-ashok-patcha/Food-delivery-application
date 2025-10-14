@@ -649,6 +649,36 @@ export const adminAPI = {
     return response.data;
   },
 
+
+  // Restaurant import/export
+  exportRestaurantsAll: async (format = 'excel') => {
+    const response = await api.get(`/api/restaurants/export/all?format=${encodeURIComponent(format)}`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  exportRestaurantsByOwner: async (ownerId, format = 'excel') => {
+    const qs = [];
+    if (ownerId !== undefined && ownerId !== null) qs.push(`ownerId=${encodeURIComponent(ownerId)}`);
+    if (format) qs.push(`format=${encodeURIComponent(format)}`);
+    const query = qs.length ? `?${qs.join('&')}` : '';
+    const response = await api.get(`/api/restaurants/export${query}`, { responseType: 'blob' });
+    return response.data;
+  },
+
+  importRestaurants: async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const response = await api.post('/api/restaurants/import', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+    return response.data;
+  },
+
+  downloadRestaurantTemplate: async () => {
+    const response = await api.get('/api/restaurants/import/template', { responseType: 'blob' });
+    return response.data;
+  },
+
   // New lightweight toggles
   setRestaurantOpen: async (restaurantId, isOpen) => {
     // Use owner route (admin is also allowed by gateway role map)

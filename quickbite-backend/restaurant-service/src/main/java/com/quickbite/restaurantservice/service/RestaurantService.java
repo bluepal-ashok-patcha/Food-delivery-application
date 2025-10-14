@@ -807,26 +807,78 @@ public class RestaurantService {
      */
     public ResponseEntity<byte[]> generateRestaurantTemplate() throws IOException {
         Workbook workbook = new XSSFWorkbook();
-        Sheet sheet = workbook.createSheet("Restaurants");
 
-        String[] headers = {
+        /**
+         * ======================
+         * Sheet 1: Restaurants
+         * ======================
+         */
+        Sheet restaurantSheet = workbook.createSheet("Restaurants");
+        String[] restaurantHeaders = {
             "Name", "CuisineType", "Address", "ContactNumber", "Description",
-            "DeliveryTime", "DeliveryFee", "MinimumOrder", "OpeningTime", "ClosingTime",
-            "OwnerId", "Status" 
+            "Image", "CoverImage", "Rating", "TotalRatings", "DeliveryTime",
+            "DeliveryFee", "MinimumOrder", "IsOpen (Yes/No)", "IsActive (Yes/No)",
+            "IsVeg (Yes/No)", "IsPureVeg (Yes/No)", "OpeningHours",
+            "DeliveryRadiusKm", "Latitude", "Longitude", "Tags",
+            "OpeningTime (HH:mm)", "ClosingTime (HH:mm)", "OwnerId", "Status"
         };
 
-        Row headerRow = sheet.createRow(0);
-        for (int i = 0; i < headers.length; i++) {
-            Cell cell = headerRow.createCell(i);
-            cell.setCellValue(headers[i]);
+        Row restaurantHeaderRow = restaurantSheet.createRow(0);
+        for (int i = 0; i < restaurantHeaders.length; i++) {
+            Cell cell = restaurantHeaderRow.createCell(i);
+            cell.setCellValue(restaurantHeaders[i]);
         }
 
+        /**
+         * ======================
+         * Sheet 2: MenuCategories
+         * ======================
+         */
+        Sheet categorySheet = workbook.createSheet("MenuCategories");
+        String[] categoryHeaders = {
+            "RestaurantName", "CategoryName"
+        };
+
+        Row categoryHeaderRow = categorySheet.createRow(0);
+        for (int i = 0; i < categoryHeaders.length; i++) {
+            Cell cell = categoryHeaderRow.createCell(i);
+            cell.setCellValue(categoryHeaders[i]);
+        }
+
+        /**
+         * ======================
+         * Sheet 3: MenuItems
+         * ======================
+         */
+        Sheet itemSheet = workbook.createSheet("MenuItems");
+        String[] itemHeaders = {
+            "RestaurantName", "CategoryName", "ItemName", "Description", "Price",
+            "ImageUrl", "InStock (Yes/No)", "OriginalPrice", "IsVeg (Yes/No)",
+            "IsPopular (Yes/No)", "PreparationTime (mins)", "CustomizationJson", "NutritionJson"
+        };
+
+        Row itemHeaderRow = itemSheet.createRow(0);
+        for (int i = 0; i < itemHeaders.length; i++) {
+            Cell cell = itemHeaderRow.createCell(i);
+            cell.setCellValue(itemHeaders[i]);
+        }
+
+        // Auto-size all columns for each sheet
+        for (Sheet sheet : List.of(restaurantSheet, categorySheet, itemSheet)) {
+            for (int i = 0; i < sheet.getRow(0).getLastCellNum(); i++) {
+                sheet.autoSizeColumn(i);
+            }
+        }
+
+        // Write to byte array
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         workbook.write(out);
         workbook.close();
 
+        // Set response headers
         HttpHeaders headersResp = new HttpHeaders();
         headersResp.add("Content-Disposition", "attachment; filename=restaurant_import_template.xlsx");
+
         return ResponseEntity.ok()
                 .headers(headersResp)
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)

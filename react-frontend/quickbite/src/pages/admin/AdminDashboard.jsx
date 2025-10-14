@@ -49,6 +49,15 @@ const AdminDashboard = () => {
   const [exportType, setExportType] = useState('pdf'); // 'pdf' or 'excel'
   const [exportRole, setExportRole] = useState(''); // '' = all
 
+
+    // ...existing state/hooks...
+  // NEW: refs & state for restaurant import/export
+  const restaurantFileInputRef = useRef(null);
+  const [openRestaurantImportModal, setOpenRestaurantImportModal] = useState(false);
+  const [openRestaurantExportModal, setOpenRestaurantExportModal] = useState(false);
+  const [restaurantExportFormat, setRestaurantExportFormat] = useState('excel'); // 'pdf' or 'excel'
+  const [restaurantExportOwner, setRestaurantExportOwner] = useState(''); // '' = all
+
   const [openUserModal, setOpenUserModal] = useState(false);
 
   const [openRestaurantModal, setOpenRestaurantModal] = useState(false);
@@ -736,7 +745,7 @@ const AdminDashboard = () => {
 
             <Box sx={{ p: 4 }}>
 
-              <TabHeader 
+              {/* <TabHeader 
 
                 title="Restaurant Management" 
 
@@ -746,7 +755,168 @@ const AdminDashboard = () => {
 
                 onAddClick={() => { setFormValues({ name: '', cuisine: '', address: '', ownerId: '' }); setOpenRestaurantModal(true); }}
 
-              />
+              /> */}
+
+
+{/* Replace TabHeader add-button with custom actions */}
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+        <Box sx={{ flex: 1 }}>
+          <TabHeader
+            title="Restaurant Management"
+            subtitle="Manage partner restaurants and their details"
+            showAddButton={false}
+          />
+        </Box>
+
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ ml: 2 }}>
+          <Button
+            variant="contained"
+            startIcon={<UploadFile />}
+            onClick={() => setOpenRestaurantImportModal(true)}
+            sx={{ background: '#fc8019', '&:hover': { background: '#e6730a' }, textTransform: 'none' }}
+          >
+            Import
+          </Button>
+
+          <Button
+            variant="contained"
+            startIcon={<FileDownload />}
+            onClick={() => setOpenRestaurantExportModal(true)}
+            sx={{ background: '#fc8019', '&:hover': { background: '#e6730a' }, textTransform: 'none' }}
+          >
+            Export
+          </Button>
+
+          <Button
+            variant="contained"
+            onClick={() => { setFormValues({ name: '', cuisine: '', address: '', ownerId: '' }); setOpenRestaurantModal(true); }}
+            sx={{ background: '#fc8019', '&:hover': { background: '#e6730a' }, textTransform: 'none' }}
+          >
+            Add Restaurant
+          </Button>
+        </Stack>
+      </Box>
+
+      {/* Hidden file input for restaurant import */}
+      <input ref={restaurantFileInputRef} type="file" accept=".xlsx,.xls,.csv" style={{ display: 'none' }} onChange={async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          await adminAPI.importRestaurants(file);
+          alert('Import successful');
+          dispatch(fetchRestaurants({ page: 0, size: 10 }));
+        } catch (err) {
+          alert('Import failed: ' + (err?.message || err));
+        } finally {
+          if (restaurantFileInputRef.current) restaurantFileInputRef.current.value = '';
+          setOpenRestaurantImportModal(false);
+        }
+      }} />
+
+      {/* Restaurant IMPORT Modal */}
+      <Modal
+        open={openRestaurantImportModal}
+        onClose={() => setOpenRestaurantImportModal(false)}
+        title="Import Restaurants"
+        actions={
+          <Stack direction="row" spacing={2}>
+            <Button variant="outlined" onClick={async () => {
+              try {
+                const blob = await adminAPI.downloadRestaurantTemplate();
+                const url = window.URL.createObjectURL(new Blob([blob]));
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', 'restaurants_import_template.xlsx');
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                window.URL.revokeObjectURL(url);
+              } catch (err) {
+                window.open('/templates/restaurants-template.xlsx', '_blank');
+              }
+            }} sx={{ textTransform: 'none' }}>
+              Download Template
+            </Button>
+
+            <Button variant="contained" onClick={() => restaurantFileInputRef.current?.click()} sx={{ background: '#fc8019', '&:hover': { background: '#e6730a' }, textTransform: 'none' }}>
+              Import File
+            </Button>
+          </Stack>
+        }
+      >
+        <Stack spacing={2}>
+          <Typography variant="body2" color="text.secondary">Use the template to prepare your file. Headers expected: required by your backend import</Typography>
+          <Typography variant="caption" color="text.secondary">Supported formats: .xlsx, .xls, .csv</Typography>
+        </Stack>
+      </Modal>
+
+      {/* Restaurant EXPORT Modal */}
+      <Modal
+        open={openRestaurantExportModal}
+        onClose={() => setOpenRestaurantExportModal(false)}
+        title="Export Restaurants"
+        actions={
+          <Stack direction="row" spacing={2}>
+            <Button variant="outlined" onClick={() => setOpenRestaurantExportModal(false)} sx={{ textTransform: 'none' }}>Cancel</Button>
+            <Button variant="contained" onClick={async () => {
+              try {
+                let blob = null;
+                if (restaurantExportOwner) {
+                  blob = await adminAPI.exportRestaurantsByOwner(restaurantExportOwner, restaurantExportFormat);
+                } else {
+                  blob = await adminAPI.exportRestaurantsAll(restaurantExportFormat);
+                }
+                const ext = restaurantExportFormat === 'pdf' ? 'pdf' : 'xlsx';
+                const ownerSuffix = restaurantExportOwner ? `_owner_${restaurantExportOwner}` : '';
+                const filename = `restaurants${ownerSuffix}_export.${ext}`;
+                const mime = restaurantExportFormat === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                const url = window.URL.createObjectURL(new Blob([blob], { type: mime }));
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+                setOpenRestaurantExportModal(false);
+              } catch (err) {
+                alert('Export failed: ' + (err?.message || err));
+              }
+            }} sx={{ background: '#fc8019', '&:hover': { background: '#e6730a' }, textTransform: 'none' }}>
+              Export
+            </Button>
+          </Stack>
+        }
+      >
+        <Stack spacing={2}>
+          <Box>
+            <Typography variant="subtitle2">Export Type</Typography>
+            <RadioGroup row value={restaurantExportFormat} onChange={(e) => setRestaurantExportFormat(e.target.value)}>
+              <FormControlLabel value="pdf" control={<Radio />} label="PDF" />
+              <FormControlLabel value="excel" control={<Radio />} label="Excel" />
+            </RadioGroup>
+          </Box>
+
+          <Box>
+            <Typography variant="subtitle2">Owner</Typography>
+            <TextField
+              select
+              fullWidth
+              SelectProps={{ native: true }}
+              value={restaurantExportOwner}
+              onChange={(e) => setRestaurantExportOwner(e.target.value)}
+            >
+              <option value="">All (default)</option>
+              {users.filter(u => u.role === 'RESTAURANT_OWNER').map(u => (
+                <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+              ))}
+            </TextField>
+            <Typography variant="caption" color="text.secondary">Selecting an owner will export restaurants for that owner only.</Typography>
+          </Box>
+        </Stack>
+      </Modal>
+
+
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 2 }}>
 
@@ -2252,4 +2422,3 @@ const AdminDashboard = () => {
 
 
 export default AdminDashboard;
-
