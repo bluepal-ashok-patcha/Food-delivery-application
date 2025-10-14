@@ -172,7 +172,7 @@ const DeliveryDashboard = () => {
             subtotal: a.subtotal || 0,
             deliveryFee: a.deliveryFee || 0,
             tax: a.tax || 0,
-            total: a.total || 0,
+            total: a.totalAmount || a.total || 0,
             orderDate: a.assignedAt || new Date().toISOString(),
             items: items, // Add order items
           };
@@ -1341,9 +1341,9 @@ const DeliveryDashboard = () => {
                   </Typography>
                 )}
 
-                <Typography variant="body2">Customer #{selectedOrder.customerId}</Typography>
+                <Typography variant="body2">Customer: {selectedOrder.customerName || `Customer #${selectedOrder.customerId}`}</Typography>
 
-                <Typography variant="body2">Restaurant #{selectedOrder.restaurantId}</Typography>
+                <Typography variant="body2">Restaurant: {selectedOrder.restaurantName || `Restaurant #${selectedOrder.restaurantId}`}</Typography>
 
                 <Typography variant="body2">Destination: {selectedOrder.deliveryAddress}</Typography>
 

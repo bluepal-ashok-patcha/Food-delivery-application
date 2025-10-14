@@ -17,6 +17,17 @@ const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
     }
   };
 
+  const getPaymentColor = (status) => {
+    switch (status) {
+      case 'PAID':
+      case 'COMPLETED': return '#28a745';
+      case 'FAILED': return '#dc3545';
+      case 'PENDING': return '#ffc107';
+      case 'REFUNDED': return '#17a2b8';
+      default: return '#6c757d';
+    }
+  };
+
   return (
     <TableContainer sx={{ 
       borderRadius: '3px',
@@ -91,10 +102,8 @@ const RestaurantOrdersTable = ({ orders, onOrderAction, onRowClick }) => {
                   label={(order.paymentStatus || 'PENDING').replace('_', ' ').toUpperCase()} 
                   variant="outlined"
                   sx={{
-                    borderColor: order.paymentStatus === 'PAID' || order.paymentStatus === 'COMPLETED' ? '#28a745' : 
-                               order.paymentStatus === 'FAILED' ? '#dc3545' : '#6c757d',
-                    color: order.paymentStatus === 'PAID' || order.paymentStatus === 'COMPLETED' ? '#28a745' : 
-                           order.paymentStatus === 'FAILED' ? '#dc3545' : '#6c757d',
+                    borderColor: getPaymentColor(order.paymentStatus),
+                    color: getPaymentColor(order.paymentStatus),
                     fontWeight: 500,
                     fontSize: '11px'
                   }}

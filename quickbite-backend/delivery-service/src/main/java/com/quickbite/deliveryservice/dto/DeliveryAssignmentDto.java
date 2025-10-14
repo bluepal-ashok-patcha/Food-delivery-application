@@ -35,6 +35,7 @@ public class DeliveryAssignmentDto {
     private Integer estimatedDuration;
     private BigDecimal deliveryFee;
     private BigDecimal tip;
+    private BigDecimal totalAmount; // Order total amount
     private LocalDateTime assignedAt;
     private LocalDateTime acceptedAt;
     private LocalDateTime pickedUpAt;

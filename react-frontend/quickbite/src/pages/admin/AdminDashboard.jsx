@@ -7,6 +7,7 @@ import AdminHeader from '../../components/admin/AdminHeader';
 import { restaurantAPI,adminAPI } from '../../services/api';
 
 import EnhancedStatCard from '../../components/admin/EnhancedStatCard';
+import { LineChart, BarChart, PieChart, AreaChart, ChartControls } from '../../components/charts';
 
 import TabHeader from '../../components/admin/TabHeader';
 
@@ -1039,56 +1040,205 @@ const AdminDashboard = () => {
                 showAddButton={false}
               />
               
-              <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
-                <TextField
-                  select
-                  label="Time Period"
-                  value={analyticsPeriod}
-                  onChange={(e) => {
-                    setAnalyticsPeriod(e.target.value);
-                    dispatch(fetchAnalytics({ type: 'order', period: e.target.value }));
-                    dispatch(fetchAnalytics({ type: 'delivery', period: e.target.value }));
-                  }}
-                  sx={{ minWidth: 150 }}
-                  SelectProps={{ native: true }}
-                >
-                  <option value="today">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                  <option value="year">This Year</option>
-                </TextField>
-              </Stack>
+              <ChartControls
+                period={analyticsPeriod}
+                onPeriodChange={(newPeriod) => {
+                  setAnalyticsPeriod(newPeriod);
+                  dispatch(fetchAnalytics({ type: 'order', period: newPeriod }));
+                  dispatch(fetchAnalytics({ type: 'delivery', period: newPeriod }));
+                }}
+                onRefresh={() => {
+                  dispatch(fetchAnalytics({ type: 'order', period: analyticsPeriod }));
+                  dispatch(fetchAnalytics({ type: 'delivery', period: analyticsPeriod }));
+                }}
+              />
               
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 3 }}>
-                    <Typography variant="h6" gutterBottom>Orders Summary</Typography>
-                    <Typography variant="h4" color="primary">{analytics.order?.totalOrders || 0}</Typography>
-                    <Typography variant="body2" color="text.secondary">Total Orders</Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 3 }}>
-                    <Typography variant="h6" gutterBottom>Revenue</Typography>
-                    <Typography variant="h4" color="success.main">₹{analytics.order?.totalRevenue || 0}</Typography>
-                    <Typography variant="body2" color="text.secondary">Total Revenue</Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 3 }}>
-                    <Typography variant="h6" gutterBottom>Deliveries</Typography>
-                    <Typography variant="h4" color="warning.main">{analytics.delivery?.totalDeliveries || 0}</Typography>
-                    <Typography variant="body2" color="text.secondary">Completed in period</Typography>
-                  </Paper>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <Paper sx={{ p: 3 }}>
-                    <Typography variant="h6" gutterBottom>Partners</Typography>
-                    <Typography variant="h4" color="info.main">{analytics.delivery?.totalPartners || 0}</Typography>
-                    <Typography variant="body2" color="text.secondary">Total partners</Typography>
-                  </Paper>
-                </Grid>
-              </Grid>
+              <Box sx={{ width: '100%' }}>
+                {/* Row 1: Order Trends & Revenue Analytics */}
+                <Box sx={{ display: 'flex', gap: 4, mb: 4, flexWrap: 'wrap' }}>
+                  <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                    <AreaChart
+                      title="Order Trends"
+                      data={analytics.order?.dailyOrders || []}
+                      dataKey="orderCount"
+                      xAxisKey="date"
+                      color="#2196f3"
+                      height={400}
+                      formatXAxis={(value) => {
+                        const date = new Date(value);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                      }}
+                      formatYAxis={(value) => value}
+                      formatTooltip={(value, name) => [`${value} orders`, 'Orders']}
+                      gradientId="orderTrendsGradient"
+                    />
+                  </Box>
+                  <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                    <AreaChart
+                      title="Revenue Analytics"
+                      data={analytics.order?.dailyOrders || []}
+                      dataKey="revenue"
+                      xAxisKey="date"
+                      color="#4caf50"
+                      height={400}
+                      formatXAxis={(value) => {
+                        const date = new Date(value);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                      }}
+                      formatYAxis={(value) => `₹${value.toLocaleString()}`}
+                      formatTooltip={(value, name) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                      gradientId="adminRevenueGradient"
+                    />
+                  </Box>
+                </Box>
+
+                {/* Row 2: Order Status Distribution & Top Restaurants */}
+                <Box sx={{ display: 'flex', gap: 4, mb: 4, flexWrap: 'wrap' }}>
+                  <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                    <PieChart
+                      title="Order Status Distribution"
+                      data={(analytics.order?.statusDistribution || []).map(status => ({
+                        name: (status.status || status.label || '').toString().replace('_', ' '),
+                        value: status.count || status.value || 0,
+                        percentage: status.percentage || 0
+                      }))}
+                      dataKey="value"
+                      nameKey="name"
+                      height={400}
+                      formatTooltip={(value, name, props) => [
+                        `${value} orders (${props.payload?.percentage?.toFixed(1) || 0}%)`, 
+                        name
+                      ]}
+                      colors={['#4caf50', '#ff9800', '#f44336', '#2196f3', '#9c27b0', '#00bcd4']}
+                    />
+                  </Box>
+                  <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                    <BarChart
+                      title="Top Performing Restaurants"
+                      data={(analytics.order?.topRestaurants || []).slice(0, 10).map(restaurant => ({
+                        name: restaurant.restaurantName || restaurant.name,
+                        orders: restaurant.orderCount || restaurant.count || 0,
+                        revenue: restaurant.revenue || 0
+                      }))}
+                      dataKey="orders"
+                      xAxisKey="name"
+                      color="#ff9800"
+                      height={400}
+                      formatXAxis={(value) => value.length > 18 ? value.substring(0, 18) + '...' : value}
+                      formatYAxis={(value) => value}
+                      formatTooltip={(value, name, props) => [
+                        `${value} orders`, 
+                        'Orders',
+                        `Revenue: ₹${props.payload?.revenue?.toLocaleString() || 0}`
+                      ]}
+                    />
+                  </Box>
+                </Box>
+
+                {/* Row 3: Customer Analytics & Summary Cards */}
+                <Box sx={{ display: 'flex', gap: 4, mb: 4, flexWrap: 'wrap' }}>
+                  <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                    <BarChart
+                      title="Customer Analytics"
+                      data={[
+                        { name: 'Total Customers', value: analytics.order?.totalCustomers || 0, color: '#4caf50' },
+                        { name: 'New Customers', value: analytics.order?.newCustomers || 0, color: '#2196f3' },
+                        { name: 'Avg Orders/Customer', value: analytics.order?.averageOrdersPerCustomer || 0, color: '#ff9800' }
+                      ]}
+                      dataKey="value"
+                      xAxisKey="name"
+                      color="#6c757d"
+                      height={400}
+                      formatXAxis={(value) => value.replace('Customers', '').replace('Avg Orders/', 'Avg/')}
+                      formatYAxis={(value) => typeof value === 'number' && value < 10 ? value.toFixed(1) : Math.round(value)}
+                      formatTooltip={(value, name, props) => [
+                        typeof value === 'number' && value < 10 ? value.toFixed(1) : Math.round(value), 
+                        props.payload?.name || name
+                      ]}
+                    />
+                  </Box>
+                  <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                    <Box sx={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(2, 1fr)', 
+                      gap: 3, 
+                      height: '100%' 
+                    }}>
+                      <Box sx={{ 
+                        p: 4, 
+                        textAlign: 'center', 
+                        backgroundColor: '#fff',
+                        borderRadius: '12px',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                        border: '1px solid #e0e0e0',
+                        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                        }
+                      }}>
+                        <Typography variant="h6" gutterBottom sx={{ color: '#2196f3', fontWeight: 600, fontSize: '16px' }}>Total Orders</Typography>
+                        <Typography variant="h3" color="primary" sx={{ fontWeight: 700, fontSize: '2.5rem' }}>{analytics.order?.totalOrders || 0}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>This Period</Typography>
+                      </Box>
+                      
+                      <Box sx={{ 
+                        p: 4, 
+                        textAlign: 'center', 
+                        backgroundColor: '#fff',
+                        borderRadius: '12px',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                        border: '1px solid #e0e0e0',
+                        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                        }
+                      }}>
+                        <Typography variant="h6" gutterBottom sx={{ color: '#4caf50', fontWeight: 600, fontSize: '16px' }}>Total Revenue</Typography>
+                        <Typography variant="h3" color="success.main" sx={{ fontWeight: 700, fontSize: '2.5rem' }}>₹{(analytics.order?.totalRevenue || 0).toLocaleString()}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>This Period</Typography>
+                      </Box>
+                      
+                      <Box sx={{ 
+                        p: 4, 
+                        textAlign: 'center', 
+                        backgroundColor: '#fff',
+                        borderRadius: '12px',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                        border: '1px solid #e0e0e0',
+                        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                        }
+                      }}>
+                        <Typography variant="h6" gutterBottom sx={{ color: '#ff9800', fontWeight: 600, fontSize: '16px' }}>Deliveries</Typography>
+                        <Typography variant="h3" color="warning.main" sx={{ fontWeight: 700, fontSize: '2.5rem' }}>{analytics.delivery?.totalDeliveries || 0}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>Completed</Typography>
+                      </Box>
+                      
+                      <Box sx={{ 
+                        p: 4, 
+                        textAlign: 'center', 
+                        backgroundColor: '#fff',
+                        borderRadius: '12px',
+                        boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                        border: '1px solid #e0e0e0',
+                        transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                        '&:hover': {
+                          transform: 'translateY(-2px)',
+                          boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                        }
+                      }}>
+                        <Typography variant="h6" gutterBottom sx={{ color: '#9c27b0', fontWeight: 600, fontSize: '16px' }}>Partners</Typography>
+                        <Typography variant="h3" color="info.main" sx={{ fontWeight: 700, fontSize: '2.5rem' }}>{analytics.delivery?.totalPartners || 0}</Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>Active</Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Box>
+              </Box>
             </Box>
 
           )}

@@ -1,6 +1,5 @@
 import React from 'react';
 import { Card, CardContent, Box, Typography } from '@mui/material';
-import { TrendingUp, TrendingDown } from '@mui/icons-material';
 
 const EnhancedStatCard = ({ stat }) => {
   return (
@@ -23,33 +22,19 @@ const EnhancedStatCard = ({ stat }) => {
         background: `linear-gradient(90deg, ${stat.color}, ${stat.color}dd)`
       }} />
       <CardContent sx={{ p: 2.25 }}>
-        {/* Top: Icon and percentage */}
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.25 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Box sx={{ 
-              p: 1.25, 
-              borderRadius: '6px', 
-              background: `${stat.color}15`,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              {React.cloneElement(stat.icon, { 
-                sx: { fontSize: 24, color: stat.color } 
-              })}
-            </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              {stat.trend === 'up' ? 
-                <TrendingUp sx={{ fontSize: 14, color: '#4caf50' }} /> : 
-                <TrendingDown sx={{ fontSize: 14, color: '#f44336' }} />
-              }
-              <Typography variant="caption" sx={{ 
-                color: stat.trend === 'up' ? '#4caf50' : '#f44336',
-                fontWeight: 700
-              }}>
-                {stat.change}
-              </Typography>
-            </Box>
+        {/* Top: Icon only */}
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', mb: 1.25 }}>
+          <Box sx={{ 
+            p: 1.25, 
+            borderRadius: '6px', 
+            background: `${stat.color}15`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {React.cloneElement(stat.icon, { 
+              sx: { fontSize: 24, color: stat.color } 
+            })}
           </Box>
         </Box>
         {/* Middle: Text left, Number right */}

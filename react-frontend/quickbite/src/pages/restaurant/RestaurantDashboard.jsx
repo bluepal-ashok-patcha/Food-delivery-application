@@ -27,6 +27,7 @@ import TabHeader from '../../components/admin/TabHeader';
 import RestaurantOrdersTable from '../../components/restaurant/RestaurantOrdersTable';
 import MenuCard from '../../components/restaurant/MenuCard';
 import AnalyticsCard from '../../components/restaurant/AnalyticsCard';
+import { LineChart, BarChart, PieChart, AreaChart, ChartControls } from '../../components/charts';
 import Modal from '../../components/common/Modal';
 import TextField from '../../components/common/TextField';
 
@@ -741,47 +742,136 @@ const RestaurantDashboard = () => {
                 subtitle="Track your restaurant performance and insights"
                 showAddButton={false}
               />
-              <Stack direction="row" spacing={2} sx={{ mb: 2, alignItems: 'center' }}>
-                <Typography variant="body2" sx={{ color: '#666' }}>Period</Typography>
-                <Select size="small" value={analyticsPeriod} onChange={(e) => setAnalyticsPeriod(e.target.value)} sx={{ width: 160 }}>
-                  <MenuItem value="today">Today</MenuItem>
-                  <MenuItem value="week">This Week</MenuItem>
-                  <MenuItem value="month">This Month</MenuItem>
-                  <MenuItem value="year">This Year</MenuItem>
-                </Select>
-                {loading.analytics && <CircularProgress size={20} />}
-              </Stack>
+              <ChartControls
+                period={analyticsPeriod}
+                onPeriodChange={(newPeriod) => {
+                  setAnalyticsPeriod(newPeriod);
+                  dispatch(fetchRestaurantAnalytics({ restaurantId: user?.restaurantId, period: newPeriod }));
+                }}
+                onRefresh={() => {
+                  dispatch(fetchRestaurantAnalytics({ restaurantId: user?.restaurantId, period: analyticsPeriod }));
+                }}
+              />
 
-              <Grid container spacing={3} sx={{ mb: 2 }}>
-                <Grid item xs={12} md={3}>
-                  <EnhancedStatCard stat={{ title: 'Total Orders', value: analytics?.totalOrders ?? 0, icon: <Restaurant />, color: '#6c757d', subtitle: `Today: ${analytics?.todayOrders ?? 0}` }} />
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <EnhancedStatCard stat={{ title: 'Total Revenue', value: `$${(analytics?.totalRevenue ?? 0).toLocaleString()}`, icon: <AttachMoney />, color: '#6c757d', subtitle: `Today: $${(analytics?.todayRevenue ?? 0).toLocaleString()}` }} />
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <EnhancedStatCard stat={{ title: 'Completion Rate', value: `${completionRatePercent}%`, icon: <AccessTime />, color: '#6c757d', subtitle: 'Delivered / Total' }} />
-                </Grid>
-                <Grid item xs={12} md={3}>
-                  <EnhancedStatCard stat={{ title: 'Avg Order Value', value: `$${Number(analytics?.averageOrderValue ?? 0).toFixed(2)}`, icon: <AttachMoney />, color: '#6c757d', subtitle: 'Across period' }} />
-                </Grid>
-              </Grid>
-              
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <AnalyticsCard 
+              <Box sx={{ width: '100%' }}>
+                {/* Row 1: Revenue Trends & Order Patterns */}
+                <Box sx={{ display: 'flex', gap: 4, mb: 4, flexWrap: 'wrap' }}>
+                  <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                    <AreaChart
+                      title="Revenue Trends"
+                      data={analytics?.dailyRevenue || []}
+                      dataKey="revenue"
+                      xAxisKey="date"
+                      color="#4caf50"
+                      height={400}
+                      formatXAxis={(value) => {
+                        const date = new Date(value);
+                        return `${date.getMonth() + 1}/${date.getDate()}`;
+                      }}
+                      formatYAxis={(value) => `₹${value.toLocaleString()}`}
+                      formatTooltip={(value, name) => [`₹${value.toLocaleString()}`, 'Revenue']}
+                      gradientId="revenueGradient"
+                    />
+                  </Box>
+                  <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                    <BarChart
+                      title="Hourly Order Patterns"
+                      data={analytics?.hourlyOrders || []}
+                      dataKey="orderCount"
+                      xAxisKey="hour"
+                      color="#2196f3"
+                      height={400}
+                      formatXAxis={(value) => `${value}:00`}
+                      formatYAxis={(value) => value}
+                      formatTooltip={(value, name) => [`${value} orders`, 'Orders']}
+                    />
+                  </Box>
+                </Box>
+
+                {/* Row 2: Popular Items & Order Status Distribution */}
+                <Box sx={{ display: 'flex', gap: 4, mb: 4, flexWrap: 'wrap' }}>
+                  <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                    <BarChart
                     title="Popular Items"
-                    data={(analytics?.popularItems || []).slice(0,5).map(pi => ({ label: pi.name || pi.label, value: `${pi.count || pi.value || 0} orders` }))}
-                  />
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                  <AnalyticsCard 
+                      data={(analytics?.popularItems || []).slice(0, 10).map(item => ({
+                        name: item.itemName || item.name,
+                        orders: item.orderCount || item.count || 0,
+                        revenue: item.revenue || 0
+                      }))}
+                      dataKey="orders"
+                      xAxisKey="name"
+                      color="#ff9800"
+                      height={400}
+                      formatXAxis={(value) => value.length > 15 ? value.substring(0, 15) + '...' : value}
+                      formatYAxis={(value) => value}
+                      formatTooltip={(value, name, props) => [
+                        `${value} orders`, 
+                        'Orders',
+                        `Revenue: ₹${props.payload?.revenue?.toLocaleString() || 0}`
+                      ]}
+                    />
+                  </Box>
+                  <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                    <PieChart
                     title="Order Status Distribution"
-                    data={(analytics?.orderStatusDistribution || analytics?.statusDistribution || []).map(s => ({ label: (s.status || s.label || '').toString().replace('_',' '), value: s.count || s.value }))}
-                  />
-                </Grid>
-              </Grid>
+                      data={(analytics?.orderStatusDistribution || []).map(status => ({
+                        name: (status.status || status.label || '').toString().replace('_', ' '),
+                        value: status.count || status.value || 0,
+                        percentage: status.percentage || 0
+                      }))}
+                      dataKey="value"
+                      nameKey="name"
+                      height={400}
+                      formatTooltip={(value, name, props) => [
+                        `${value} orders (${props.payload?.percentage?.toFixed(1) || 0}%)`, 
+                        name
+                      ]}
+                      colors={['#4caf50', '#ff9800', '#f44336', '#2196f3', '#9c27b0', '#00bcd4']}
+                    />
+                  </Box>
+                </Box>
+
+                {/* Row 3: Rating Distribution & Performance Metrics */}
+                <Box sx={{ display: 'flex', gap: 4, mb: 4, flexWrap: 'wrap' }}>
+                  <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                    <BarChart
+                      title="Rating Distribution"
+                      data={(analytics?.ratingDistribution || []).map(rating => ({
+                        name: `${rating.rating} ⭐`,
+                        count: rating.count || 0,
+                        percentage: rating.percentage || 0
+                      }))}
+                      dataKey="count"
+                      xAxisKey="name"
+                      color="#ffc107"
+                      height={400}
+                      formatXAxis={(value) => value}
+                      formatYAxis={(value) => value}
+                      formatTooltip={(value, name, props) => [
+                        `${value} reviews (${props.payload?.percentage?.toFixed(1) || 0}%)`, 
+                        'Reviews'
+                      ]}
+                    />
+                  </Box>
+                  <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                    <BarChart
+                      title="Performance Metrics"
+                      data={[
+                        { name: 'Completion Rate', value: analytics?.completionRate || 0, color: '#4caf50' },
+                        { name: 'Cancellation Rate', value: analytics?.cancellationRate || 0, color: '#f44336' },
+                        { name: 'On-Time Delivery', value: analytics?.onTimeDeliveryRate || 0, color: '#2196f3' }
+                      ]}
+                      dataKey="value"
+                      xAxisKey="name"
+                      color="#6c757d"
+                      height={400}
+                      formatXAxis={(value) => value.replace(' Rate', '')}
+                      formatYAxis={(value) => `${value.toFixed(1)}%`}
+                      formatTooltip={(value, name, props) => [`${value.toFixed(1)}%`, props.payload?.name || name]}
+                    />
+                  </Box>
+                </Box>
+              </Box>
             </Box>
           )}
         </Paper>
@@ -834,16 +924,37 @@ const RestaurantDashboard = () => {
                     sx={{ 
                       fontWeight: 500,
                       borderColor: selectedOrder.paymentStatus === 'PAID' || selectedOrder.paymentStatus === 'COMPLETED' ? '#28a745' : 
-                                 selectedOrder.paymentStatus === 'FAILED' ? '#dc3545' : '#6c757d',
+                                 selectedOrder.paymentStatus === 'FAILED' ? '#dc3545' : 
+                                 selectedOrder.paymentStatus === 'PENDING' ? '#ffc107' : '#6c757d',
                       color: selectedOrder.paymentStatus === 'PAID' || selectedOrder.paymentStatus === 'COMPLETED' ? '#28a745' : 
-                             selectedOrder.paymentStatus === 'FAILED' ? '#dc3545' : '#6c757d',
+                             selectedOrder.paymentStatus === 'FAILED' ? '#dc3545' : 
+                             selectedOrder.paymentStatus === 'PENDING' ? '#ffc107' : '#6c757d',
                       fontSize: '12px'
                     }} 
                   />
                   <Chip 
                     label={`Order: ${(selectedOrder.orderStatus || 'Unknown').replace('_',' ')}`} 
                     variant="outlined"
-                    sx={{ fontWeight: 500, fontSize: '12px' }} 
+                    sx={{ 
+                      fontWeight: 500, 
+                      fontSize: '12px',
+                      borderColor: selectedOrder.orderStatus === 'PENDING' ? '#6c757d' :
+                                  selectedOrder.orderStatus === 'ACCEPTED' ? '#28a745' :
+                                  selectedOrder.orderStatus === 'PREPARING' ? '#fd7e14' :
+                                  selectedOrder.orderStatus === 'READY_FOR_PICKUP' ? '#6f42c1' :
+                                  selectedOrder.orderStatus === 'OUT_FOR_DELIVERY' ? '#20c997' :
+                                  selectedOrder.orderStatus === 'DELIVERED' ? '#28a745' :
+                                  selectedOrder.orderStatus === 'CANCELLED' ? '#dc3545' :
+                                  selectedOrder.orderStatus === 'REJECTED' ? '#dc3545' : '#6c757d',
+                      color: selectedOrder.orderStatus === 'PENDING' ? '#6c757d' :
+                             selectedOrder.orderStatus === 'ACCEPTED' ? '#28a745' :
+                             selectedOrder.orderStatus === 'PREPARING' ? '#fd7e14' :
+                             selectedOrder.orderStatus === 'READY_FOR_PICKUP' ? '#6f42c1' :
+                             selectedOrder.orderStatus === 'OUT_FOR_DELIVERY' ? '#20c997' :
+                             selectedOrder.orderStatus === 'DELIVERED' ? '#28a745' :
+                             selectedOrder.orderStatus === 'CANCELLED' ? '#dc3545' :
+                             selectedOrder.orderStatus === 'REJECTED' ? '#dc3545' : '#6c757d'
+                    }} 
                   />
                 </Box>
               </Box>

@@ -153,6 +153,9 @@ mappings.put("POST:/api/delivery/assignments", List.of("RESTAURANT_OWNER", "ADMI
 // Assignment lookup (multiple roles can view)
 mappings.put("GET:/api/delivery/assignments/order/{orderId}", List.of("RESTAURANT_OWNER", "ADMIN", "DELIVERY_PARTNER"));
 
+// Order items lookup for delivery partners
+mappings.put("GET:/api/delivery/assignments/order/{orderId}/items", List.of("DELIVERY_PARTNER", "ADMIN", "RESTAURANT_OWNER"));
+
 // Delivery: available orders feed (partners claimable list)
 mappings.put("GET:/api/delivery/assignments/available", List.of("DELIVERY_PARTNER", "ADMIN"));
 // Delivery: claim order (create+accept) by partner

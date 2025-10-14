@@ -366,6 +366,21 @@ public class DeliveryAssignmentService {
     public List<Map<String, Object>> getOrderItems(Long orderId) {
         log.info("Fetching order items for order ID: {}", orderId);
         String sql = "SELECT menu_item_id, name, price, quantity, special_instructions FROM order_items WHERE order_id = ?";
+        
+        // First, let's check if the order_items table exists and has data
+        try {
+            String countSql = "SELECT COUNT(*) FROM order_items WHERE order_id = ?";
+            Integer count = jdbcTemplate.queryForObject(countSql, Integer.class, orderId);
+            log.info("Found {} order items in database for order {}", count, orderId);
+            
+            // Also check all order_items to see what's in the table
+            String allItemsSql = "SELECT order_id, menu_item_id, name, price, quantity FROM order_items LIMIT 10";
+            List<Map<String, Object>> allItems = jdbcTemplate.queryForList(allItemsSql);
+            log.info("Sample order items in database: {}", allItems);
+        } catch (Exception e) {
+            log.error("Error checking order_items table: {}", e.getMessage());
+        }
+        
         List<Map<String, Object>> items = jdbcTemplate.query(sql, (rs, rowNum) -> {
             Map<String, Object> item = new java.util.HashMap<>();
             item.put("menuItemId", rs.getLong("menu_item_id"));
@@ -525,6 +540,18 @@ public class DeliveryAssignmentService {
     private DeliveryAssignmentDto convertToDto(DeliveryAssignment assignment) {
         DeliveryAssignmentDto dto = new DeliveryAssignmentDto();
         BeanUtils.copyProperties(assignment, dto);
+        
+        // Fetch order total amount
+        try {
+            String orderSql = "SELECT total_amount FROM orders WHERE id = ?";
+            Double totalAmount = jdbcTemplate.queryForObject(orderSql, Double.class, assignment.getOrderId());
+            if (totalAmount != null) {
+                dto.setTotalAmount(BigDecimal.valueOf(totalAmount));
+                log.info("Set order total amount to: {}", dto.getTotalAmount());
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch order total amount for order {}: {}", assignment.getOrderId(), e.getMessage());
+        }
         
         // Fetch customer name
         try {
