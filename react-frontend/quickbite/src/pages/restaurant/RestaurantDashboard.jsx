@@ -30,6 +30,7 @@ import AnalyticsCard from '../../components/restaurant/AnalyticsCard';
 import { LineChart, BarChart, PieChart, AreaChart, ChartControls } from '../../components/charts';
 import Modal from '../../components/common/Modal';
 import TextField from '../../components/common/TextField';
+import RestaurantFormModal from '../../components/restaurant/RestaurantFormModal';
 
 const RestaurantDashboard = () => {
   const dispatch = useDispatch();
@@ -1050,8 +1051,6 @@ const RestaurantDashboard = () => {
                 <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
                   <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#333' }}>Basic Information</Typography>
             <Stack spacing={2}>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12}>
               <TextField 
                 select 
                           label="Category *" 
@@ -1065,16 +1064,12 @@ const RestaurantDashboard = () => {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </TextField>
-                      </Grid>
-                      <Grid item xs={12} md={6}>
                         <TextField 
                           label="Item Name *" 
                           fullWidth 
                           value={editingItem.name} 
                           onChange={(e) => setEditingItem({ ...editingItem, name: e.target.value })} 
                         />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
                         <TextField 
                           label="Preparation Time (minutes)" 
                           type="number" 
@@ -1082,8 +1077,6 @@ const RestaurantDashboard = () => {
                           value={editingItem.preparationTime} 
                           onChange={(e) => setEditingItem({ ...editingItem, preparationTime: Number(e.target.value) })} 
                         />
-                      </Grid>
-                      <Grid item xs={12}>
                         <TextField 
                           label="Description" 
                           fullWidth 
@@ -1092,16 +1085,12 @@ const RestaurantDashboard = () => {
                           value={editingItem.description} 
                           onChange={(e) => setEditingItem({ ...editingItem, description: e.target.value })} 
                         />
-                      </Grid>
-                      <Grid item xs={12}>
                         <TextField 
                           label="Image URL" 
                           fullWidth 
                           value={editingItem.imageUrl} 
                           onChange={(e) => setEditingItem({ ...editingItem, imageUrl: e.target.value })} 
                         />
-                      </Grid>
-                    </Grid>
               </Stack>
                 </Paper>
 
@@ -1109,8 +1098,6 @@ const RestaurantDashboard = () => {
                 <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
                   <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#333' }}>Pricing</Typography>
                   <Stack spacing={2}>
-              <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
                         <TextField 
                           label="Current Price (₹) *" 
                           type="number" 
@@ -1119,8 +1106,6 @@ const RestaurantDashboard = () => {
                           value={editingItem.price} 
                           onChange={(e) => setEditingItem({ ...editingItem, price: Number(e.target.value) })} 
                         />
-                </Grid>
-                      <Grid item xs={12} md={6}>
                         <TextField 
                           label="Original Price (₹)" 
                           type="number" 
@@ -1129,8 +1114,6 @@ const RestaurantDashboard = () => {
                           value={editingItem.originalPrice} 
                           onChange={(e) => setEditingItem({ ...editingItem, originalPrice: Number(e.target.value) })} 
                         />
-                </Grid>
-                </Grid>
                   </Stack>
                 </Paper>
 
@@ -1177,8 +1160,6 @@ const RestaurantDashboard = () => {
                 <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
                   <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#333' }}>Nutrition Information</Typography>
                   <Stack spacing={2}>
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} md={6}>
                         <TextField 
                           label="Calories" 
                           type="number" 
@@ -1190,8 +1171,6 @@ const RestaurantDashboard = () => {
                             setEditingItem({ ...editingItem, nutrition: next });
                           }} 
                         />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
                         <TextField 
                           label="Protein (g)" 
                           type="number" 
@@ -1204,8 +1183,6 @@ const RestaurantDashboard = () => {
                             setEditingItem({ ...editingItem, nutrition: next });
                           }} 
                         />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
                         <TextField 
                           label="Carbs (g)" 
                           type="number" 
@@ -1218,8 +1195,6 @@ const RestaurantDashboard = () => {
                             setEditingItem({ ...editingItem, nutrition: next });
                           }} 
                         />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
                         <TextField 
                           label="Fat (g)" 
                           type="number" 
@@ -1232,8 +1207,6 @@ const RestaurantDashboard = () => {
                             setEditingItem({ ...editingItem, nutrition: next });
                           }} 
                         />
-                </Grid>
-              </Grid>
             </Stack>
                 </Paper>
 
@@ -1278,460 +1251,27 @@ const RestaurantDashboard = () => {
           </Stack>
         </Modal>
 
-        {/* Profile Modal */}
-        <Modal
+        {/* Unified Restaurant Form Modal for Edit */}
+        <RestaurantFormModal
           open={showProfileModal}
           onClose={() => setShowProfileModal(false)}
           title="Edit Restaurant Profile"
-          maxWidth="lg"
-          fullWidth
-          actions={<Button variant="contained" onClick={saveProfile} sx={{ background: '#fc8019' }}>Save Changes</Button>}
-        >
-          <Box sx={{ maxHeight: '80vh', overflowY: 'auto', p: 1 }}>
-            <Stack spacing={3}>
-              {/* Basic Information */}
-              <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#333' }}>Basic Information</Typography>
-          <Stack spacing={2}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Restaurant Name" 
-                        fullWidth 
-                        value={profileDraft.name} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, name: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Contact Number" 
-                        fullWidth 
-                        value={profileDraft.contactNumber} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, contactNumber: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField 
-                        label="Address" 
-                        fullWidth 
-                        multiline 
-                        rows={2} 
-                        value={profileDraft.address} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, address: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Cuisine Type" 
-                        fullWidth 
-                        value={profileDraft.cuisineType} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, cuisineType: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Tags (comma-separated)" 
-                        fullWidth 
-                        placeholder="Popular, Fast Delivery, Best Seller"
-                        value={profileDraft.tags} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, tags: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField 
-                        label="Description" 
-                        fullWidth 
-                        multiline 
-                        rows={3}
-                        value={profileDraft.description} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, description: e.target.value })} 
-                      />
-                    </Grid>
-                  </Grid>
-          </Stack>
-              </Paper>
+          values={profileDraft}
+          onChange={(patch) => setProfileDraft({ ...profileDraft, ...patch })}
+          onSubmit={() => saveProfile()}
+          submitLabel="Save Changes"
+        />
 
-              {/* Operating Hours */}
-              <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#333' }}>Operating Hours</Typography>
-                <Stack spacing={2}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={4}>
-                      <TextField 
-                        label="Opening Time" 
-                        type="time"
-                        fullWidth 
-                        value={profileDraft.openingTime} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, openingTime: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField 
-                        label="Closing Time" 
-                        type="time"
-                        fullWidth 
-                        value={profileDraft.closingTime} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, closingTime: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField 
-                        label="Business Hours (Text)" 
-                        fullWidth 
-                        placeholder="10:00 AM - 11:00 PM"
-                        value={profileDraft.openingHours} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, openingHours: e.target.value })} 
-                      />
-                    </Grid>
-                  </Grid>
-                </Stack>
-              </Paper>
-
-              {/* Delivery Settings (New Restaurant) */}
-              <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#333' }}>Delivery Settings</Typography>
-                <Stack spacing={2}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={4}>
-                      <TextField 
-                        label="Delivery Radius (km)" 
-                        type="number" 
-                        fullWidth 
-                        value={profileDraft.deliveryRadiusKm} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, deliveryRadiusKm: Number(e.target.value) })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField 
-                        label="Delivery Fee ($)" 
-                        type="number" 
-                        step="0.01"
-                        fullWidth 
-                        value={profileDraft.deliveryFee} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, deliveryFee: Number(e.target.value) })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField 
-                        label="Minimum Order ($)" 
-                        type="number" 
-                        step="0.01"
-                        fullWidth 
-                        value={profileDraft.minimumOrder} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, minimumOrder: Number(e.target.value) })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Delivery Time" 
-                        fullWidth 
-                        placeholder="30-45 min"
-                        value={profileDraft.deliveryTime} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, deliveryTime: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Grid container spacing={1} alignItems="center">
-                        <Grid item xs={12} md={4}>
-                          <TextField label="Latitude" type="number" value={profileDraft.latitude || ''} onChange={(e) => setProfileDraft({ ...profileDraft, latitude: e.target.value })} fullWidth />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                          <TextField label="Longitude" type="number" value={profileDraft.longitude || ''} onChange={(e) => setProfileDraft({ ...profileDraft, longitude: e.target.value })} fullWidth />
-                        </Grid>
-                        <Grid item xs={6} md={2}>
-                          <Button fullWidth variant="outlined" size="medium" onClick={() => dispatch(openMapModal())}>Select on Map</Button>
-                        </Grid>
-                        <Grid item xs={6} md={2}>
-                          <Button fullWidth variant="contained" size="medium" disabled={isGeocoding} onClick={() => {
-                            if (isGeocoding) { setPendingApplyMapLocation(true); return; }
-                            const lat = selectedCoordinates?.lat ?? currentLocation.lat;
-                            const lng = selectedCoordinates?.lng ?? currentLocation.lng;
-                            setProfileDraft({ ...profileDraft, latitude: lat, longitude: lng, address: profileDraft.address || currentLocation.address });
-                          }} sx={{ background: '#fc8019' }}>{isGeocoding ? 'Loading…' : 'Use Selected'}</Button>
-                        </Grid>
-                      </Grid>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', height: '100%' }}>
-                        <Button 
-                          variant={profileDraft.isVeg ? 'contained' : 'outlined'} 
-                          onClick={() => setProfileDraft({ ...profileDraft, isVeg: !profileDraft.isVeg })}
-                          sx={{ textTransform: 'none' }}
-                        >
-                          {profileDraft.isVeg ? 'Veg' : 'Non-Veg'}
-                        </Button>
-                        <Button 
-                          variant={profileDraft.isPureVeg ? 'contained' : 'outlined'} 
-                          onClick={() => setProfileDraft({ ...profileDraft, isPureVeg: !profileDraft.isPureVeg })}
-                          sx={{ textTransform: 'none' }}
-                        >
-                          {profileDraft.isPureVeg ? 'Pure Veg' : 'Mixed'}
-                        </Button>
-                      </Stack>
-                    </Grid>
-                  </Grid>
-                </Stack>
-              </Paper>
-
-              {/* Images */}
-              <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#333' }}>Images</Typography>
-                <Stack spacing={2}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Logo Image URL" 
-                        fullWidth 
-                        value={profileDraft.image} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, image: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Cover Image URL" 
-                        fullWidth 
-                        value={profileDraft.coverImage} 
-                        onChange={(e) => setProfileDraft({ ...profileDraft, coverImage: e.target.value })} 
-                      />
-                    </Grid>
-                  </Grid>
-                </Stack>
-              </Paper>
-            </Stack>
-          </Box>
-        </Modal>
-
-        {/* New Restaurant Modal */}
-        <Modal
+        {/* Unified Restaurant Form Modal for Create */}
+        <RestaurantFormModal
           open={showNewRestaurantModal}
           onClose={() => setShowNewRestaurantModal(false)}
           title="Add New Restaurant"
-          maxWidth="lg"
-          fullWidth
-          actions={
-            <Stack direction="row" spacing={1}>
-              <Button onClick={() => setShowNewRestaurantModal(false)}>Cancel</Button>
-              <Button variant="contained" onClick={handleCreateRestaurant} sx={{ background: '#fc8019' }}>Create Restaurant</Button>
-            </Stack>
-          }
-        >
-          <Box sx={{ maxHeight: '70vh', overflowY: 'auto', p: 1 }}>
-            <Typography variant="body2" sx={{ color: '#666', mb: 3 }}>
-              Fill in the details to create a new restaurant. Your application will be reviewed by our admin team.
-            </Typography>
-            
-            <Stack spacing={3}>
-              {/* Basic Information */}
-              <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#333' }}>Basic Information</Typography>
-                <Stack spacing={2}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Restaurant Name *" 
-                        fullWidth 
-                        value={newRestaurantData.name} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, name: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Contact Number *" 
-                        fullWidth 
-                        value={newRestaurantData.contactNumber} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, contactNumber: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField 
-                        label="Address *" 
-                        fullWidth 
-                        multiline 
-                        rows={2} 
-                        value={newRestaurantData.address} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, address: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Cuisine Type *" 
-                        fullWidth 
-                        value={newRestaurantData.cuisineType} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, cuisineType: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Tags (comma-separated)" 
-                        fullWidth 
-                        placeholder="Popular, Fast Delivery, Best Seller"
-                        value={newRestaurantData.tags} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, tags: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <TextField 
-                        label="Description" 
-                        fullWidth 
-                        multiline 
-                        rows={3}
-                        value={newRestaurantData.description} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, description: e.target.value })} 
-                      />
-                    </Grid>
-                  </Grid>
-                </Stack>
-              </Paper>
-
-              {/* Operating Hours */}
-              <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#333' }}>Operating Hours</Typography>
-                <Stack spacing={2}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={4}>
-                      <TextField 
-                        label="Opening Time" 
-                        type="time"
-                        fullWidth 
-                        value={newRestaurantData.openingTime} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, openingTime: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField 
-                        label="Closing Time" 
-                        type="time"
-                        fullWidth 
-                        value={newRestaurantData.closingTime} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, closingTime: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField 
-                        label="Business Hours (Text)" 
-                        fullWidth 
-                        placeholder="10:00 AM - 11:00 PM"
-                        value={newRestaurantData.openingHours} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, openingHours: e.target.value })} 
-                      />
-                    </Grid>
-                  </Grid>
-                </Stack>
-              </Paper>
-
-              {/* Delivery Settings */}
-              <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#333' }}>Delivery Settings</Typography>
-                <Stack spacing={2}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={4}>
-                      <TextField 
-                        label="Delivery Radius (km)" 
-                        type="number" 
-                        fullWidth 
-                        value={newRestaurantData.deliveryRadiusKm} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, deliveryRadiusKm: Number(e.target.value) })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField 
-                        label="Delivery Fee ($)" 
-                        type="number" 
-                        step="0.01"
-                        fullWidth 
-                        value={newRestaurantData.deliveryFee} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, deliveryFee: Number(e.target.value) })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={4}>
-                      <TextField 
-                        label="Minimum Order ($)" 
-                        type="number" 
-                        step="0.01"
-                        fullWidth 
-                        value={newRestaurantData.minimumOrder} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, minimumOrder: Number(e.target.value) })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Delivery Time" 
-                        fullWidth 
-                        placeholder="30-45 min"
-                        value={newRestaurantData.deliveryTime} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, deliveryTime: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12}>
-                      <Grid container spacing={1} alignItems="center">
-                        <Grid item xs={12} md={4}>
-                          <TextField label="Latitude" type="number" value={newRestaurantData.latitude || ''} onChange={(e) => setNewRestaurantData({ ...newRestaurantData, latitude: e.target.value })} fullWidth />
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                          <TextField label="Longitude" type="number" value={newRestaurantData.longitude || ''} onChange={(e) => setNewRestaurantData({ ...newRestaurantData, longitude: e.target.value })} fullWidth />
-                        </Grid>
-                        <Grid item xs={6} md={2}>
-                          <Button fullWidth variant="outlined" size="medium" onClick={() => dispatch(openMapModal())}>Select on Map</Button>
-                        </Grid>
-                        <Grid item xs={6} md={2}>
-                          <Button fullWidth variant="contained" size="medium" disabled={isGeocoding} onClick={() => {
-                            if (isGeocoding) { return; }
-                            const lat = selectedCoordinates?.lat ?? currentLocation.lat;
-                            const lng = selectedCoordinates?.lng ?? currentLocation.lng;
-                            setNewRestaurantData({ ...newRestaurantData, latitude: lat, longitude: lng, address: newRestaurantData.address || currentLocation.address });
-                          }} sx={{ background: '#fc8019' }}>{isGeocoding ? 'Loading…' : 'Use Selected'}</Button>
-                        </Grid>
-                      </Grid>
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <Stack direction="row" spacing={2} sx={{ alignItems: 'center', height: '100%' }}>
-                        <Button 
-                          variant={newRestaurantData.isVeg ? 'contained' : 'outlined'} 
-                          onClick={() => setNewRestaurantData({ ...newRestaurantData, isVeg: !newRestaurantData.isVeg })}
-                          sx={{ textTransform: 'none' }}
-                        >
-                          {newRestaurantData.isVeg ? 'Veg' : 'Non-Veg'}
-                        </Button>
-                        <Button 
-                          variant={newRestaurantData.isPureVeg ? 'contained' : 'outlined'} 
-                          onClick={() => setNewRestaurantData({ ...newRestaurantData, isPureVeg: !newRestaurantData.isPureVeg })}
-                          sx={{ textTransform: 'none' }}
-                        >
-                          {newRestaurantData.isPureVeg ? 'Pure Veg' : 'Mixed'}
-                        </Button>
-                      </Stack>
-                    </Grid>
-                  </Grid>
-                </Stack>
-              </Paper>
-
-              {/* Images */}
-              <Paper sx={{ p: 3, border: '1px solid #e0e0e0' }}>
-                <Typography variant="h6" sx={{ mb: 2, fontWeight: 600, color: '#333' }}>Images</Typography>
-                <Stack spacing={2}>
-                  <Grid container spacing={2}>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Logo Image URL" 
-                        fullWidth 
-                        value={newRestaurantData.image} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, image: e.target.value })} 
-                      />
-                    </Grid>
-                    <Grid item xs={12} md={6}>
-                      <TextField 
-                        label="Cover Image URL" 
-                        fullWidth 
-                        value={newRestaurantData.coverImage} 
-                        onChange={(e) => setNewRestaurantData({ ...newRestaurantData, coverImage: e.target.value })} 
-                      />
-                    </Grid>
-                  </Grid>
-                </Stack>
-              </Paper>
-            </Stack>
-          </Box>
-        </Modal>
+          values={newRestaurantData}
+          onChange={(patch) => setNewRestaurantData({ ...newRestaurantData, ...patch })}
+          onSubmit={() => handleCreateRestaurant()}
+          submitLabel="Create Restaurant"
+        />
       </Container>
     </Box>
   );

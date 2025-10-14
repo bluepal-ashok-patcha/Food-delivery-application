@@ -25,6 +25,8 @@ import DeliveryMap from '../../components/maps/DeliveryMap';
 
 import { deliveryAPI, orderAPI } from '../../services/api';
 
+import { LineChart, BarChart, PieChart, AreaChart, ChartControls } from '../../components/charts';
+
 
 const DeliveryDashboard = () => {
 
@@ -1013,190 +1015,168 @@ const DeliveryDashboard = () => {
                   <LinearProgress sx={{ width: '200px' }} />
                 </Box>
               ) : (
-              <Grid container spacing={3}>
-                  {/* Key Metrics Row */}
-                  <Grid item xs={12}>
-                    <Grid container spacing={2}>
-                      <Grid item xs={6} md={3}>
-                        <Paper sx={{ 
-                          p: 3, 
-                          borderRadius: '3px', 
-                          border: '1px solid #e0e0e0',
-                          textAlign: 'center',
-                          height: '120px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center'
+                <Box>
+                  <ChartControls
+                    period={analyticsPeriod}
+                    onPeriodChange={setAnalyticsPeriod}
+                    onRefresh={() => {
+                      // Refresh analytics data
+                      console.log('Refresh delivery analytics data');
+                    }}
+                  />
+
+                  <Box sx={{ width: '100%' }}>
+                    {/* Row 1: Delivery Performance & Performance Metrics */}
+                    <Box sx={{ display: 'flex', gap: 4, mb: 4, flexWrap: 'wrap' }}>
+                      <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                        <BarChart
+                          title="Delivery Performance"
+                          data={[
+                            { name: 'Completed', value: analytics?.completedDeliveries || 0, color: '#4caf50' },
+                            { name: 'Cancelled', value: analytics?.cancelledDeliveries || 0, color: '#f44336' },
+                            { name: 'On-Time', value: analytics?.onTimeDeliveryRate || 0, color: '#2196f3' },
+                            { name: 'Active', value: analytics?.activeDeliveries || 0, color: '#ff9800' }
+                          ]}
+                          dataKey="value"
+                          xAxisKey="name"
+                          color="#6c757d"
+                          height={400}
+                          formatXAxis={(value) => value}
+                          formatYAxis={(value) => value}
+                          formatTooltip={(value, name, props) => [
+                            `${value}${props.payload?.name === 'On-Time' ? '%' : ''}`, 
+                            props.payload?.name || name
+                          ]}
+                        />
+                      </Box>
+                      <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                        <BarChart
+                          title="Performance Metrics"
+                          data={[
+                            { name: 'Completion Rate', value: analytics?.completionRate || 0, color: '#4caf50' },
+                            { name: 'Cancellation Rate', value: analytics?.cancellationRate || 0, color: '#f44336' },
+                            { name: 'On-Time Rate', value: analytics?.onTimeDeliveryRate || 0, color: '#2196f3' },
+                            { name: 'Avg Rating', value: (analytics?.averageRating || 0) * 20, color: '#ff9800' }
+                          ]}
+                          dataKey="value"
+                          xAxisKey="name"
+                          color="#6c757d"
+                          height={400}
+                          formatXAxis={(value) => value.replace(' Rate', '').replace('Avg Rating', 'Rating')}
+                          formatYAxis={(value) => `${value.toFixed(1)}%`}
+                          formatTooltip={(value, name, props) => [
+                            props.payload?.name === 'Avg Rating' ? `${(value/20).toFixed(1)} ⭐` : `${value.toFixed(1)}%`, 
+                            props.payload?.name || name
+                          ]}
+                        />
+                      </Box>
+                    </Box>
+
+                    {/* Row 2: Rating Distribution & Summary Cards */}
+                    <Box sx={{ display: 'flex', gap: 4, mb: 4, flexWrap: 'wrap' }}>
+                      <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                        <PieChart
+                          title="Rating Distribution"
+                          data={[
+                            { name: '5 Stars', value: Math.floor((analytics?.totalReviews || 0) * 0.5), percentage: 50 },
+                            { name: '4 Stars', value: Math.floor((analytics?.totalReviews || 0) * 0.3), percentage: 30 },
+                            { name: '3 Stars', value: Math.floor((analytics?.totalReviews || 0) * 0.15), percentage: 15 },
+                            { name: '2 Stars', value: Math.floor((analytics?.totalReviews || 0) * 0.03), percentage: 3 },
+                            { name: '1 Star', value: Math.floor((analytics?.totalReviews || 0) * 0.02), percentage: 2 }
+                          ]}
+                          dataKey="value"
+                          nameKey="name"
+                          height={400}
+                          formatTooltip={(value, name, props) => [
+                            `${value} reviews (${props.payload?.percentage || 0}%)`, 
+                            name
+                          ]}
+                          colors={['#ffc107', '#ff9800', '#ff5722', '#f44336', '#d32f2f']}
+                        />
+                      </Box>
+                      <Box sx={{ flex: '1 1 calc(50% - 16px)', minWidth: '400px' }}>
+                        <Box sx={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: 'repeat(2, 1fr)', 
+                          gap: 3, 
+                          height: '100%' 
                         }}>
-                          <Typography variant="h4" sx={{ fontWeight: 600, color: '#1a1a1a', mb: 1 }}>
-                            {analytics?.totalDeliveries || 0}
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: '#666' }}>
-                            Total Deliveries
-                          </Typography>
-                        </Paper>
-                      </Grid>
-                      
-                      <Grid item xs={6} md={3}>
-                        <Paper sx={{ 
-                          p: 3, 
-                          borderRadius: '3px', 
-                          border: '1px solid #e0e0e0',
+                          <Box sx={{ 
+                            p: 4, 
                           textAlign: 'center',
-                          height: '120px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center'
-                        }}>
-                          <Typography variant="h4" sx={{ fontWeight: 600, color: '#1a1a1a', mb: 1 }}>
-                            {analytics?.completionRate ? `${analytics.completionRate.toFixed(0)}%` : '0%'}
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: '#666' }}>
-                            Completion Rate
-                          </Typography>
-                        </Paper>
-                      </Grid>
-                      
-                      <Grid item xs={6} md={3}>
-                        <Paper sx={{ 
-                          p: 3, 
-                          borderRadius: '3px', 
-                          border: '1px solid #e0e0e0',
-                          textAlign: 'center',
-                          height: '120px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center'
-                        }}>
-                          <Typography variant="h4" sx={{ fontWeight: 600, color: '#1a1a1a', mb: 1 }}>
-                            {analytics?.averageRating ? analytics.averageRating.toFixed(1) : '0.0'}
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: '#666' }}>
-                            Average Rating
-                          </Typography>
-                        </Paper>
-                      </Grid>
-                      
-                      <Grid item xs={6} md={3}>
-                        <Paper sx={{ 
-                          p: 3, 
-                          borderRadius: '3px', 
-                          border: '1px solid #e0e0e0',
-                          textAlign: 'center',
-                          height: '120px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center'
-                        }}>
-                          <Typography variant="h4" sx={{ fontWeight: 600, color: '#1a1a1a', mb: 1 }}>
-                            {analytics?.averageDeliveryTime ? `${analytics.averageDeliveryTime.toFixed(0)}m` : '0m'}
-                          </Typography>
-                          <Typography variant="body2" sx={{ color: '#666' }}>
-                            Avg. Delivery Time
-                          </Typography>
-                        </Paper>
-                      </Grid>
-                    </Grid>
-                  </Grid>
-                  
-                  {/* Earnings Section */}
-                  <Grid item xs={12}>
-                    <Paper sx={{ p: 3, borderRadius: '3px', border: '1px solid #e0e0e0' }}>
-                      <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#1a1a1a' }}>
-                        Earnings Overview
-                      </Typography>
-                      <Grid container spacing={3}>
-                        <Grid item xs={12} md={4}>
-                          <Box sx={{ textAlign: 'center', p: 2 }}>
-                            <Typography variant="h5" sx={{ fontWeight: 600, color: '#1a1a1a', mb: 1 }}>
-                              ₹{analytics?.totalEarnings || 0}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#666' }}>
-                              Total Earnings
-                            </Typography>
+                            backgroundColor: '#fff',
+                            borderRadius: '12px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                            border: '1px solid #e0e0e0',
+                            transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                            }
+                          }}>
+                            <Typography variant="h6" gutterBottom sx={{ color: '#2196f3', fontWeight: 600, fontSize: '16px' }}>Total Deliveries</Typography>
+                            <Typography variant="h3" color="primary" sx={{ fontWeight: 700, fontSize: '2.5rem' }}>{analytics?.totalDeliveries || 0}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>All Time</Typography>
                           </Box>
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                          <Box sx={{ textAlign: 'center', p: 2 }}>
-                            <Typography variant="h5" sx={{ fontWeight: 600, color: '#1a1a1a', mb: 1 }}>
-                              ₹{analytics?.todayEarnings || 0}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#666' }}>
-                              Today's Earnings
-                            </Typography>
+                          
+                          <Box sx={{ 
+                            p: 4, 
+                          textAlign: 'center',
+                            backgroundColor: '#fff',
+                            borderRadius: '12px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                            border: '1px solid #e0e0e0',
+                            transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                            }
+                          }}>
+                            <Typography variant="h6" gutterBottom sx={{ color: '#4caf50', fontWeight: 600, fontSize: '16px' }}>Total Earnings</Typography>
+                            <Typography variant="h3" color="success.main" sx={{ fontWeight: 700, fontSize: '2.5rem' }}>₹{(analytics?.totalEarnings || 0).toLocaleString()}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>All Time</Typography>
                           </Box>
-                        </Grid>
-                        <Grid item xs={12} md={4}>
-                          <Box sx={{ textAlign: 'center', p: 2 }}>
-                            <Typography variant="h5" sx={{ fontWeight: 600, color: '#1a1a1a', mb: 1 }}>
-                              ₹{analytics?.averageEarningsPerDelivery || 0}
-                            </Typography>
-                            <Typography variant="body2" sx={{ color: '#666' }}>
-                              Avg. per Delivery
-                            </Typography>
+                          
+                          <Box sx={{ 
+                            p: 4, 
+                          textAlign: 'center',
+                            backgroundColor: '#fff',
+                            borderRadius: '12px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                            border: '1px solid #e0e0e0',
+                            transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                            }
+                          }}>
+                            <Typography variant="h6" gutterBottom sx={{ color: '#ff9800', fontWeight: 600, fontSize: '16px' }}>Avg Rating</Typography>
+                            <Typography variant="h3" color="warning.main" sx={{ fontWeight: 700, fontSize: '2.5rem' }}>{(analytics?.averageRating || 0).toFixed(1)}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>Out of 5</Typography>
                           </Box>
-                        </Grid>
-                      </Grid>
-                    </Paper>
-                  </Grid>
-                  
-                  {/* Detailed Stats */}
-                <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 3, borderRadius: '3px', border: '1px solid #e0e0e0' }}>
-                      <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#1a1a1a' }}>
-                        Delivery Statistics
-                      </Typography>
-                      <Stack spacing={2}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, borderBottom: '1px solid #f0f0f0' }}>
-                          <Typography variant="body2" sx={{ color: '#666' }}>Completed Deliveries</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500, color: '#1a1a1a' }}>
-                            {analytics?.completedDeliveries || 0}
-                          </Typography>
+                          
+                          <Box sx={{ 
+                            p: 4, 
+                          textAlign: 'center',
+                            backgroundColor: '#fff',
+                            borderRadius: '12px',
+                            boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
+                            border: '1px solid #e0e0e0',
+                            transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                            '&:hover': {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 12px 40px rgba(0,0,0,0.15)'
+                            }
+                          }}>
+                            <Typography variant="h6" gutterBottom sx={{ color: '#9c27b0', fontWeight: 600, fontSize: '16px' }}>Avg Time</Typography>
+                            <Typography variant="h3" color="info.main" sx={{ fontWeight: 700, fontSize: '2.5rem' }}>{analytics?.averageDeliveryTime ? `${analytics.averageDeliveryTime.toFixed(0)}m` : '0m'}</Typography>
+                            <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>Per Delivery</Typography>
+                          </Box>
+                          </Box>
+                          </Box>
                         </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, borderBottom: '1px solid #f0f0f0' }}>
-                          <Typography variant="body2" sx={{ color: '#666' }}>Cancelled Deliveries</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500, color: '#1a1a1a' }}>
-                            {analytics?.cancelledDeliveries || 0}
-                          </Typography>
                         </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5 }}>
-                          <Typography variant="body2" sx={{ color: '#666' }}>On-time Rate</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500, color: '#1a1a1a' }}>
-                            {analytics?.onTimeDeliveryRate ? `${analytics.onTimeDeliveryRate.toFixed(0)}%` : '0%'}
-                          </Typography>
                         </Box>
-                      </Stack>
-                    </Paper>
-                </Grid>
-                
-                <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 3, borderRadius: '3px', border: '1px solid #e0e0e0' }}>
-                      <Typography variant="h6" sx={{ mb: 3, fontWeight: 600, color: '#1a1a1a' }}>
-                        Performance Metrics
-                      </Typography>
-                      <Stack spacing={2}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, borderBottom: '1px solid #f0f0f0' }}>
-                          <Typography variant="body2" sx={{ color: '#666' }}>Total Reviews</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500, color: '#1a1a1a' }}>
-                            {analytics?.totalReviews || 0}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5, borderBottom: '1px solid #f0f0f0' }}>
-                          <Typography variant="body2" sx={{ color: '#666' }}>Cancellation Rate</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500, color: '#1a1a1a' }}>
-                            {analytics?.cancellationRate ? `${analytics.cancellationRate.toFixed(1)}%` : '0%'}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', py: 1.5 }}>
-                          <Typography variant="body2" sx={{ color: '#666' }}>Active Deliveries</Typography>
-                          <Typography variant="body1" sx={{ fontWeight: 500, color: '#1a1a1a' }}>
-                            {analytics?.activeDeliveries || 0}
-                          </Typography>
-                        </Box>
-                      </Stack>
-                    </Paper>
-                </Grid>
-              </Grid>
               )}
             </Box>
           )}

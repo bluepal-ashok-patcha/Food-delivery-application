@@ -4,6 +4,21 @@ import { Paper, Typography, Box } from '@mui/material';
 
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82CA9D', '#FFC658', '#FF7C7C'];
 
+const RADIAN = Math.PI / 180;
+const renderCustomizedLabel = ({ cx, cy, midAngle, outerRadius, percent, name, value }) => {
+  if (!value || percent * 100 < 3) {
+    return null;
+  }
+  const radius = outerRadius + 12;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  return (
+    <text x={x} y={y} fill="#333" textAnchor={x > cx ? 'start' : 'end'} dominantBaseline="central" style={{ fontSize: 12 }}>
+      {`${name} ${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
 const PieChart = ({ 
   title, 
   data, 
@@ -69,12 +84,14 @@ const PieChart = ({
               data={data}
               cx="50%"
               cy="45%"
-              labelLine={false}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              labelLine={{ stroke: '#e0e0e0' }}
+              label={renderCustomizedLabel}
               outerRadius={80}
               fill="#8884d8"
               dataKey={dataKey}
               nameKey={nameKey}
+              paddingAngle={2}
+              minAngle={2}
             >
               {data.map((entry, index) => (
                 <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />

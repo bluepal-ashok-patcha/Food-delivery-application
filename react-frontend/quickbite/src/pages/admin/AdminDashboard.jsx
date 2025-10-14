@@ -1982,13 +1982,10 @@ const AdminDashboard = () => {
         {/* Restaurant Modal */}
 
         <Modal 
-
           open={openRestaurantModal}
-
           onClose={() => setOpenRestaurantModal(false)}
-
           title={formValues?.id ? 'Edit Restaurant' : 'Add Restaurant'}
-
+          maxWidth="md"
           actions={
 
             <Stack direction="row" spacing={2}>
