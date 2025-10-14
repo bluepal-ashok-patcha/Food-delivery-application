@@ -645,118 +645,6 @@ public class RestaurantService {
         }
     }
 
-
-
-//    private Map<String, Restaurant> parseRestaurants(Sheet sheet) {
-//        Map<String, Restaurant> map = new HashMap<>();
-//
-//        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
-//            Row row = sheet.getRow(i);
-//            if (row == null) continue;
-//
-//            Restaurant restaurant = new Restaurant();
-//            restaurant.setName(row.getCell(0).getStringCellValue());
-//            restaurant.setCuisineType(row.getCell(1).getStringCellValue());
-//            restaurant.setAddress(row.getCell(2).getStringCellValue());
-//            restaurant.setContactNumber(row.getCell(3).getStringCellValue());
-//            restaurant.setDescription(row.getCell(4).getStringCellValue());
-//            restaurant.setImage(row.getCell(5).getStringCellValue());
-//            restaurant.setCoverImage(row.getCell(6).getStringCellValue());
-//            restaurant.setRating(row.getCell(7).getNumericCellValue());
-//            restaurant.setTotalRatings((int) row.getCell(8).getNumericCellValue());
-//            restaurant.setDeliveryTime(row.getCell(9).getStringCellValue());
-//            restaurant.setDeliveryFee(row.getCell(10).getNumericCellValue());
-//            restaurant.setMinimumOrder(row.getCell(11).getNumericCellValue());
-//            restaurant.setIsOpen(row.getCell(12).getStringCellValue().equalsIgnoreCase("Yes"));
-//            restaurant.setIsActive(row.getCell(13).getStringCellValue().equalsIgnoreCase("Yes"));
-//            restaurant.setIsVeg(row.getCell(14).getStringCellValue().equalsIgnoreCase("Yes"));
-//            restaurant.setIsPureVeg(row.getCell(15).getStringCellValue().equalsIgnoreCase("Yes"));
-//            restaurant.setOpeningHours(row.getCell(16).getStringCellValue());
-////            restaurant.setDeliveryRadiusKm(row.getCell(17).getStringCellValue());
-//            Cell deliveryRadiusCell = row.getCell(17);
-//            if (deliveryRadiusCell != null) {
-//                if (deliveryRadiusCell.getCellType() == CellType.NUMERIC) {
-//                    restaurant.setDeliveryRadiusKm((int) deliveryRadiusCell.getNumericCellValue());
-//                } else {
-//                    String radiusStr = deliveryRadiusCell.getStringCellValue();
-//                    try {
-//                        restaurant.setDeliveryRadiusKm(Integer.parseInt(radiusStr));
-//                    } catch (NumberFormatException e) {
-//                        restaurant.setDeliveryRadiusKm(0); // default or skip
-//                    }
-//                }
-//            }
-//            restaurant.setLatitude(row.getCell(18).getNumericCellValue());
-//            restaurant.setLongitude(row.getCell(19).getNumericCellValue());
-//            restaurant.setTags(row.getCell(20).getStringCellValue());
-//       
-//           
-//            // Handle Opening Time
-//            Cell openingTimeCell = row.getCell(21);
-//            if (openingTimeCell != null) {
-//                try {
-//                    if (openingTimeCell.getCellType() == CellType.NUMERIC) {
-//                        // Excel stores time as a numeric fraction of the day
-//                        Date timeValue = DateUtil.getJavaDate(openingTimeCell.getNumericCellValue());
-//                        restaurant.setOpeningTime(timeValue.toInstant()
-//                                .atZone(ZoneId.systemDefault())
-//                                .toLocalTime()
-//                                .withSecond(0)
-//                                .withNano(0));
-//                    } else {
-//                        String timeStr = openingTimeCell.getStringCellValue().trim();
-//                        DateTimeFormatter formatter;
-//                        if (timeStr.toUpperCase().contains("AM") || timeStr.toUpperCase().contains("PM")) {
-//                            formatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH);
-//                        } else {
-//                            formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
-//                        }
-//                        restaurant.setOpeningTime(LocalTime.parse(timeStr, formatter));
-//                    }
-//                } catch (Exception e) {
-//                    System.out.println("⚠️ Could not parse opening time: " + openingTimeCell + " → " + e.getMessage());
-//                }
-//            }
-//
-//            // Handle Closing Time
-//            Cell closingTimeCell = row.getCell(22);
-//            if (closingTimeCell != null) {
-//                try {
-//                    if (closingTimeCell.getCellType() == CellType.NUMERIC) {
-//                        Date timeValue = DateUtil.getJavaDate(closingTimeCell.getNumericCellValue());
-//                        restaurant.setClosingTime(timeValue.toInstant()
-//                                .atZone(ZoneId.systemDefault())
-//                                .toLocalTime()
-//                                .withSecond(0)
-//                                .withNano(0));
-//                    } else {
-//                        String timeStr = closingTimeCell.getStringCellValue().trim();
-//                        DateTimeFormatter formatter;
-//                        if (timeStr.toUpperCase().contains("AM") || timeStr.toUpperCase().contains("PM")) {
-//                            formatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH);
-//                        } else {
-//                            formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
-//                        }
-//                        restaurant.setClosingTime(LocalTime.parse(timeStr, formatter));
-//                    }
-//                } catch (Exception e) {
-//                    System.out.println("⚠️ Could not parse closing time: " + closingTimeCell + " → " + e.getMessage());
-//                }
-//            }
-//
-//            
-//            restaurant.setOwnerId((long) row.getCell(23).getNumericCellValue());
-//            restaurant.setStatus(RestaurantStatus.APPROVED);
-//
-//            restaurant.setMenuCategories(new ArrayList<>()); // Initialize list
-//            map.put(restaurant.getName(), restaurant);
-//        }
-//
-//        return map;
-//    }
-//
-//    
-    
     
     private Map<String, Restaurant> parseRestaurants(Sheet sheet) {
         Map<String, Restaurant> map = new HashMap<>();
@@ -914,9 +802,6 @@ public class RestaurantService {
         }
     }
 
-    
-   
-    
     /**
      * Generate Excel Template for Admin Reference
      */
