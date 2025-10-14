@@ -1,22 +1,23 @@
 package com.quickbite.restaurantservice.service;
 
-import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.Instant;
+import java.time.LocalTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
-
-
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
+import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -34,6 +35,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
@@ -44,12 +46,8 @@ import com.lowagie.text.Phrase;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
-import com.quickbite.restaurantservice.dto.ImportReportDto;
 import com.quickbite.restaurantservice.dto.MenuCategoryDto;
 import com.quickbite.restaurantservice.dto.MenuItemDto;
-import com.quickbite.restaurantservice.dto.ParsedMenuCategory;
-import com.quickbite.restaurantservice.dto.ParsedMenuItem;
-import com.quickbite.restaurantservice.dto.ParsedRestaurant;
 import com.quickbite.restaurantservice.dto.RestaurantDto;
 import com.quickbite.restaurantservice.dto.RestaurantReviewDto;
 import com.quickbite.restaurantservice.entity.MenuCategory;
@@ -62,33 +60,14 @@ import com.quickbite.restaurantservice.repository.MenuCategoryRepository;
 import com.quickbite.restaurantservice.repository.MenuItemRepository;
 import com.quickbite.restaurantservice.repository.RestaurantRepository;
 import com.quickbite.restaurantservice.repository.RestaurantReviewRepository;
-import com.quickbite.restaurantservice.dto.MenuItemDto;
-import com.quickbite.restaurantservice.dto.RestaurantDto;
-import com.quickbite.restaurantservice.dto.RestaurantReviewDto;
-import com.quickbite.restaurantservice.entity.MenuCategory;
-import com.quickbite.restaurantservice.entity.MenuItem;
-import com.quickbite.restaurantservice.entity.Restaurant;
-import com.quickbite.restaurantservice.entity.RestaurantReview;
-import com.quickbite.restaurantservice.entity.RestaurantStatus;
-import com.quickbite.restaurantservice.repository.MenuCategoryRepository;
-import com.quickbite.restaurantservice.repository.MenuItemRepository;
-import com.quickbite.restaurantservice.repository.RestaurantRepository;
-import com.quickbite.restaurantservice.repository.RestaurantReviewRepository;
-import com.quickbite.restaurantservice.repository.CrossServiceJdbcRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+//Import at top if missing
+import java.time.format.DateTimeFormatter;
+import java.time.LocalTime;
+import java.util.Locale;
+import java.util.Date;
+
+
 
 @Service
 public class RestaurantService {
@@ -631,94 +610,313 @@ public class RestaurantService {
                 .body(out.toByteArray());
     }
 
-    /**
-     * Import restaurants from parsed Excel data
-     */
+      
+    private static final String RESTAURANT_SHEET = "Restaurants";
+    private static final String CATEGORY_SHEET = "MenuCategories";
+    private static final String ITEM_SHEET = "MenuItems";
+    
     @Transactional
-    public ImportReportDto importRestaurants(List<ParsedRestaurant> parsedList) {
-        int success = 0;
-        int fail = 0;
-        List<String> errors = new ArrayList();
+    public void importRestaurants(MultipartFile file) {
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
 
-        for (ParsedRestaurant parsed : parsedList) {
-            try {
-                Restaurant restaurant = new Restaurant();
-                restaurant.setName(parsed.getName());
-                restaurant.setCuisineType(parsed.getCuisineType());
-                restaurant.setAddress(parsed.getAddress());
-                restaurant.setContactNumber(parsed.getContactNumber());
-                restaurant.setDescription(parsed.getDescription());
-                restaurant.setImage(parsed.getImage());
-                restaurant.setCoverImage(parsed.getCoverImage());
-                restaurant.setRating(parsed.getRating());
-                restaurant.setTotalRatings(parsed.getTotalRatings());
-                restaurant.setDeliveryTime(parsed.getDeliveryTime());
-                restaurant.setDeliveryFee(parsed.getDeliveryFee());
-                restaurant.setMinimumOrder(parsed.getMinimumOrder());
-                restaurant.setIsOpen(parsed.getIsOpen());
-                restaurant.setIsActive(parsed.getIsActive());
-                restaurant.setIsVeg(parsed.getIsVeg());
-                restaurant.setIsPureVeg(parsed.getIsPureVeg());
-                restaurant.setOpeningHours(parsed.getOpeningHours());
-                restaurant.setDeliveryRadiusKm(parsed.getDeliveryRadiusKm());
-                restaurant.setLatitude(parsed.getLatitude());
-                restaurant.setLongitude(parsed.getLongitude());
-                restaurant.setTags(parsed.getTags());
-                restaurant.setOpeningTime(parsed.getOpeningTime());
-                restaurant.setClosingTime(parsed.getClosingTime());
-                restaurant.setOwnerId(parsed.getOwnerId());
-                restaurant.setStatus(RestaurantStatus.APPROVED);
-                
-//                ✅ Set ownerId from Excel or fallback
-//                restaurant.setOwnerId(parsed.getOwnerId());
+            Sheet restaurantSheet = workbook.getSheet(RESTAURANT_SHEET);
+            Sheet categorySheet = workbook.getSheet(CATEGORY_SHEET);
+            Sheet itemSheet = workbook.getSheet(ITEM_SHEET);
 
+            // 1️⃣ Parse all restaurants
+            Map<String, Restaurant> restaurantMap = parseRestaurants(restaurantSheet);
 
-                
-                List<MenuCategory> categories = new ArrayList<>();
-                for (ParsedMenuCategory catDto : parsed.getMenuCategories()) {
-                    MenuCategory category = new MenuCategory();
-                    category.setName(catDto.getName());
-                   
+            // 2️⃣ Parse all categories and attach to restaurants
+            Map<String, List<MenuCategory>> categoryMap = parseCategories(categorySheet, restaurantMap);
 
-                    List<MenuItem> items = new ArrayList<>();
-                    for (ParsedMenuItem itemDto : catDto.getMenuItems()) {
-                        MenuItem item = new MenuItem();
-                        item.setName(itemDto.getName());
-                        item.setDescription(itemDto.getDescription());
-                        item.setPrice(itemDto.getPrice());
-                        item.setImageUrl(itemDto.getImageUrl());
-                        item.setInStock(itemDto.getInStock() != null ? itemDto.getInStock() : true);
-                        item.setOriginalPrice(itemDto.getOriginalPrice());
-                        item.setIsVeg(itemDto.getIsVeg());
-                        item.setIsPopular(itemDto.getIsPopular());
-                        item.setPreparationTime(itemDto.getPreparationTime());
-                        item.setCustomizationJson(itemDto.getCustomizationJson());
-                        item.setNutritionJson(itemDto.getNutritionJson());
-                        items.add(item);
-                    }
-                    category.setMenuItems(items);
-                    categories.add(category);
-                }
+            // 3️⃣ Parse all items and attach to categories
+            parseMenuItems(itemSheet, categoryMap);
 
-                restaurant.setMenuCategories(categories);
+            // 4️⃣ Save all restaurants
+            for (Restaurant restaurant : restaurantMap.values()) {
                 restaurantRepository.save(restaurant);
-                success++;
-
-            } catch (Exception e) {
-                fail++;
-                errors.add("Failed: " + parsed.getName() + " -> " + e.getMessage());
             }
-        }
 
-        ImportReportDto report = new ImportReportDto();
-        report.setTotal(parsedList.size());
-        report.setSuccess(success);
-        report.setFailed(fail);
-        report.setErrors(errors);
-        return report;
+            System.out.println("✅ Imported " + restaurantMap.size() + " restaurants successfully!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("Failed to import restaurant data: " + e.getMessage());
+        }
     }
 
+
+
+//    private Map<String, Restaurant> parseRestaurants(Sheet sheet) {
+//        Map<String, Restaurant> map = new HashMap<>();
+//
+//        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+//            Row row = sheet.getRow(i);
+//            if (row == null) continue;
+//
+//            Restaurant restaurant = new Restaurant();
+//            restaurant.setName(row.getCell(0).getStringCellValue());
+//            restaurant.setCuisineType(row.getCell(1).getStringCellValue());
+//            restaurant.setAddress(row.getCell(2).getStringCellValue());
+//            restaurant.setContactNumber(row.getCell(3).getStringCellValue());
+//            restaurant.setDescription(row.getCell(4).getStringCellValue());
+//            restaurant.setImage(row.getCell(5).getStringCellValue());
+//            restaurant.setCoverImage(row.getCell(6).getStringCellValue());
+//            restaurant.setRating(row.getCell(7).getNumericCellValue());
+//            restaurant.setTotalRatings((int) row.getCell(8).getNumericCellValue());
+//            restaurant.setDeliveryTime(row.getCell(9).getStringCellValue());
+//            restaurant.setDeliveryFee(row.getCell(10).getNumericCellValue());
+//            restaurant.setMinimumOrder(row.getCell(11).getNumericCellValue());
+//            restaurant.setIsOpen(row.getCell(12).getStringCellValue().equalsIgnoreCase("Yes"));
+//            restaurant.setIsActive(row.getCell(13).getStringCellValue().equalsIgnoreCase("Yes"));
+//            restaurant.setIsVeg(row.getCell(14).getStringCellValue().equalsIgnoreCase("Yes"));
+//            restaurant.setIsPureVeg(row.getCell(15).getStringCellValue().equalsIgnoreCase("Yes"));
+//            restaurant.setOpeningHours(row.getCell(16).getStringCellValue());
+////            restaurant.setDeliveryRadiusKm(row.getCell(17).getStringCellValue());
+//            Cell deliveryRadiusCell = row.getCell(17);
+//            if (deliveryRadiusCell != null) {
+//                if (deliveryRadiusCell.getCellType() == CellType.NUMERIC) {
+//                    restaurant.setDeliveryRadiusKm((int) deliveryRadiusCell.getNumericCellValue());
+//                } else {
+//                    String radiusStr = deliveryRadiusCell.getStringCellValue();
+//                    try {
+//                        restaurant.setDeliveryRadiusKm(Integer.parseInt(radiusStr));
+//                    } catch (NumberFormatException e) {
+//                        restaurant.setDeliveryRadiusKm(0); // default or skip
+//                    }
+//                }
+//            }
+//            restaurant.setLatitude(row.getCell(18).getNumericCellValue());
+//            restaurant.setLongitude(row.getCell(19).getNumericCellValue());
+//            restaurant.setTags(row.getCell(20).getStringCellValue());
+//       
+//           
+//            // Handle Opening Time
+//            Cell openingTimeCell = row.getCell(21);
+//            if (openingTimeCell != null) {
+//                try {
+//                    if (openingTimeCell.getCellType() == CellType.NUMERIC) {
+//                        // Excel stores time as a numeric fraction of the day
+//                        Date timeValue = DateUtil.getJavaDate(openingTimeCell.getNumericCellValue());
+//                        restaurant.setOpeningTime(timeValue.toInstant()
+//                                .atZone(ZoneId.systemDefault())
+//                                .toLocalTime()
+//                                .withSecond(0)
+//                                .withNano(0));
+//                    } else {
+//                        String timeStr = openingTimeCell.getStringCellValue().trim();
+//                        DateTimeFormatter formatter;
+//                        if (timeStr.toUpperCase().contains("AM") || timeStr.toUpperCase().contains("PM")) {
+//                            formatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH);
+//                        } else {
+//                            formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
+//                        }
+//                        restaurant.setOpeningTime(LocalTime.parse(timeStr, formatter));
+//                    }
+//                } catch (Exception e) {
+//                    System.out.println("⚠️ Could not parse opening time: " + openingTimeCell + " → " + e.getMessage());
+//                }
+//            }
+//
+//            // Handle Closing Time
+//            Cell closingTimeCell = row.getCell(22);
+//            if (closingTimeCell != null) {
+//                try {
+//                    if (closingTimeCell.getCellType() == CellType.NUMERIC) {
+//                        Date timeValue = DateUtil.getJavaDate(closingTimeCell.getNumericCellValue());
+//                        restaurant.setClosingTime(timeValue.toInstant()
+//                                .atZone(ZoneId.systemDefault())
+//                                .toLocalTime()
+//                                .withSecond(0)
+//                                .withNano(0));
+//                    } else {
+//                        String timeStr = closingTimeCell.getStringCellValue().trim();
+//                        DateTimeFormatter formatter;
+//                        if (timeStr.toUpperCase().contains("AM") || timeStr.toUpperCase().contains("PM")) {
+//                            formatter = DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH);
+//                        } else {
+//                            formatter = DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
+//                        }
+//                        restaurant.setClosingTime(LocalTime.parse(timeStr, formatter));
+//                    }
+//                } catch (Exception e) {
+//                    System.out.println("⚠️ Could not parse closing time: " + closingTimeCell + " → " + e.getMessage());
+//                }
+//            }
+//
+//            
+//            restaurant.setOwnerId((long) row.getCell(23).getNumericCellValue());
+//            restaurant.setStatus(RestaurantStatus.APPROVED);
+//
+//            restaurant.setMenuCategories(new ArrayList<>()); // Initialize list
+//            map.put(restaurant.getName(), restaurant);
+//        }
+//
+//        return map;
+//    }
+//
+//    
+    
+    
+    private Map<String, Restaurant> parseRestaurants(Sheet sheet) {
+        Map<String, Restaurant> map = new HashMap<>();
+        DataFormatter formatter = new DataFormatter(); // <--- Add this
+
+        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) continue;
+
+            Restaurant restaurant = new Restaurant();
+
+            restaurant.setName(formatter.formatCellValue(row.getCell(0)));
+            restaurant.setCuisineType(formatter.formatCellValue(row.getCell(1)));
+            restaurant.setAddress(formatter.formatCellValue(row.getCell(2)));
+            restaurant.setContactNumber(formatter.formatCellValue(row.getCell(3)));
+            restaurant.setDescription(formatter.formatCellValue(row.getCell(4)));
+            restaurant.setImage(formatter.formatCellValue(row.getCell(5)));      // image URL safe
+            restaurant.setCoverImage(formatter.formatCellValue(row.getCell(6))); // cover image safe
+
+            // Numeric fields
+            String ratingStr = formatter.formatCellValue(row.getCell(7));
+            restaurant.setRating(ratingStr.isEmpty() ? 0 : Double.parseDouble(ratingStr));
+
+            String totalRatingsStr = formatter.formatCellValue(row.getCell(8));
+            restaurant.setTotalRatings(totalRatingsStr.isEmpty() ? 0 : Integer.parseInt(totalRatingsStr));
+
+            restaurant.setDeliveryTime(formatter.formatCellValue(row.getCell(9)));
+
+            String deliveryFeeStr = formatter.formatCellValue(row.getCell(10));
+            restaurant.setDeliveryFee(deliveryFeeStr.isEmpty() ? 0 : Double.parseDouble(deliveryFeeStr));
+
+            String minOrderStr = formatter.formatCellValue(row.getCell(11));
+            restaurant.setMinimumOrder(minOrderStr.isEmpty() ? 0 : Double.parseDouble(minOrderStr));
+
+            restaurant.setIsOpen(formatter.formatCellValue(row.getCell(12)).equalsIgnoreCase("Yes"));
+            restaurant.setIsActive(formatter.formatCellValue(row.getCell(13)).equalsIgnoreCase("Yes"));
+            restaurant.setIsVeg(formatter.formatCellValue(row.getCell(14)).equalsIgnoreCase("Yes"));
+            restaurant.setIsPureVeg(formatter.formatCellValue(row.getCell(15)).equalsIgnoreCase("Yes"));
+            restaurant.setOpeningHours(formatter.formatCellValue(row.getCell(16)));
+
+            // Delivery radius
+            String radiusStr = formatter.formatCellValue(row.getCell(17));
+            try {
+                restaurant.setDeliveryRadiusKm(radiusStr.isEmpty() ? 0 : Integer.parseInt(radiusStr));
+            } catch (NumberFormatException e) {
+                restaurant.setDeliveryRadiusKm(0);
+            }
+
+            // Latitude & Longitude
+            String latStr = formatter.formatCellValue(row.getCell(18));
+            restaurant.setLatitude(latStr.isEmpty() ? 0 : Double.parseDouble(latStr));
+
+            String lonStr = formatter.formatCellValue(row.getCell(19));
+            restaurant.setLongitude(lonStr.isEmpty() ? 0 : Double.parseDouble(lonStr));
+
+            restaurant.setTags(formatter.formatCellValue(row.getCell(20)));
+
+            // Opening / Closing Time
+            restaurant.setOpeningTime(parseTimeCell(row.getCell(21), formatter));
+            restaurant.setClosingTime(parseTimeCell(row.getCell(22), formatter));
+
+            String ownerIdStr = formatter.formatCellValue(row.getCell(23));
+            restaurant.setOwnerId(ownerIdStr.isEmpty() ? null : Long.parseLong(ownerIdStr));
+
+            restaurant.setStatus(RestaurantStatus.APPROVED);
+            restaurant.setMenuCategories(new ArrayList<>());
+
+            map.put(restaurant.getName(), restaurant);
+        }
+
+        return map;
+    }
+
+    // Helper method to safely parse time
+    private LocalTime parseTimeCell(Cell cell, DataFormatter formatter) {
+        if (cell == null) return null;
+        try {
+            if (cell.getCellType() == CellType.NUMERIC) {
+                Date timeValue = DateUtil.getJavaDate(cell.getNumericCellValue());
+                return timeValue.toInstant().atZone(ZoneId.systemDefault()).toLocalTime().withSecond(0).withNano(0);
+            } else {
+                String timeStr = formatter.formatCellValue(cell).trim();
+                DateTimeFormatter fmt = timeStr.toUpperCase().contains("AM") || timeStr.toUpperCase().contains("PM")
+                        ? DateTimeFormatter.ofPattern("hh:mm a", Locale.ENGLISH)
+                        : DateTimeFormatter.ofPattern("HH:mm", Locale.ENGLISH);
+                return LocalTime.parse(timeStr, fmt);
+            }
+        } catch (Exception e) {
+            System.out.println("⚠️ Could not parse time: " + cell + " → " + e.getMessage());
+            return null;
+        }
+    }
+
+    
+    
+    private Map<String, List<MenuCategory>> parseCategories(Sheet sheet, Map<String, Restaurant> restaurantMap) {
+        Map<String, List<MenuCategory>> categoryMap = new HashMap<>();
+
+        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) continue;
+
+            String restaurantName = row.getCell(0).getStringCellValue();
+            String categoryName = row.getCell(1).getStringCellValue();
+
+            Restaurant restaurant = restaurantMap.get(restaurantName);
+            if (restaurant == null) continue;
+
+            MenuCategory category = new MenuCategory();
+            category.setName(categoryName);
+            category.setMenuItems(new ArrayList<>()); // Initialize list
+
+            // Add category to restaurant list (handled by @JoinColumn)
+            restaurant.getMenuCategories().add(category);
+
+            categoryMap.computeIfAbsent(restaurantName, k -> new ArrayList<>()).add(category);
+        }
+
+        return categoryMap;
+    }
+
+    private void parseMenuItems(Sheet sheet, Map<String, List<MenuCategory>> categoryMap) {
+        for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            if (row == null) continue;
+
+            String restaurantName = row.getCell(0).getStringCellValue();
+            String categoryName = row.getCell(1).getStringCellValue();
+
+            List<MenuCategory> categories = categoryMap.get(restaurantName);
+            if (categories == null) continue;
+
+            MenuCategory category = categories.stream()
+                    .filter(c -> c.getName().equalsIgnoreCase(categoryName))
+                    .findFirst()
+                    .orElse(null);
+
+            if (category == null) continue;
+
+            MenuItem item = new MenuItem();
+            item.setName(row.getCell(2).getStringCellValue());
+            item.setDescription(row.getCell(3).getStringCellValue());
+            item.setPrice(row.getCell(4).getNumericCellValue());
+            item.setImageUrl(row.getCell(5).getStringCellValue());
+            item.setInStock(row.getCell(6).getStringCellValue().equalsIgnoreCase("Yes"));
+            item.setOriginalPrice(row.getCell(7).getNumericCellValue());
+            item.setIsVeg(row.getCell(8).getStringCellValue().equalsIgnoreCase("Yes"));
+            item.setIsPopular(row.getCell(9).getStringCellValue().equalsIgnoreCase("Yes"));
+            item.setPreparationTime((int) row.getCell(10).getNumericCellValue());
+            item.setCustomizationJson(row.getCell(11).getStringCellValue());
+            item.setNutritionJson(row.getCell(12).getStringCellValue());
+
+            // Add item to category list (handled by @JoinColumn)
+            category.getMenuItems().add(item);
+        }
+    }
+
+    
    
+    
     /**
      * Generate Excel Template for Admin Reference
      */

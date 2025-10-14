@@ -362,98 +362,6 @@ public class RestaurantController {
     }
     
 
-// // ✅ Export Restaurant to PDF
-// 	@GetMapping("/{id}/export/pdf")
-// 	public ResponseEntity<byte[]> exportRestaurantPdf(@PathVariable Long id) {
-// 		return restaurantService.exportRestaurantPdf(id);
-// 	}
-//
-// 	// 🟥 NEW: Export All Restaurants as Excel
-// 	@GetMapping("/export/excel")
-// 	public ResponseEntity<byte[]> exportRestaurantsExcel() {
-// 		return restaurantService.exportRestaurantsToExcel();
-// 	}
-//
-// 	@GetMapping("/export/admin/all/pdf")
-// 	public ResponseEntity<byte[]> adminExportAllRestaurantsPdf() {
-// 		return restaurantService.adminDownloadAllRestaurantsPdf();
-// 	}
-//
-// 	@Autowired
-// 	private ExcelRestaurantImporter excelImporter;
-//
-// 	@PostMapping("/import/excel")
-// 	public ResponseEntity<ApiResponse<ImportReportDto>> importRestaurantsFromExcel(
-// 			@RequestParam("file") MultipartFile file, HttpServletRequest request) throws IOException {
-//
-// 		String userRole = extractUserRole(request); // your existing helper
-// 		if (!"ADMIN".equals(userRole)) {
-// 			ApiResponse<ImportReportDto> body = ApiResponse.<ImportReportDto>builder().success(false)
-// 					.message("Only ADMIN can import restaurants").data(null).build();
-// 			return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
-// 		}
-//
-// 		if (file == null || file.isEmpty()) {
-// 			ApiResponse<ImportReportDto> body = ApiResponse.<ImportReportDto>builder().success(false)
-// 					.message("File is required").data(null).build();
-// 			return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
-// 		}
-//
-// 		if (!file.getOriginalFilename().toLowerCase().endsWith(".xlsx")) {
-// 			ApiResponse<ImportReportDto> body = ApiResponse.<ImportReportDto>builder().success(false)
-// 					.message("Only .xlsx files are supported").data(null).build();
-// 			return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
-// 		}
-//
-// 		List<ParsedRestaurant> parsed;
-// 		try (InputStream is = file.getInputStream()) {
-// 			parsed = excelImporter.parse(is);
-// 		} catch (Exception ex) {
-// 			ApiResponse<ImportReportDto> body = ApiResponse.<ImportReportDto>builder().success(false)
-// 					.message("Failed to parse Excel: " + ex.getMessage()).data(null).build();
-// 			return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
-// 		}
-//
-// 		ImportReportDto report = new ImportReportDto();
-// 		report.setTotal(parsed.size());
-//
-// 		for (ParsedRestaurant pr : parsed) {
-// 			try {
-// // Ensure ownerId present (ADMIN requirement)
-// 				if (pr.getRestaurantDto().getOwnerId() == null) {
-// 					report.addFailure(pr.getRowNumber(),
-// 							"ownerId is required for ADMIN-created restaurant (Restaurants sheet, row "
-// 									+ pr.getRowNumber() + ")");
-// 					continue;
-// 				}
-// // Do not set IDs (explicitly null)
-// 				pr.getRestaurantDto().setId(null);
-// 				if (pr.getRestaurantDto().getMenuCategories() != null) {
-// 					pr.getRestaurantDto().getMenuCategories().forEach(cat -> {
-// 						cat.setId(null);
-// 						if (cat.getMenuItems() != null) {
-// 							cat.getMenuItems().forEach(item -> item.setId(null));
-// 						}
-// 					});
-// 				}
-//
-// 				RestaurantDto created = restaurantService.createRestaurant(pr.getRestaurantDto());
-// 				report.addSuccess(pr.getRowNumber(), created);
-// 			} catch (Exception e) {
-// 				report.addFailure(pr.getRowNumber(), e.getMessage());
-// 			}
-// 		}
-//
-// 		ApiResponse<ImportReportDto> body = ApiResponse.<ImportReportDto>builder().success(true)
-// 				.message("Import completed").data(report).build();
-//
-// 		return new ResponseEntity<>(body, HttpStatus.OK);
-// 	}
-//
-// 	@GetMapping("/export/pdf/{ownerId}")
-// 	public ResponseEntity<byte[]> exportByOwnerPdf(@PathVariable Long ownerId,HttpServletRequest request) {
-// 	    return restaurantService.exportRestaurantsByOwnerPdf(ownerId);
-// 	}
 
  // ============================ IMPORT / EXPORT ============================
 
@@ -496,8 +404,6 @@ public class RestaurantController {
             @RequestParam(defaultValue = "excel") String format,
             HttpServletRequest request) throws IOException {
 
-//        String userRole = jwtUtil.extractUserRole(request);
-//        Long userId = jwtUtil.extractUserId(request);
     	String userRole = extractUserRole(request);
         Long userId = extractUserId(request);
         
@@ -525,39 +431,45 @@ public class RestaurantController {
      * 3️⃣ Import restaurants in bulk via Excel
      *    Accessible by ADMIN only
      */
+    
     @PostMapping("/import")
-    public ResponseEntity<ApiResponse<ImportReportDto>> importRestaurants(
+    public ResponseEntity<ApiResponse<String>> importRestaurants(
             @RequestParam("file") MultipartFile file,
             HttpServletRequest request) {
 
-//        String userRole = jwtUtil.extractUserRole(request);
-    	String userRole = extractUserRole(request);
-        
-        
+        // 🔹 Extract user role from JWT
+        String userRole = extractUserRole(request);
+
+        // 🔹 Restrict access to only ADMIN
         if (!"ADMIN".equalsIgnoreCase(userRole)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(ApiResponse.<ImportReportDto>builder()
+                    .body(ApiResponse.<String>builder()
                             .success(false)
-                            .message("Access denied: Only ADMIN can import data.")
+                            .message("Access denied: Only ADMIN can import restaurant data.")
                             .build());
         }
 
-        try (InputStream inputStream = file.getInputStream()) {
-            List<ParsedRestaurant> parsedData = excelRestaurantImporter.parse(inputStream);
-            ImportReportDto report = restaurantService.importRestaurants(parsedData);
-            return ResponseEntity.ok(ApiResponse.<ImportReportDto>builder()
-                    .success(true)
-                    .message("Restaurants imported successfully.")
-                    .data(report)
-                    .build());
+        try {
+            // 🔹 Call the import method (your updated version with workbook parsing)
+            restaurantService.importRestaurants(file);
+
+            return ResponseEntity.ok(
+                    ApiResponse.<String>builder()
+                            .success(true)
+                            .message("✅ Restaurant, MenuCategory, and MenuItem data imported successfully.")
+                            .data("Import completed successfully.")
+                            .build()
+            );
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(ApiResponse.<ImportReportDto>builder()
+                    .body(ApiResponse.<String>builder()
                             .success(false)
-                            .message("Error during import: " + e.getMessage())
+                            .message("❌ Error during import: " + e.getMessage())
                             .build());
         }
     }
+
 
     /**
      * 4️⃣ Download Excel Template
