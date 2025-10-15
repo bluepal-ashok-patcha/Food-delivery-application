@@ -298,7 +298,10 @@ const initialState = {
     page: 0,
     size: 12,
     sortBy: undefined,
-    sortDir: undefined
+    sortDir: undefined,
+    latitude: undefined,
+    longitude: undefined,
+    radiusKm: undefined
   }
 };
 

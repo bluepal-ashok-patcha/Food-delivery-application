@@ -1,10 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { Box, Container, Typography, TextField, InputAdornment } from '@mui/material';
-import { LocationOn, Search } from '@mui/icons-material';
+import { Box, Container, Typography, TextField, InputAdornment, IconButton, Tooltip } from '@mui/material';
+import { LocationOn, Search, MyLocation, LocationOff } from '@mui/icons-material';
 import { useSelector } from 'react-redux';
 import { userAPI } from '../../services/api';
 
-const HomeHeader = ({ searchQuery, setSearchQuery, onSearch }) => {
+const HomeHeader = ({ searchQuery, setSearchQuery, onSearch, userLocation, onLocationToggle, locationEnabled }) => {
   const { currentLocation } = useSelector((state) => state.location);
   const { isAuthenticated } = useSelector((state) => state.auth);
   const lastSyncRef = useRef({ lat: null, lng: null });
@@ -35,11 +35,32 @@ const HomeHeader = ({ searchQuery, setSearchQuery, onSearch }) => {
   return (
     <Box sx={{ backgroundColor: '#fc8019', color: 'white', py: 2, mb: 2 }}>
       <Container maxWidth="lg">
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <LocationOn sx={{ mr: 1, fontSize: 18, color: 'white' }} />
-          <Typography noWrap variant="body2" sx={{ fontWeight: 500, fontSize: '14px', color: 'white', maxWidth: '60%' }}>
-            Deliver to: {shortAddress}
-          </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', flex: 1 }}>
+            <LocationOn sx={{ mr: 1, fontSize: 18, color: 'white' }} />
+            <Typography noWrap variant="body2" sx={{ fontWeight: 500, fontSize: '14px', color: 'white', maxWidth: '60%' }}>
+              Deliver to: {shortAddress}
+            </Typography>
+          </Box>
+          
+          {/* Location Toggle Button */}
+          <Tooltip title={locationEnabled ? "Disable nearby search" : "Enable nearby search"}>
+            <IconButton
+              onClick={onLocationToggle}
+              sx={{
+                color: 'white',
+                backgroundColor: locationEnabled ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255,255,255,0.3)',
+                },
+                width: 36,
+                height: 36,
+                ml: 1
+              }}
+            >
+              {locationEnabled ? <MyLocation sx={{ fontSize: 20 }} /> : <LocationOff sx={{ fontSize: 20 }} />}
+            </IconButton>
+          </Tooltip>
         </Box>
       <Box sx={{ maxWidth: 600 }}>
         <TextField

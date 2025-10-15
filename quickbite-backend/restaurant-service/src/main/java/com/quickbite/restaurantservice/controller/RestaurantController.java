@@ -61,9 +61,12 @@ public class RestaurantController {
             @RequestParam(defaultValue = "id") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir,
             @RequestParam(required = false) String search,
-            @RequestParam(required = false) Boolean isPureVeg // <-- boolean param
+            @RequestParam(required = false) Boolean isPureVeg, // <-- boolean param
+            @RequestParam(required = false) Double latitude,
+            @RequestParam(required = false) Double longitude,
+            @RequestParam(required = false) Double radiusKm
     ) {
-        Page<Restaurant> pageData = restaurantService.getAllRestaurantsPage(page, size, sortBy, sortDir, search, isPureVeg);
+        Page<Restaurant> pageData = restaurantService.getAllRestaurantsPageWithLocation(page, size, sortBy, sortDir, search, isPureVeg, latitude, longitude, radiusKm);
 
         List<RestaurantDto> data = pageData.getContent().stream()
                 .filter(r -> r.getStatus() == RestaurantStatus.ACTIVE || r.getStatus() == RestaurantStatus.APPROVED)

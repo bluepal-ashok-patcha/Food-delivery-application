@@ -137,6 +137,19 @@ public class RestaurantService {
         // repository handles null/empty search and null isPureVeg
         return restaurantRepository.searchByNameCuisineOrMenuItems(search, isPureVeg, pageable);
     }
+
+    public Page<Restaurant> getAllRestaurantsPageWithLocation(int page, int size, String sortBy, String sortDir, String search, Boolean isPureVeg, Double latitude, Double longitude, Double radiusKm) {
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // Use location-based search if location parameters are provided
+        if (latitude != null && longitude != null && radiusKm != null) {
+            return restaurantRepository.searchByNameCuisineOrMenuItemsWithLocation(search, isPureVeg, latitude, longitude, radiusKm, pageable);
+        } else {
+            // Fall back to regular search if no location parameters
+            return restaurantRepository.searchByNameCuisineOrMenuItems(search, isPureVeg, pageable);
+        }
+    }
     
     @Transactional
     public RestaurantDto updateRestaurantStatus(Long id, RestaurantStatus status) {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Box, Typography, Button, Menu, MenuItem, ListItemIcon, ListItemText, FormControlLabel, Switch } from '@mui/material';
 import { FilterList, ArrowDownward, ArrowUpward, SortByAlpha } from '@mui/icons-material';
 
-const SortFilterBar = ({ count, onSelectSort, isPureVeg, onTogglePureVeg }) => {
+const SortFilterBar = ({ count, onSelectSort, isPureVeg, onTogglePureVeg, locationEnabled }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
@@ -22,7 +22,7 @@ const SortFilterBar = ({ count, onSelectSort, isPureVeg, onTogglePureVeg }) => {
       {/* Left: count */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <Typography variant="h6" sx={{ fontWeight: 600, color: '#333', fontSize: '16px' }}>
-          {count} restaurants near you
+          {count} restaurants {locationEnabled ? 'nearby (20km)' : 'available'}
         </Typography>
       </Box>
       {/* Right: Pure Veg toggle + Filter button */}

@@ -153,6 +153,11 @@ export const restaurantAPI = {
     if (filters.isOpen !== undefined) params.append('isOpen', filters.isOpen);
     if (filters.isPureVeg !== undefined) params.append('isPureVeg', filters.isPureVeg);
     
+    // Location-based filtering
+    if (filters.latitude !== undefined) params.append('latitude', filters.latitude);
+    if (filters.longitude !== undefined) params.append('longitude', filters.longitude);
+    if (filters.radiusKm !== undefined) params.append('radiusKm', filters.radiusKm);
+    
     const response = await api.get(`/api/restaurants?${params.toString()}`);
     return response.data;
   },

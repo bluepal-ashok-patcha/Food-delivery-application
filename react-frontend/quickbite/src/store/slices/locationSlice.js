@@ -1,33 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
-// Mock location data with Indian addresses
-const mockSavedAddresses = [
-  {
-    id: 1,
-    type: 'home',
-    name: 'Home',
-    address: '123 MG Road, Banjara Hills, Hyderabad, Telangana 500034',
-    coordinates: { lat: 17.4065, lng: 78.4772 },
-    isDefault: true
-  },
-  {
-    id: 2,
-    type: 'work',
-    name: 'Office',
-    address: '456 HITEC City, Madhapur, Hyderabad, Telangana 500081',
-    coordinates: { lat: 17.4488, lng: 78.3908 },
-    isDefault: false
-  },
-  {
-    id: 3,
-    type: 'other',
-    name: 'Mom\'s House',
-    address: '789 Jubilee Hills, Hyderabad, Telangana 500033',
-    coordinates: { lat: 17.4333, lng: 78.4167 },
-    isDefault: false
-  }
-];
-
 // Comprehensive area data for accurate geocoding
 const mockAreas = [
   // Central Hyderabad
@@ -160,7 +132,6 @@ const initialState = {
   },
   // Latest coordinates picked in map modal (raw), independent of reverse geocoded currentLocation
   selectedCoordinates: null,
-  savedAddresses: mockSavedAddresses,
   isDetectingLocation: false,
   isGeocoding: false,
   isReverseGeocoding: false,
@@ -180,38 +151,6 @@ const locationSlice = createSlice({
     },
     setSelectedCoordinates: (state, action) => {
       state.selectedCoordinates = action.payload; // { lat, lng }
-    },
-    addSavedAddress: (state, action) => {
-      const newAddress = {
-        ...action.payload,
-        id: Date.now(),
-        isDefault: state.savedAddresses.length === 0
-      };
-      state.savedAddresses.push(newAddress);
-    },
-    updateSavedAddress: (state, action) => {
-      const { id, updates } = action.payload;
-      const index = state.savedAddresses.findIndex(addr => addr.id === id);
-      if (index !== -1) {
-        state.savedAddresses[index] = { ...state.savedAddresses[index], ...updates };
-      }
-    },
-    deleteSavedAddress: (state, action) => {
-      state.savedAddresses = state.savedAddresses.filter(addr => addr.id !== action.payload);
-    },
-    setDefaultAddress: (state, action) => {
-      // Remove default from all addresses
-      state.savedAddresses.forEach(addr => addr.isDefault = false);
-      // Set new default
-      const index = state.savedAddresses.findIndex(addr => addr.id === action.payload);
-      if (index !== -1) {
-        state.savedAddresses[index].isDefault = true;
-        state.currentLocation = {
-          lat: state.savedAddresses[index].coordinates.lat,
-          lng: state.savedAddresses[index].coordinates.lng,
-          address: state.savedAddresses[index].address
-        };
-      }
     },
     openLocationModal: (state) => {
       state.isLocationModalOpen = true;
@@ -289,10 +228,6 @@ const locationSlice = createSlice({
 export const {
   setCurrentLocation,
   setSelectedCoordinates,
-  addSavedAddress,
-  updateSavedAddress,
-  deleteSavedAddress,
-  setDefaultAddress,
   openLocationModal,
   closeLocationModal,
   openMapModal,

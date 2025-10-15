@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Box, Container, Paper, Typography, Button, Chip, LinearProgress } from '@mui/material';
+import { Box, Container, Paper, Typography, Button, Chip, LinearProgress, Alert, Snackbar } from '@mui/material';
 import { deliveryAPI, orderAPI } from '../../services/api';
 import { fetchRestaurants, setFilters } from '../../store/slices/restaurantSlice';
 import { openLoginModal } from '../../store/slices/uiSlice';
@@ -10,23 +10,90 @@ import HomeHeader from '../../components/home/HomeHeader';
 import CategoriesBar from '../../components/home/CategoriesBar';
 import SortFilterBar from '../../components/home/SortFilterBar';
 import RestaurantCard from '../../components/home/RestaurantCard';
+import LocationService from '../../utils/locationService';
 
 const HomePage = () => {
   const dispatch = useDispatch();
   const { restaurants, restaurantsPage, loading, filters } = useSelector((state) => state.restaurants);
   const { isAuthenticated } = useSelector((state) => state.auth);
+  const { currentLocation } = useSelector((state) => state.location);
   const [activeOrder, setActiveOrder] = useState(null);
   const [activeAssignment, setActiveAssignment] = useState(null);
   const [activeLoading, setActiveLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [showFilters, setShowFilters] = useState(false);
+  
+  // Location-related state
+  const [userLocation, setUserLocation] = useState(null);
+  const [locationError, setLocationError] = useState(null);
+  const [locationPermission, setLocationPermission] = useState(null);
+  const [showLocationAlert, setShowLocationAlert] = useState(false);
+
+  // Location detection effect - prioritize navbar location, fallback to browser geolocation
+  useEffect(() => {
+    const detectLocation = async () => {
+      // First priority: Use location selected in navbar
+      if (currentLocation && currentLocation.lat && currentLocation.lng) {
+        console.log('Using navbar selected location:', currentLocation);
+        setUserLocation({
+          latitude: currentLocation.lat,
+          longitude: currentLocation.lng,
+          address: currentLocation.address
+        });
+        setLocationError(null);
+        
+        // Update filters with navbar location and default 20km radius
+        dispatch(setFilters({
+          latitude: currentLocation.lat,
+          longitude: currentLocation.lng,
+          radiusKm: LocationService.DEFAULT_RADIUS_KM
+        }));
+        return;
+      }
+
+      // Fallback: Use browser geolocation if no navbar location
+      if (!LocationService.isGeolocationSupported()) {
+        setLocationError('Geolocation is not supported by this browser');
+        return;
+      }
+
+      try {
+        const location = await LocationService.getCurrentLocation();
+        setUserLocation(location);
+        setLocationError(null);
+        
+        // Update filters with browser location and default 20km radius
+        dispatch(setFilters({
+          latitude: location.latitude,
+          longitude: location.longitude,
+          radiusKm: LocationService.DEFAULT_RADIUS_KM
+        }));
+      } catch (error) {
+        console.warn('Location detection failed:', error.message);
+        setLocationError(error.message);
+        setShowLocationAlert(true);
+        
+        // Clear location filters if location detection fails
+        dispatch(setFilters({
+          latitude: undefined,
+          longitude: undefined,
+          radiusKm: undefined
+        }));
+      }
+    };
+
+    detectLocation();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentLocation]); // Re-run when navbar location changes
 
   useEffect(() => {
     dispatch(fetchRestaurants(filters));
-  }, [dispatch, filters]);
+  }, [filters]); // Remove dispatch dependency
   // Fetch latest active order and assignment for banner
   useEffect(() => {
+    if (!isAuthenticated) return;
+    
     let cancelled = false;
     async function loadActive() {
       try {
@@ -55,9 +122,19 @@ const HomePage = () => {
         if (!cancelled) setActiveLoading(false);
       }
     }
-    if (isAuthenticated) loadActive();
-    const id = setInterval(() => { if (isAuthenticated) loadActive(); }, 10000);
-    return () => { cancelled = true; clearInterval(id); };
+    
+    // Load immediately
+    loadActive();
+    
+    // Poll every 30 seconds instead of 10 seconds to reduce flickering
+    const id = setInterval(() => { 
+      if (isAuthenticated && !cancelled) loadActive(); 
+    }, 30000);
+    
+    return () => { 
+      cancelled = true; 
+      clearInterval(id); 
+    };
   }, [isAuthenticated]);
 
   const goToTrack = () => {
@@ -93,7 +170,7 @@ const HomePage = () => {
       }
     }, 300);
     return () => clearTimeout(handler);
-  }, [searchQuery, filters.search, dispatch]);
+  }, [searchQuery, filters.search]); // Remove dispatch dependency
 
   // Initialize default sort only once
   useEffect(() => {
@@ -118,38 +195,120 @@ const HomePage = () => {
     dispatch(setFilters({ search: v }));
   };
 
-  const handleRestaurantClick = (restaurantId) => {
-    if (!isAuthenticated) {
-      dispatch(openLoginModal());
-      return;
-    }
+  const handleRestaurantClick = useCallback((restaurantId) => {
+    // Allow all users (logged-in and non-logged-in) to view restaurant pages
     window.location.href = `/restaurant/${restaurantId}`;
-  };
+  }, []);
 
-  const formatPrice = (price) => {
+  const handleRequestLocation = useCallback(async () => {
+    try {
+      const location = await LocationService.getCurrentLocation();
+      setUserLocation(location);
+      setLocationError(null);
+      setShowLocationAlert(false);
+      
+      // Update filters with location and default 20km radius
+      dispatch(setFilters({
+        latitude: location.latitude,
+        longitude: location.longitude,
+        radiusKm: LocationService.DEFAULT_RADIUS_KM
+      }));
+    } catch (error) {
+      console.warn('Manual location request failed:', error.message);
+      setLocationError(error.message);
+    }
+  }, [dispatch]);
+
+  const handleDismissLocationAlert = useCallback(() => {
+    setShowLocationAlert(false);
+  }, []);
+
+  const handleLocationToggle = useCallback(() => {
+    if (userLocation && filters.latitude && filters.longitude && filters.radiusKm) {
+      // Disable location-based filtering
+      dispatch(setFilters({
+        latitude: undefined,
+        longitude: undefined,
+        radiusKm: undefined
+      }));
+      setUserLocation(null);
+    } else {
+      // Enable location-based filtering
+      // If navbar has location, use it; otherwise request browser location
+      if (currentLocation && currentLocation.lat && currentLocation.lng) {
+        setUserLocation({
+          latitude: currentLocation.lat,
+          longitude: currentLocation.lng,
+          address: currentLocation.address
+        });
+        dispatch(setFilters({
+          latitude: currentLocation.lat,
+          longitude: currentLocation.lng,
+          radiusKm: LocationService.DEFAULT_RADIUS_KM
+        }));
+      } else {
+        handleRequestLocation();
+      }
+    }
+  }, [userLocation, filters.latitude, filters.longitude, filters.radiusKm, dispatch, handleRequestLocation, currentLocation]);
+
+  const formatPrice = useCallback((price) => {
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(price);
-  };
+  }, []);
 
-  // Keep header mounted; show loading state inline below
-
-  // Build cuisine categories from CURRENT results (respecting active search)
-  const cuisineCategories = (() => {
+  // Memoize expensive computations
+  const cuisineCategories = useMemo(() => {
     const names = Array.from(new Set(restaurants.map(r => r.cuisine).filter(Boolean)));
     const source = names.length ? names : (mockCategories.map(c => c.name));
     const items = source.map((name, idx) => ({ id: idx + 1, name }));
     return [{ id: 0, name: 'All' }, ...items];
-  })();
+  }, [restaurants]);
 
-  const activeCuisineName = filters.cuisine || 'All';
+  const activeCuisineName = useMemo(() => filters.cuisine || 'All', [filters.cuisine]);
+  
+  const locationEnabled = useMemo(() => 
+    userLocation && filters.latitude && filters.longitude && filters.radiusKm, 
+    [userLocation, filters.latitude, filters.longitude, filters.radiusKm]
+  );
 
   return (
     <Box sx={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      <HomeHeader searchQuery={searchQuery} setSearchQuery={setSearchQuery} onSearch={handleSearch} />
+      <HomeHeader 
+        searchQuery={searchQuery} 
+        setSearchQuery={setSearchQuery} 
+        onSearch={handleSearch}
+        userLocation={userLocation}
+        onLocationToggle={handleLocationToggle}
+        locationEnabled={locationEnabled}
+      />
+
+      {/* Location Alert */}
+      <Snackbar
+        open={showLocationAlert}
+        autoHideDuration={10000}
+        onClose={handleDismissLocationAlert}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          onClose={handleDismissLocationAlert}
+          severity="info"
+          sx={{ width: '100%' }}
+          action={
+            <Button color="inherit" size="small" onClick={handleRequestLocation}>
+              Enable Location
+            </Button>
+          }
+        >
+          {locationError === 'Location access denied by user' 
+            ? 'Enable location access or select a location in the navbar to see nearby restaurants within 20km'
+            : 'Unable to detect your location. Select a location in the navbar or enable location access to see nearby restaurants.'}
+        </Alert>
+      </Snackbar>
 
       <Container maxWidth="lg">
         {isAuthenticated && (activeLoading || activeOrder) && (
@@ -181,6 +340,7 @@ const HomePage = () => {
         <SortFilterBar
           count={restaurants.length}
           isPureVeg={filters.isPureVeg}
+          locationEnabled={locationEnabled}
           onTogglePureVeg={(checked) => dispatch(setFilters({ isPureVeg: checked ? true : undefined, page: 0 }))}
           onSelectSort={({ sortBy: sb, sortDir: sd }) => {
             if (!sb || !sd) {
@@ -191,6 +351,7 @@ const HomePage = () => {
             }
           }}
         />
+
 
         {loading.restaurants && restaurants.length === 0 ? (
           <LoadingSpinner fullScreen={false} message="Loading restaurants..." />

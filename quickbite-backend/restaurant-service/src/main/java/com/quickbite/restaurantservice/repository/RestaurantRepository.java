@@ -46,4 +46,42 @@ public interface RestaurantRepository extends JpaRepository<Restaurant, Long> {
     	            @Param("isPureVeg") Boolean isPureVeg,
     	            Pageable pageable
     	    );
+
+    // Location-based search using Haversine formula
+    @Query(
+        value = "SELECT DISTINCT r FROM Restaurant r " +
+                "LEFT JOIN r.menuCategories mc " +
+                "LEFT JOIN mc.menuItems mi " +
+                "WHERE ( :search IS NULL OR :search = '' " +
+                "   OR LOWER(r.name) LIKE CONCAT('%', LOWER(:search), '%') " +
+                "   OR LOWER(r.cuisineType) LIKE CONCAT('%', LOWER(:search), '%') " +
+                "   OR LOWER(mi.name) LIKE CONCAT('%', LOWER(:search), '%') " +
+                "   OR LOWER(mi.description) LIKE CONCAT('%', LOWER(:search), '%') ) " +
+                "AND ( :isPureVeg IS NULL OR r.isPureVeg = :isPureVeg ) " +
+                "AND ( :latitude IS NULL OR :longitude IS NULL OR :radiusKm IS NULL " +
+                "   OR (6371 * acos(cos(radians(:latitude)) * cos(radians(r.latitude)) * " +
+                "       cos(radians(r.longitude) - radians(:longitude)) + " +
+                "       sin(radians(:latitude)) * sin(radians(r.latitude)))) <= :radiusKm )",
+        countQuery = "SELECT COUNT(DISTINCT r.id) FROM Restaurant r " +
+                     "LEFT JOIN r.menuCategories mc " +
+                     "LEFT JOIN mc.menuItems mi " +
+                     "WHERE ( :search IS NULL OR :search = '' " +
+                     "   OR LOWER(r.name) LIKE CONCAT('%', LOWER(:search), '%') " +
+                     "   OR LOWER(r.cuisineType) LIKE CONCAT('%', LOWER(:search), '%') " +
+                     "   OR LOWER(mi.name) LIKE CONCAT('%', LOWER(:search), '%') " +
+                     "   OR LOWER(mi.description) LIKE CONCAT('%', LOWER(:search), '%') ) " +
+                     "AND ( :isPureVeg IS NULL OR r.isPureVeg = :isPureVeg ) " +
+                     "AND ( :latitude IS NULL OR :longitude IS NULL OR :radiusKm IS NULL " +
+                     "   OR (6371 * acos(cos(radians(:latitude)) * cos(radians(r.latitude)) * " +
+                     "       cos(radians(r.longitude) - radians(:longitude)) + " +
+                     "       sin(radians(:latitude)) * sin(radians(r.latitude)))) <= :radiusKm )"
+    )
+    Page<Restaurant> searchByNameCuisineOrMenuItemsWithLocation(
+            @Param("search") String search,
+            @Param("isPureVeg") Boolean isPureVeg,
+            @Param("latitude") Double latitude,
+            @Param("longitude") Double longitude,
+            @Param("radiusKm") Double radiusKm,
+            Pageable pageable
+    );
 }

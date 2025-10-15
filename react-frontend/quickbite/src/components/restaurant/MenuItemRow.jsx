@@ -1,9 +1,24 @@
 import React from 'react';
 import { Box, Paper, Typography, IconButton, Chip, Tooltip, Badge } from '@mui/material';
 import { AccessTime, Add, Remove, LocalFireDepartment, Star } from '@mui/icons-material';
+import { useDispatch } from 'react-redux';
+import { openLoginModal } from '../../store/slices/uiSlice';
 import ReadMoreText from '../common/ReadMoreText';
 
-const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice, isRestaurantClosed = false }) => (
+const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice, isRestaurantClosed = false, isAuthenticated = true }) => {
+  const dispatch = useDispatch();
+
+  const handleAddClick = () => {
+    if (!isAuthenticated) {
+      dispatch(openLoginModal());
+    } else if (isRestaurantClosed) {
+      alert('This restaurant is currently closed. You cannot add items to cart.');
+    } else {
+      onAdd();
+    }
+  };
+
+  return (
   <Paper sx={{ 
     p: 0, 
     display: 'flex', 
@@ -325,22 +340,36 @@ const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice, isRestauran
         </Box>
       )}
       
-      <Tooltip title={isRestaurantClosed ? "Restaurant is closed" : "Add to cart"}>
+      <Tooltip title={
+        !isAuthenticated 
+          ? "Login to add items to cart" 
+          : isRestaurantClosed 
+            ? "Restaurant is closed" 
+            : "Add to cart"
+      }>
         <IconButton 
-          onClick={isRestaurantClosed ? () => alert('This restaurant is currently closed. You cannot add items to cart.') : onAdd} 
+          onClick={handleAddClick} 
           size="small" 
           disabled={isRestaurantClosed}
           sx={{ 
-            background: isRestaurantClosed 
-              ? 'linear-gradient(135deg, #ccc 0%, #999 100%)'
-              : 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)',
+            background: !isAuthenticated 
+              ? 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)'
+              : isRestaurantClosed 
+                ? 'linear-gradient(135deg, #ccc 0%, #999 100%)'
+                : 'linear-gradient(135deg, #fc8019 0%, #ff6b35 100%)',
             color: 'white', 
             width: '40px', 
             height: '40px',
             borderRadius: '50%',
-            boxShadow: isRestaurantClosed ? 'none' : '0 4px 12px rgba(252, 128, 25, 0.3)',
+            boxShadow: !isAuthenticated 
+              ? '0 4px 12px rgba(255, 152, 0, 0.3)'
+              : isRestaurantClosed ? 'none' : '0 4px 12px rgba(252, 128, 25, 0.3)',
             cursor: isRestaurantClosed ? 'not-allowed' : 'pointer',
-            '&:hover': isRestaurantClosed ? {} : { 
+            '&:hover': !isAuthenticated ? {
+              background: 'linear-gradient(135deg, #f57c00 0%, #ef6c00 100%)',
+              transform: 'scale(1.1)',
+              boxShadow: '0 6px 16px rgba(255, 152, 0, 0.4)'
+            } : isRestaurantClosed ? {} : { 
               background: 'linear-gradient(135deg, #e6730a 0%, #e55a2b 100%)',
               transform: 'scale(1.1)',
               boxShadow: '0 6px 16px rgba(252, 128, 25, 0.4)'
@@ -353,7 +382,8 @@ const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice, isRestauran
       </Tooltip>
     </Box>
   </Paper>
-);
+  );
+};
 
 export default MenuItemRow;
 

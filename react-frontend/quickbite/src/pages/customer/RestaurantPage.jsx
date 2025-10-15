@@ -5,6 +5,7 @@ import { Box, Container, Typography, Grid, Chip, Divider, Paper, Avatar, Rating,
 import { ArrowBack, Star, AccessTime, LocalShipping, Phone, LocationOn, FavoriteBorder, Share, Menu } from '@mui/icons-material';
 import { fetchRestaurantById } from '../../store/slices/restaurantSlice';
 import { addToCartAsync, updateCartItemAsync, removeCartItemAsync, fetchCartPricing } from '../../store/slices/cartSlice';
+import { openLoginModal } from '../../store/slices/uiSlice';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import MenuItemRow from '../../components/restaurant/MenuItemRow';
 import FloatingCartButton from '../../components/common/FloatingCartButton';
@@ -17,6 +18,7 @@ const RestaurantPage = () => {
   const dispatch = useDispatch();
   const { currentRestaurant, loading } = useSelector((state) => state.restaurants);
   const { items, totalItems } = useSelector((state) => state.cart);
+  const { isAuthenticated } = useSelector((state) => state.auth);
   const [quantities, setQuantities] = useState({});
   const [menuModalOpen, setMenuModalOpen] = useState(false);
 
@@ -28,6 +30,12 @@ const RestaurantPage = () => {
   }, [dispatch, id]);
 
   const handleAddToCart = async (item) => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      dispatch(openLoginModal());
+      return;
+    }
+
     // Check if restaurant is closed
     if (!currentRestaurant.isOpen) {
       alert('This restaurant is currently closed. You cannot add items to cart.');
@@ -57,6 +65,12 @@ const RestaurantPage = () => {
   };
 
   const handleRemoveFromCart = async (item) => {
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      dispatch(openLoginModal());
+      return;
+    }
+
     const nextQty = Math.max(0, (quantities[item.id] || 1) - 1);
     await dispatch(updateCartItemAsync({ menuItemId: item.id, quantity: nextQty, customization: {} }));
     await dispatch(fetchCartPricing());
@@ -454,6 +468,7 @@ const RestaurantPage = () => {
                   onRemove={() => handleRemoveFromCart(item)}
                   formatPrice={formatPrice}
                   isRestaurantClosed={!currentRestaurant.isOpen}
+                  isAuthenticated={isAuthenticated}
                 />
                 ))}
             </Box>
@@ -573,7 +588,7 @@ const RestaurantPage = () => {
         </Paper>
       </Modal>
       
-      <FloatingCartButton totalItems={totalItems} onClick={() => navigate('/cart')} />
+      {isAuthenticated && <FloatingCartButton totalItems={totalItems} onClick={() => navigate('/cart')} />}
     </Box>
   );
 };
