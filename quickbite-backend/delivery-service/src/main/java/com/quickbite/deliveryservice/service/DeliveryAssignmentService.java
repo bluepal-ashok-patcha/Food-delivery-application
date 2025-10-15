@@ -45,6 +45,12 @@ public class DeliveryAssignmentService {
     @org.springframework.beans.factory.annotation.Value("${delivery.assignment.maxRadiusKm:15}")
     private double maxAssignmentRadiusKm;
 
+    @org.springframework.beans.factory.annotation.Value("${delivery.assignment.maxDeliveryRadiusKm:20}")
+    private double maxDeliveryRadiusKm;
+
+    @org.springframework.beans.factory.annotation.Value("${delivery.assignment.optimizeTotalDistance:true}")
+    private boolean optimizeTotalDistance;
+
     @Transactional
     public DeliveryAssignmentDto assignOrder(DeliveryAssignmentRequest request) {
         // Check if order is already assigned
@@ -56,9 +62,13 @@ public class DeliveryAssignmentService {
         EnrichedData enriched = enrichFromBackend(request);
 
         // Find the best available delivery partner
-        DeliveryPartner partner = findBestAvailablePartner(enriched.pickupLatitude, enriched.pickupLongitude);
+        DeliveryPartner partner = optimizeTotalDistance 
+            ? findBestAvailablePartnerOptimized(enriched.pickupLatitude, enriched.pickupLongitude,
+                                             enriched.deliveryLatitude, enriched.deliveryLongitude)
+            : findBestAvailablePartner(enriched.pickupLatitude, enriched.pickupLongitude);
+        
         if (partner == null) {
-            throw new IllegalArgumentException("No available delivery partners found");
+            throw new IllegalArgumentException("No available delivery partners found within delivery radius");
         }
 
         // Calculate estimated distance and duration
@@ -446,6 +456,75 @@ public class DeliveryAssignmentService {
         partnerRepository.save(partner);
 
         return convertToDto(saved);
+    }
+
+    /**
+     * Optimized partner selection that considers both partner-to-restaurant and restaurant-to-customer distances
+     * Selects the partner that results in the shortest total delivery distance
+     */
+    private DeliveryPartner findBestAvailablePartnerOptimized(Double pickupLat, Double pickupLng, 
+                                                             Double deliveryLat, Double deliveryLng) {
+        List<DeliveryPartner> availablePartners = partnerRepository.findByStatus(DeliveryPartnerStatus.AVAILABLE);
+        
+        if (availablePartners.isEmpty()) {
+            return null;
+        }
+
+        // First check if restaurant can deliver to customer
+        if (!isWithinDeliveryRadius(pickupLat, pickupLng, deliveryLat, deliveryLng)) {
+            log.warn("Customer is outside restaurant delivery radius ({}km)", maxDeliveryRadiusKm);
+            return null;
+        }
+
+        DeliveryPartner bestPartner = null;
+        double minTotalDistance = Double.MAX_VALUE;
+
+        for (DeliveryPartner partner : availablePartners) {
+            if (partner.getLatitude() != null && partner.getLongitude() != null) {
+                // Calculate partner → restaurant distance
+                double partnerToRestaurant = calculateDistanceInKm(
+                    pickupLat, pickupLng, 
+                    partner.getLatitude(), partner.getLongitude()
+                );
+                
+                // Calculate restaurant → customer distance
+                double restaurantToCustomer = calculateDistanceInKm(
+                    pickupLat, pickupLng,
+                    deliveryLat, deliveryLng
+                );
+                
+                // Calculate total delivery distance
+                double totalDistance = partnerToRestaurant + restaurantToCustomer;
+                
+                // Apply constraints
+                boolean withinPartnerRadius = partnerToRestaurant <= maxAssignmentRadiusKm;
+                boolean withinDeliveryRadius = restaurantToCustomer <= maxDeliveryRadiusKm;
+                
+                if (withinPartnerRadius && withinDeliveryRadius && totalDistance < minTotalDistance) {
+                    minTotalDistance = totalDistance;
+                    bestPartner = partner;
+                    log.debug("Found better partner: ID={}, Partner→Restaurant={}km, Restaurant→Customer={}km, Total={}km", 
+                             partner.getId(), partnerToRestaurant, restaurantToCustomer, totalDistance);
+                }
+            }
+        }
+
+        if (bestPartner != null) {
+            log.info("Selected partner {} with total distance {}km", bestPartner.getId(), minTotalDistance);
+        } else {
+            log.warn("No partners found within delivery constraints");
+        }
+
+        return bestPartner;
+    }
+
+    /**
+     * Check if customer is within restaurant's delivery radius
+     */
+    private boolean isWithinDeliveryRadius(Double restaurantLat, Double restaurantLng, 
+                                          Double customerLat, Double customerLng) {
+        double distance = calculateDistanceInKm(restaurantLat, restaurantLng, customerLat, customerLng);
+        return distance <= maxDeliveryRadiusKm;
     }
 
     private DeliveryPartner findBestAvailablePartner(Double pickupLat, Double pickupLng) {
