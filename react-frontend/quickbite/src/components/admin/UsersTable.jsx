@@ -79,11 +79,11 @@ const UsersTable = ({ users, onViewUser, onEditUser, onDeleteUser, onToggleActiv
               </TableCell>
               <TableCell>
                 <Chip 
-                  label={user.isActive ? 'Active' : 'Inactive'} 
+                  label={user.active ? 'Active' : 'Inactive'} 
                   variant="outlined"
                   onClick={() => onToggleActive && onToggleActive(user)}
                   sx={{
-                    background: user.isActive ? '#4caf50' : '#9e9e9e',
+                    background: user.active ? '#4caf50' : '#9e9e9e',
                     color: 'white',
                     fontWeight: 600,
                     fontSize: '12px',

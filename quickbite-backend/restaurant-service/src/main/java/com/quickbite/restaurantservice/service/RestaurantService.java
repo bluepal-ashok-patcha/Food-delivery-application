@@ -36,6 +36,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Caching;
 
 import com.lowagie.text.Document;
 import com.lowagie.text.Element;
@@ -49,6 +53,7 @@ import com.lowagie.text.pdf.PdfWriter;
 import com.quickbite.restaurantservice.dto.MenuCategoryDto;
 import com.quickbite.restaurantservice.dto.MenuItemDto;
 import com.quickbite.restaurantservice.dto.RestaurantDto;
+import com.quickbite.restaurantservice.dto.RestaurantsSearchCacheEntry;
 import com.quickbite.restaurantservice.dto.RestaurantReviewDto;
 import com.quickbite.restaurantservice.entity.MenuCategory;
 import com.quickbite.restaurantservice.entity.MenuItem;
@@ -95,6 +100,12 @@ public class RestaurantService {
     // --- Restaurant Management ---
 
     @Transactional
+    @Caching(
+        put = { @CachePut(value = "restaurantById", key = "#result.id") },
+        evict = {
+            @CacheEvict(value = {"restaurantsByOwner", "restaurantsSearch"}, allEntries = true)
+        }
+    )
     public RestaurantDto createRestaurant(RestaurantDto restaurantDto) {
         restaurantDto.setStatus(RestaurantStatus.PENDING_APPROVAL);
         Restaurant restaurant = convertToEntity(restaurantDto);
@@ -108,6 +119,7 @@ public class RestaurantService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "restaurantById", key = "#id")
     public RestaurantDto getRestaurantById(Long id) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Restaurant not found"));
@@ -122,6 +134,7 @@ public class RestaurantService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "restaurantsByOwner", key = "#ownerId")
     public List<RestaurantDto> getMyRestaurants(Long ownerId) {
         return restaurantRepository.findAll().stream()
                 .filter(r -> ownerId.equals(r.getOwnerId()))
@@ -150,8 +163,34 @@ public class RestaurantService {
             return restaurantRepository.searchByNameCuisineOrMenuItems(search, isPureVeg, pageable);
         }
     }
+
+    @Transactional(readOnly = true)
+    @Cacheable(
+            value = "restaurantsSearch",
+            key = "#root.methodName + ':' + #page + ':' + #size + ':' + #sortBy + ':' + #sortDir + ':' + (#search != null ? #search.trim() : '') + ':' + (#isPureVeg != null ? #isPureVeg : 'null') + ':' + (#latitude != null ? #latitude : 'null') + ':' + (#longitude != null ? #longitude : 'null') + ':' + (#radiusKm != null ? #radiusKm : 'null')"
+    )
+    public RestaurantsSearchCacheEntry getAllRestaurantsCached(int page, int size, String sortBy, String sortDir, String search, Boolean isPureVeg, Double latitude, Double longitude, Double radiusKm) {
+        Page<Restaurant> pageData = getAllRestaurantsPageWithLocation(page, size, sortBy, sortDir, search, isPureVeg, latitude, longitude, radiusKm);
+        List<RestaurantDto> data = pageData.getContent().stream()
+                .filter(r -> r.getStatus() == RestaurantStatus.ACTIVE || r.getStatus() == RestaurantStatus.APPROVED)
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+        return RestaurantsSearchCacheEntry.builder()
+                .data(data)
+                .currentPage(pageData.getNumber())
+                .size(pageData.getSize())
+                .totalElements(pageData.getTotalElements())
+                .totalPages(pageData.getTotalPages())
+                .hasNext(pageData.hasNext())
+                .hasPrevious(pageData.hasPrevious())
+                .build();
+    }
     
     @Transactional
+    @Caching(
+        put = { @CachePut(value = "restaurantById", key = "#result.id") },
+        evict = { @CacheEvict(value = {"restaurantsByOwner", "restaurantsSearch"}, allEntries = true) }
+    )
     public RestaurantDto updateRestaurantStatus(Long id, RestaurantStatus status) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Restaurant not found"));
@@ -176,6 +215,10 @@ public class RestaurantService {
     }
 
     @Transactional
+    @Caching(
+        put = { @CachePut(value = "restaurantById", key = "#result.id") },
+        evict = { @CacheEvict(value = {"restaurantsByOwner", "restaurantsSearch"}, allEntries = true) }
+    )
     public RestaurantDto updateRestaurantProfile(Long id, RestaurantDto restaurantDto) {
         Restaurant existingRestaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Restaurant not found"));
@@ -187,6 +230,10 @@ public class RestaurantService {
     }
 
     @Transactional
+    @Caching(
+        put = { @CachePut(value = "restaurantById", key = "#result.id") },
+        evict = { @CacheEvict(value = {"restaurantsByOwner", "restaurantsSearch"}, allEntries = true) }
+    )
     public RestaurantDto setRestaurantOpen(Long id, boolean isOpen) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Restaurant not found"));
@@ -197,6 +244,10 @@ public class RestaurantService {
     }
 
     @Transactional
+    @Caching(
+        put = { @CachePut(value = "restaurantById", key = "#result.id") },
+        evict = { @CacheEvict(value = {"restaurantsByOwner", "restaurantsSearch"}, allEntries = true) }
+    )
     public RestaurantDto setRestaurantActive(Long id, boolean isActive) {
         Restaurant restaurant = restaurantRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Restaurant not found"));
@@ -352,6 +403,7 @@ public class RestaurantService {
     // --- Reviews ---
 
     @Transactional
+    @CacheEvict(value = "restaurantReviewsByRestaurant", key = "#dto.restaurantId", condition = "#dto.restaurantId != null")
     public RestaurantReviewDto addReview(RestaurantReviewDto dto) {
         // Check if review already exists for this order and user
         if (dto.getOrderId() != null) {
@@ -372,6 +424,8 @@ public class RestaurantService {
         
         // Update restaurant rating and totalRatings
         updateRestaurantRating(dto.getRestaurantId());
+        // Evict cached reviews list for this restaurant
+        // (method-level eviction below to ensure cache coherence)
         
         RestaurantReviewDto out = new RestaurantReviewDto();
         BeanUtils.copyProperties(saved, out);
@@ -379,6 +433,7 @@ public class RestaurantService {
     }
 
     @Transactional(readOnly = true)
+    @Cacheable(value = "restaurantReviewsByRestaurant", key = "#restaurantId")
     public List<RestaurantReviewDto> listReviews(Long restaurantId) {
         return restaurantReviewRepository.findByRestaurantId(restaurantId).stream().map(r -> {
             RestaurantReviewDto d = new RestaurantReviewDto();
@@ -388,6 +443,7 @@ public class RestaurantService {
     }
 
     @Transactional
+    @CacheEvict(value = "restaurantReviewsByRestaurant", key = "#restaurantId")
     public RestaurantReviewDto updateReview(Long reviewId, RestaurantReviewDto dto) {
         RestaurantReview existing = restaurantReviewRepository.findById(reviewId)
             .orElseThrow(() -> new RuntimeException("Review not found"));
@@ -401,12 +457,14 @@ public class RestaurantService {
         // Update restaurant rating and totalRatings
         updateRestaurantRating(restaurantId);
         
+        
         RestaurantReviewDto out = new RestaurantReviewDto();
         BeanUtils.copyProperties(saved, out);
         return out;
     }
 
     @Transactional
+    @CacheEvict(value = "restaurantReviewsByRestaurant", key = "#restaurantId")
     public void deleteReview(Long reviewId) {
         RestaurantReview review = restaurantReviewRepository.findById(reviewId)
             .orElseThrow(() -> new RuntimeException("Review not found"));

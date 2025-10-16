@@ -36,11 +36,40 @@ const CartItemRow = ({ item, index, itemsLength, formatPrice }) => {
         <Box sx={{ flexGrow: 1, minWidth: 0 }}>
           <Typography variant="h6" sx={{ fontWeight: 600, color: '#333', mb: 0.5, fontSize: '16px' }}>{item.name || 'Menu Item'}</Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontSize: '14px' }}>{formatPrice(item.price)} each</Typography>
-          {item.customization && (
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontSize: '12px' }}>
-              {typeof item.customization === 'string' ? item.customization : Array.isArray(item.customization) ? item.customization.join(', ') : typeof item.customization === 'object' && item.customization !== null ? Object.entries(item.customization).map(([key, value]) => `${key}: ${value}`).join(', ') : ''}
-            </Typography>
-          )}
+          {(() => {
+            const c = item.customization;
+            let display = '';
+            const stringifyEntries = (obj) => {
+              const entries = Object.entries(obj).filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '');
+              return entries.length > 0 ? entries.map(([k, v]) => `${k}: ${v}`).join(', ') : '';
+            };
+            if (typeof c === 'string') {
+              const t = c.trim();
+              if (t === '' || t === '{}' || t === '[]' || t.toLowerCase() === 'null') {
+                display = '';
+              } else if ((t.startsWith('{') && t.endsWith('}')) || (t.startsWith('[') && t.endsWith(']'))) {
+                try {
+                  const parsed = JSON.parse(t);
+                  if (Array.isArray(parsed)) {
+                    display = parsed.filter(Boolean).join(', ');
+                  } else if (parsed && typeof parsed === 'object') {
+                    display = stringifyEntries(parsed);
+                  }
+                } catch (_) {
+                  display = t; // fallback to raw string
+                }
+              } else {
+                display = t;
+              }
+            } else if (Array.isArray(c)) {
+              display = c.filter(Boolean).join(', ');
+            } else if (c && typeof c === 'object') {
+              display = stringifyEntries(c);
+            }
+            return display ? (
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5, fontSize: '12px' }}>{display}</Typography>
+            ) : null;
+          })()}
           <Typography variant="body1" color="primary" sx={{ fontWeight: 600, fontSize: '14px' }}>Total: {formatPrice(item.price * item.quantity)}</Typography>
         </Box>
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1, flexShrink: 0 }}>

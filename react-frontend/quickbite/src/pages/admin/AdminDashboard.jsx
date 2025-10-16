@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect,useRef } from 'react';
-import { Box, Container, Paper, Grid, Tabs, Tab, TextField, Stack, Button, CircularProgress, Alert, Chip, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Divider,RadioGroup, FormControlLabel, Radio  } from '@mui/material';
+import { Box, Container, Paper, Grid, Tabs, Tab, TextField, Stack, Button, CircularProgress, Alert, Chip, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, Divider,RadioGroup, FormControlLabel, Radio, MenuItem  } from '@mui/material';
 import { People, Restaurant, AttachMoney, LocalShipping, Analytics, Receipt, TrendingUp,UploadFile, FileDownload } from '@mui/icons-material';
 import { useSelector, useDispatch } from 'react-redux';
 import { openMapModal } from '../../store/slices/locationSlice';
@@ -384,21 +384,28 @@ const AdminDashboard = () => {
 
                   sx={{ minWidth: 200 }}
 
-                  SelectProps={{ native: true }}
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        elevation: 4,
+                        sx: { mt: 1, borderRadius: '8px', border: 'none', overflow: 'hidden' }
+                      }
+                    }
+                  }}
 
                   InputLabelProps={{ shrink: true }}
 
                 >
 
-                  <option value="">All roles</option>
+                  <MenuItem value="">All roles</MenuItem>
 
-                  <option value="CUSTOMER">Customer</option>
+                  <MenuItem value="CUSTOMER">Customer</MenuItem>
 
-                  <option value="ADMIN">Admin</option>
+                  <MenuItem value="ADMIN">Admin</MenuItem>
 
-                  <option value="RESTAURANT_OWNER">Restaurant Owner</option>
+                  <MenuItem value="RESTAURANT_OWNER">Restaurant Owner</MenuItem>
 
-                  <option value="DELIVERY_PARTNER">Delivery Partner</option>
+                  <MenuItem value="DELIVERY_PARTNER">Delivery Partner</MenuItem>
 
                 </TextField>
 
@@ -444,7 +451,7 @@ const AdminDashboard = () => {
 
                 onDeleteUser={(user) => dispatch(deleteUser(user.id))}
 
-                  onToggleActive={(user) => dispatch(toggleUserStatus({ id: user.id, isActive: !user.isActive }))}
+                  onToggleActive={(user) => dispatch(toggleUserStatus({ id: user.id, isActive: !user.active }))}
               />
 
               )}
@@ -670,21 +677,28 @@ const AdminDashboard = () => {
 
                   sx={{ minWidth: 200 }}
 
-                  SelectProps={{ native: true }}
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        elevation: 4,
+                        sx: { mt: 1, borderRadius: '8px', border: 'none', overflow: 'hidden' }
+                      }
+                    }
+                  }}
 
                   InputLabelProps={{ shrink: true }}
 
                 >
 
-                  <option value="">All roles</option>
+                  <MenuItem value="">All roles</MenuItem>
 
-                  <option value="CUSTOMER">Customer</option>
+                  <MenuItem value="CUSTOMER">Customer</MenuItem>
 
-                  <option value="ADMIN">Admin</option>
+                  <MenuItem value="ADMIN">Admin</MenuItem>
 
-                  <option value="RESTAURANT_OWNER">Restaurant Owner</option>
+                  <MenuItem value="RESTAURANT_OWNER">Restaurant Owner</MenuItem>
 
-                  <option value="DELIVERY_PARTNER">Delivery Partner</option>
+                  <MenuItem value="DELIVERY_PARTNER">Delivery Partner</MenuItem>
 
                 </TextField>
 
@@ -730,7 +744,7 @@ const AdminDashboard = () => {
 
                 onDeleteUser={(user) => dispatch(deleteUser(user.id))}
 
-                  onToggleActive={(user) => dispatch(toggleUserStatus({ id: user.id, isActive: !user.isActive }))}
+                  onToggleActive={(user) => dispatch(toggleUserStatus({ id: user.id, isActive: !user.active }))}
               />
 
               )}
@@ -938,20 +952,27 @@ const AdminDashboard = () => {
                   }}
                   sx={{ minWidth: 220 }}
 
-                  SelectProps={{ native: true }}
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        elevation: 4,
+                        sx: { mt: 1, borderRadius: '8px', border: 'none', overflow: 'hidden' }
+                      }
+                    }
+                  }}
 
                   InputLabelProps={{ shrink: true }}
 
                 >
 
-                  <option value="ALL">All</option>
+                  <MenuItem value="ALL">All</MenuItem>
 
-                  <option value="PENDING_APPROVAL">Pending Approval</option>
-                  <option value="APPROVED">Approved</option>
+                  <MenuItem value="PENDING_APPROVAL">Pending Approval</MenuItem>
+                  <MenuItem value="APPROVED">Approved</MenuItem>
 
-                  <option value="REJECTED">Rejected</option>
-                  <option value="ACTIVE">Active</option>
-                  <option value="INACTIVE">Inactive</option>
+                  <MenuItem value="REJECTED">Rejected</MenuItem>
+                  <MenuItem value="ACTIVE">Active</MenuItem>
+                  <MenuItem value="INACTIVE">Inactive</MenuItem>
                 </TextField>
 
               </Stack>
@@ -1046,13 +1067,20 @@ const AdminDashboard = () => {
                     });
                   }}
                   sx={{ minWidth: 220 }}
-                  SelectProps={{ native: true }}
+                  SelectProps={{
+                    MenuProps: {
+                      PaperProps: {
+                        elevation: 4,
+                        sx: { mt: 1, borderRadius: '8px', border: 'none', overflow: 'hidden' }
+                      }
+                    }
+                  }}
                   InputLabelProps={{ shrink: true }}
                 >
-                  <option value="ALL">All</option>
-                  <option value="PENDING">Pending Approval</option>
-                  <option value="AVAILABLE">Available</option>
-                  <option value="OFFLINE">Offline</option>
+                  <MenuItem value="ALL">All</MenuItem>
+                  <MenuItem value="PENDING">Pending Approval</MenuItem>
+                  <MenuItem value="AVAILABLE">Available</MenuItem>
+                  <MenuItem value="OFFLINE">Offline</MenuItem>
                 </TextField>
               </Stack>
 

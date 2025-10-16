@@ -2,11 +2,12 @@ package com.quickbite.restaurantservice.dto;
 
 import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
+import java.io.Serializable;
 
 import java.util.List;
 
 @Data
-public class MenuCategoryDto {
+public class MenuCategoryDto implements Serializable {
 
     private Long id;
 

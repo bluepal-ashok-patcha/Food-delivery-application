@@ -1,7 +1,24 @@
 import React from 'react';
 import { Box, Card, CardContent, Typography, Divider, Alert, Button, CircularProgress } from '@mui/material';
 
-const OrderSummaryCard = ({ subtotal, deliveryFee, tax, total, appliedCoupon, onRemoveCoupon, onPlaceOrder, isProcessing, formatPrice }) => (
+const OrderSummaryCard = ({ subtotal, deliveryFee, tax, total, appliedCoupon, onRemoveCoupon, onPlaceOrder, isProcessing, formatPrice }) => {
+  const computeDiscount = () => {
+    if (!appliedCoupon) return 0;
+    if (typeof appliedCoupon.discountAmount === 'number') return appliedCoupon.discountAmount;
+    const value = Number(appliedCoupon.discountValue) || 0;
+    const type = (appliedCoupon.discountType || 'percentage').toLowerCase();
+    if (type === 'percentage') {
+      let d = (subtotal * value) / 100;
+      const cap = Number(appliedCoupon.maxDiscount);
+      if (!Number.isNaN(cap) && cap > 0) d = Math.min(d, cap);
+      return d;
+    }
+    return value;
+  };
+  const derivedDiscount = Math.max(0, (subtotal + deliveryFee + tax) - total);
+  const discount = Math.max(computeDiscount(), derivedDiscount);
+
+  return (
   <Card sx={{ borderRadius: '3px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', position: 'sticky', top: 20 }}>
     <CardContent sx={{ p: 2 }}>
       <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#333', fontSize: '16px' }}>Order Summary</Typography>
@@ -18,12 +35,12 @@ const OrderSummaryCard = ({ subtotal, deliveryFee, tax, total, appliedCoupon, on
           <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>Tax</Typography>
           <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '14px' }}>{formatPrice(tax)}</Typography>
         </Box>
-        {appliedCoupon && (
+        {discount > 0 && (
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
-            <Typography variant="body2" color="success.main" sx={{ fontSize: '14px' }}>Discount ({appliedCoupon.code})</Typography>
-            <Typography variant="body2" color="success.main" sx={{ fontWeight: 500, fontSize: '14px' }}>
-              -{formatPrice((subtotal * appliedCoupon.discountValue) / 100)}
+            <Typography variant="body2" color="success.main" sx={{ fontSize: '14px' }}>
+              {appliedCoupon?.code ? `Discount (${appliedCoupon.code})` : 'Discount'}
             </Typography>
+            <Typography variant="body2" color="success.main" sx={{ fontWeight: 500, fontSize: '14px' }}>-{formatPrice(discount)}</Typography>
           </Box>
         )}
       </Box>
@@ -38,7 +55,8 @@ const OrderSummaryCard = ({ subtotal, deliveryFee, tax, total, appliedCoupon, on
       {/* <Alert severity="info" sx={{ mt: 2, fontSize: '12px' }}>By placing this order, you agree to our Terms & Conditions</Alert> */}
     </CardContent>
   </Card>
-);
+  );
+};
 
 export default OrderSummaryCard;
 

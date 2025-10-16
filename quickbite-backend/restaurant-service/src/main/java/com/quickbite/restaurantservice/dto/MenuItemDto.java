@@ -4,9 +4,10 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import java.io.Serializable;
 
 @Data
-public class MenuItemDto {
+public class MenuItemDto implements Serializable {
 
     private Long id;
 

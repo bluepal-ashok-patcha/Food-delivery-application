@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Paper, Typography, IconButton, Chip, Tooltip, Badge } from '@mui/material';
+import { Box, Paper, Typography, IconButton, Chip, Tooltip } from '@mui/material';
 import { AccessTime, Add, Remove, LocalFireDepartment, Star } from '@mui/icons-material';
 import { useDispatch } from 'react-redux';
 import { openLoginModal } from '../../store/slices/uiSlice';
@@ -312,32 +312,18 @@ const MenuItemRow = ({ item, quantity, onAdd, onRemove, formatPrice, isRestauran
               <Remove sx={{ fontSize: '18px' }} />
             </IconButton>
           </Tooltip>
-          
-          <Badge
-            badgeContent={quantity}
-            sx={{
-              '& .MuiBadge-badge': {
-                backgroundColor: '#fc8019',
-                color: 'white',
-                fontWeight: 700,
-                fontSize: '12px',
-                minWidth: 24,
-                height: 24,
-                borderRadius: '12px'
-              }
-            }}
-          >
-            <Typography variant="body1" sx={{ 
-              minWidth: 32, 
-              textAlign: 'center', 
-              fontWeight: 700, 
-              fontSize: '16px', 
-              color: '#333' 
-            }}>
-              {quantity}
-            </Typography>
-          </Badge>
         </Box>
+      )}
+      {quantity > 0 && (
+        <Typography variant="body1" sx={{ 
+          minWidth: 32, 
+          textAlign: 'center', 
+          fontWeight: 700, 
+          fontSize: '16px', 
+          color: '#333' 
+        }}>
+          {quantity}
+        </Typography>
       )}
       
       <Tooltip title={

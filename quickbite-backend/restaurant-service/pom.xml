@@ -71,6 +71,12 @@
 			<artifactId>spring-boot-starter-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+		<!-- Redis cache -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-redis</artifactId>
+			<version>3.4.5</version>
+		</dependency>
 		 <!-- ✅ For PDF Export using OpenPDF -->
 <dependency>
     <groupId>com.github.librepdf</groupId>

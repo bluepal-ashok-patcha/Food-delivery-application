@@ -275,28 +275,25 @@ const ProfilePage = () => {
               <Typography variant="h6" sx={{ fontWeight: 700, fontSize: '18px' }}>
                 Personal Information
               </Typography>
-              <Button
-                variant={isEditing ? 'outlined' : 'contained'}
-                startIcon={isEditing ? <Cancel /> : <Edit />}
-                onClick={() => {
-                  if (isEditing) {
-                    formik.resetForm();
-                  }
-                  setIsEditing(!isEditing);
-                }}
-                size="small"
-                sx={{ 
-                  fontSize: '13px',
-                  px: 2,
-                  py: 1,
-                  borderRadius: '3px',
-                  backgroundColor: isEditing ? undefined : '#fc8019',
-                  color: isEditing ? undefined : 'white',
-                  '&:hover': { backgroundColor: isEditing ? undefined : '#e6730a' }
-                }}
-              >
-                {isEditing ? 'Cancel' : 'Edit'}
-              </Button>
+              {!isEditing && (
+                <Button
+                  variant="contained"
+                  startIcon={<Edit />}
+                  onClick={() => setIsEditing(true)}
+                  size="small"
+                  sx={{ 
+                    fontSize: '13px',
+                    px: 2,
+                    py: 1,
+                    borderRadius: '3px',
+                    backgroundColor: '#fc8019',
+                    color: 'white',
+                    '&:hover': { backgroundColor: '#e6730a' }
+                  }}
+                >
+                  Edit
+                </Button>
+              )}
             </Box>
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
@@ -343,23 +340,7 @@ const ProfilePage = () => {
               </Grid>
             </Grid>
             {isEditing && (
-              <Box sx={{ mt: 2, display: 'flex', gap: 1.5 }}>
-                <Button
-                  variant="contained"
-                  startIcon={<Save />}
-                  onClick={formik.handleSubmit}
-                  size="small"
-                  sx={{ 
-                    backgroundColor: '#fc8019',
-                    '&:hover': { backgroundColor: '#e6730a' },
-                    fontSize: '13px',
-                    px: 2,
-                    py: 1,
-                    borderRadius: '3px'
-                  }}
-                >
-                  Save Changes
-                </Button>
+              <Box sx={{ mt: 2, display: 'flex', gap: 1.5, justifyContent: 'flex-end' }}>
                 <Button
                   variant="outlined"
                   onClick={() => {
@@ -375,6 +356,22 @@ const ProfilePage = () => {
                   }}
                 >
                   Cancel
+                </Button>
+                <Button
+                  variant="contained"
+                  startIcon={<Save />}
+                  onClick={formik.handleSubmit}
+                  size="small"
+                  sx={{ 
+                    backgroundColor: '#fc8019',
+                    '&:hover': { backgroundColor: '#e6730a' },
+                    fontSize: '13px',
+                    px: 2,
+                    py: 1,
+                    borderRadius: '3px'
+                  }}
+                >
+                  Save Changes
                 </Button>
               </Box>
             )}

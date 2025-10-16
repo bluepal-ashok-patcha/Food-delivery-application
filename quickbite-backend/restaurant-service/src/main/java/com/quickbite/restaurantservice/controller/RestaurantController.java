@@ -66,28 +66,20 @@ public class RestaurantController {
             @RequestParam(required = false) Double longitude,
             @RequestParam(required = false) Double radiusKm
     ) {
-        Page<Restaurant> pageData = restaurantService.getAllRestaurantsPageWithLocation(page, size, sortBy, sortDir, search, isPureVeg, latitude, longitude, radiusKm);
-
-        List<RestaurantDto> data = pageData.getContent().stream()
-                .filter(r -> r.getStatus() == RestaurantStatus.ACTIVE || r.getStatus() == RestaurantStatus.APPROVED)
-                .map(r -> {
-                    RestaurantDto dto = new RestaurantDto();
-                    org.springframework.beans.BeanUtils.copyProperties(r, dto);
-                    // convert menu categories/items to DTOs if needed...
-                    return dto;
-                }).collect(Collectors.toList());
+        // Build or fetch cached list + page meta
+        var cached = restaurantService.getAllRestaurantsCached(page, size, sortBy, sortDir, search, isPureVeg, latitude, longitude, radiusKm);
 
         ApiResponse<List<RestaurantDto>> body = ApiResponse.<List<RestaurantDto>>builder()
                 .success(true)
                 .message("Restaurants fetched successfully")
-                .data(data)
+                .data(cached.getData())
                 .page(ApiResponse.PageMeta.builder()
-                        .currentPage(pageData.getNumber())
-                        .size(pageData.getSize())
-                        .totalElements(pageData.getTotalElements())
-                        .totalPages(pageData.getTotalPages())
-                        .hasNext(pageData.hasNext())
-                        .hasPrevious(pageData.hasPrevious())
+                        .currentPage(cached.getCurrentPage())
+                        .size(cached.getSize())
+                        .totalElements(cached.getTotalElements())
+                        .totalPages(cached.getTotalPages())
+                        .hasNext(cached.isHasNext())
+                        .hasPrevious(cached.isHasPrevious())
                         .build())
                 .build();
         return ResponseEntity.ok(body);

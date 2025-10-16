@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Box, Typography, Button, Menu, MenuItem, ListItemIcon, ListItemText, FormControlLabel, Switch } from '@mui/material';
+import { Box, Typography, Button, Menu, MenuItem, ListItemIcon, ListItemText, Switch } from '@mui/material';
 import { FilterList, ArrowDownward, ArrowUpward, SortByAlpha } from '@mui/icons-material';
 
-const SortFilterBar = ({ count, onSelectSort, isPureVeg, onTogglePureVeg, locationEnabled }) => {
+const SortFilterBar = ({ count, onSelectSort, isPureVeg, onTogglePureVeg, locationEnabled, onToggleNearby }) => {
   const [anchorEl, setAnchorEl] = useState(null);
   const open = Boolean(anchorEl);
 
@@ -25,7 +25,7 @@ const SortFilterBar = ({ count, onSelectSort, isPureVeg, onTogglePureVeg, locati
           {count} restaurants {locationEnabled ? 'nearby (20km)' : 'available'}
         </Typography>
       </Box>
-      {/* Right: Pure Veg toggle + Filter button */}
+      {/* Right: Pure Veg toggle + Nearby toggle + Filter button */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 0.5, borderRadius: '16px', backgroundColor: '#f8f9fa', border: '1px solid #e0e0e0' }}>
           <Switch 
@@ -39,6 +39,19 @@ const SortFilterBar = ({ count, onSelectSort, isPureVeg, onTogglePureVeg, locati
             }}
           />
           <Typography variant="body2" sx={{ fontWeight: 600, color: '#333', fontSize: '13px' }}>Pure Veg</Typography>
+        </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 0.5, borderRadius: '16px', backgroundColor: '#f8f9fa', border: '1px solid #e0e0e0' }}>
+          <Switch 
+            checked={!!locationEnabled} 
+            onChange={() => onToggleNearby?.()} 
+            size="small"
+            sx={{
+              '& .MuiSwitch-switchBase.Mui-checked': { color: '#0ea5e9' },
+              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#0ea5e9' },
+              '& .MuiSwitch-track': { backgroundColor: '#d0d7de' }
+            }}
+          />
+          <Typography variant="body2" sx={{ fontWeight: 600, color: '#333', fontSize: '13px' }}>Nearby</Typography>
         </Box>
         <Button
           variant="outlined"

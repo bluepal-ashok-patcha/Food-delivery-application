@@ -481,7 +481,7 @@ const CartPage = () => {
                     onChange={(e) => setDeliveryInstructions(e.target.value)}
                     size="small"
                     multiline
-                    rows={4}
+                    rows={2}
                     sx={{
                       '& .MuiOutlinedInput-root': {
                         borderRadius: '3px',
@@ -498,50 +498,8 @@ const CartPage = () => {
           <Box sx={{ width: { xs: '100%', md: '380px' }, flexShrink: 0 }}>
             <Card sx={{ borderRadius: '3px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', position: 'sticky', top: 20 }}>
               <CardContent sx={{ p: 2 }}>
-                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: '#333', fontSize: '16px' }}>
-                  Order Summary
-                </Typography>
-                
-                <Box sx={{ mb: 2 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>Subtotal</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '14px' }}>{formatPrice(subtotal)}</Typography>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>Delivery Fee</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '14px' }}>{formatPrice(deliveryFee)}</Typography>
-                  </Box>
-                  
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: '14px' }}>Tax</Typography>
-                    <Typography variant="body2" sx={{ fontWeight: 500, fontSize: '14px' }}>{formatPrice(tax)}</Typography>
-                  </Box>
-                  
-                  {appliedCoupon && (
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.75 }}>
-                      <Typography variant="body2" color="success.main" sx={{ fontSize: '14px' }}>Discount ({appliedCoupon.code})</Typography>
-                      <Typography variant="body2" color="success.main" sx={{ fontWeight: 500, fontSize: '14px' }}>
-                        -{formatPrice((subtotal * appliedCoupon.discountValue) / 100)}
-                      </Typography>
-                    </Box>
-                  )}
-                </Box>
-                
-                <Divider sx={{ my: 1.5 }} />
-                
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#333', fontSize: '16px' }}>
-                    Total
-                  </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#fc8019', fontSize: '16px' }}>
-                    {formatPrice(total)}
-                  </Typography>
-                </Box>
-
                 <CouponAccordion couponCode={couponCode} setCouponCode={setCouponCode} isApplying={isApplyingCoupon} onApply={handleApplyCoupon} appliedCoupon={appliedCoupon} appliedCouponCode={appliedCouponCode} onRemoveCoupon={async () => { await dispatch(removeCouponAsync()).unwrap(); await dispatch(fetchCartPricing()); }} />
                 <PaymentMethodAccordion paymentMethod={paymentMethod} setPaymentMethod={setPaymentMethod} />
-
                 <OrderSummaryCard subtotal={subtotal} deliveryFee={deliveryFee} tax={tax} total={total} appliedCoupon={appliedCoupon} onPlaceOrder={handlePlaceOrder} isProcessing={isProcessing} formatPrice={formatPrice} />
               </CardContent>
             </Card>

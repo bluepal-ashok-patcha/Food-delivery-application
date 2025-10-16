@@ -263,10 +263,12 @@ const HomePage = () => {
 
   // Memoize expensive computations
   const cuisineCategories = useMemo(() => {
-    const names = Array.from(new Set(restaurants.map(r => r.cuisine).filter(Boolean)));
-    const source = names.length ? names : (mockCategories.map(c => c.name));
-    const items = source.map((name, idx) => ({ id: idx + 1, name }));
-    return [{ id: 0, name: 'All' }, ...items];
+    // Always start from predefined popular categories to keep them visible
+    const baseNames = mockCategories.map(c => c.name);
+    // Merge with whatever cuisines are present in current results (no duplicates)
+    const dynamicNames = Array.from(new Set(restaurants.map(r => r.cuisine).filter(Boolean)));
+    const merged = Array.from(new Set(['All', ...baseNames, ...dynamicNames]));
+    return merged.map((name, idx) => ({ id: idx, name }));
   }, [restaurants]);
 
   const activeCuisineName = useMemo(() => filters.cuisine || 'All', [filters.cuisine]);
@@ -282,9 +284,6 @@ const HomePage = () => {
         searchQuery={searchQuery} 
         setSearchQuery={setSearchQuery} 
         onSearch={handleSearch}
-        userLocation={userLocation}
-        onLocationToggle={handleLocationToggle}
-        locationEnabled={locationEnabled}
       />
 
       {/* Location Alert */}
@@ -341,6 +340,7 @@ const HomePage = () => {
           count={restaurants.length}
           isPureVeg={filters.isPureVeg}
           locationEnabled={locationEnabled}
+          onToggleNearby={handleLocationToggle}
           onTogglePureVeg={(checked) => dispatch(setFilters({ isPureVeg: checked ? true : undefined, page: 0 }))}
           onSelectSort={({ sortBy: sb, sortDir: sd }) => {
             if (!sb || !sd) {

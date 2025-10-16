@@ -4,11 +4,12 @@ import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
+import java.io.Serializable;
 
 import java.time.Instant;
 
 @Data
-public class RestaurantReviewDto {
+public class RestaurantReviewDto implements Serializable {
     private Long id;
     private Long restaurantId; // Set by controller from path variable
     private Long userId; // from token

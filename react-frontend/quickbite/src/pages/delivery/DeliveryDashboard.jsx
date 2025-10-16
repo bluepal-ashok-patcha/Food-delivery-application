@@ -1039,7 +1039,6 @@ const DeliveryDashboard = () => {
                           ]}
                           dataKey="value"
                           xAxisKey="name"
-                          color="#6c757d"
                           height={400}
                           formatXAxis={(value) => value}
                           formatYAxis={(value) => value}
@@ -1060,7 +1059,6 @@ const DeliveryDashboard = () => {
                           ]}
                           dataKey="value"
                           xAxisKey="name"
-                          color="#6c757d"
                           height={400}
                           formatXAxis={(value) => value.replace(' Rate', '').replace('Avg Rating', 'Rating')}
                           formatYAxis={(value) => `${value.toFixed(1)}%`}

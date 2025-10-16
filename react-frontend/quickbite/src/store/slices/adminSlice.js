@@ -689,7 +689,7 @@ const adminSlice = createSlice({
       .addCase(toggleUserStatus.fulfilled, (state, action) => {
         const user = state.users.find(u => u.id === action.payload.data.id);
         if (user) {
-          user.isActive = action.payload.data.isActive;
+          user.active = action.payload.data.active;
         }
       });
 
